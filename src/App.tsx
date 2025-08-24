@@ -1,35 +1,39 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Suspense } from 'react';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { routes } from '@/router/index';
+import { Flex, ProgressCircle } from '@chakra-ui/react';
 
 function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    return (
+        <Suspense
+            fallback={
+                <Flex w='100%' h='100vh' bgColor='gray.400' opacity={0.6} justifyContent='center' alignItems='center'>
+                    <ProgressCircle.Root value={null} size="xl">
+                        <ProgressCircle.Circle>
+                            <ProgressCircle.Track />
+                            <ProgressCircle.Range />
+                        </ProgressCircle.Circle>
+                    </ProgressCircle.Root>
+                </Flex>
+            }
+        >
+            <BrowserRouter>
+                <Routes>
+                    {routes.map(({ name, path, component: Component, children }, idx) => (
+                        <Route key={`${name}-${idx}`} path={path} element={<Component />}>
+                            {children?.map(({ name, path, component: Component, children: childs }, idx) => (
+                                <Route key={`${name}-${idx}`} path={path} element={<Component />}>
+                                    {childs?.map(({ name, path, component: Component }) => (
+                                        <Route key={name} path={path} element={<Component />} />
+                                    ))}
+                                </Route>
+                            ))}
+                        </Route>
+                    ))}
+                </Routes>
+            </BrowserRouter>
+        </Suspense>
+    );
 }
 
-export default App
+export default App;
