@@ -1,4 +1,4 @@
-import { Card, Image, Stack, Text } from "@chakra-ui/react";
+import { Badge, Box, Card, HStack, Image, Stack, Text } from "@chakra-ui/react";
 
 interface IItemCard {
     grade: string;
@@ -17,34 +17,42 @@ const ItemCard: React.FC<IItemCard> = ({
     return (
         <Card.Root
             w='full'
-            maxH='23rem'
-            minH='23rem'
-            maxW='15rem'
-            minW='15rem'
-            rounded='4'
+            borderRadius='md'
             borderStyle='solid'
             shadow='xl'
             role="group"
+            overflow='hidden'
+            aspectRatio='3/4'
             _hover={{ borderColor: 'gray.400', cursor: 'pointer' }}
         >
-            <Card.Header h='12rem' p={0}>
+            <Box
+                position='relative'
+                overflow='hidden'
+            >
                 <Image
                     boxSize='full'
                     maxBlockSize='12rem'
                     alt="cover image"
-                    objectFit='contain'
+                    objectFit='cover'
                     css={{
                         aspectRatio: '1',
                     }}
                     src={cover}
                 />
-            </Card.Header>
+                <Badge
+                    variant='solid'
+                    colorPalette= {grade === 'High Grade' ? 'blue' : 'yellow'}
+                    position='absolute'
+                    bottom={2} left={2}
+                    fontSize='xs'
+                    fontWeight='medium'>
+                    {grade}
+                </Badge>
+            </Box>
+
             <Card.Body p={2} gap={1}>
-                <Card.Title truncate lineClamp={2} fontSize={16} fontWeight='bold'>{title}</Card.Title>
-                <Text truncate fontSize={12} color='gray.500' fontWeight='medium'>{grade}</Text>
-                <Stack direction='row' alignItems='flex-end'>
-                    <Text fontSize={12} color='gray.500' fontWeight='medium'>{releaseType}</Text>
-                </Stack>
+                <Card.Title truncate lineClamp={2} fontSize={'md'} fontWeight='bold' >{title}</Card.Title>
+                <Text truncate fontSize={'xs'} color='gray.500' fontWeight='medium'>{releaseType}</Text>
             </Card.Body>
         </Card.Root>
     )
