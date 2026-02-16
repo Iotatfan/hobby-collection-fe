@@ -4,6 +4,8 @@ export interface ICollection {
     type: IType,
     release_type: IReleaseType
     cover: string
+    pictures?: string[]
+    description?: string
 }
 
 interface IReleaseType {

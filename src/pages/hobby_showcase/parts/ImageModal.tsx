@@ -3,32 +3,25 @@ import { useEffect, useState } from "react";
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface IImageModal {
-    title: string;
+    title?: string;
     images?: string[];
-    currentIndex?: number;
-    grade: string;
-    description: string;
+    grade?: string;
+    description?: string;
     isOpen: boolean;
     isLoading?: boolean;
-    onClose?: () => void;
+    onClose: () => void;
 }
 
 const ImageModal: React.FC<IImageModal> = ({
-    title = "RX-0 Unicorn",
-    images = [
-        "https://images.tokopedia.net/img/cache/500-square/VqbcmM/2021/8/15/fd58d1d4-6803-4cb5-b993-5f399e78e4a5.jpg",
-        "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/img/VqbcmM/2021/8/14/1fbcb23e-88ce-49ff-bae5-44d14520c6b2.jpg~tplv-aphluv4xwc-white-pad-v1:1600:1600.jpeg?lk3s=0ccea506&x-expires=1771240805&x-signature=0KvfhDtoIXrVq3klZaleCCmxCYo%3D&x-signature-webp=K6bv7jrFjaj4sgMvON1Fk%2FaOxXw%3D",
-        "https://images.tokopedia.net/img/cache/500-square/VqbcmM/2021/8/15/fd58d1d4-6803-4cb5-b993-5f399e78e4a5.jpg",
-    ],
-    grade = "High Grade",
-    description = "The RX-0 Unicorn Gundam (ユニコーン ガンダム Yunikōn Gandamu?, or Unicorn, Unicorn Gundam 01, Singularity One) is the titular mobile suit of the Mobile Suit Gundam Unicorn novel, its OVA adaptation and the television re-cut. It was developed by Anaheim Electronics for the Earth Federation as part of the UC project. It was piloted by Banagher Links during the Laplace Incident.",
-    isOpen,
+    title,
+    images,
+    grade,
+    description,
     isLoading,
+    isOpen,
     onClose
 }) => {
-
     const [currentIndex, setCurrentIndex] = useState(0)
-    const currentImage = images[currentIndex]
 
     useEffect(() => {
         if (!isOpen) return
@@ -48,11 +41,11 @@ const ImageModal: React.FC<IImageModal> = ({
     }
 
     const handlePrev = () => {
-        setCurrentIndex((prevIndex) => (prevIndex === 0 ? images.length - 1 : prevIndex - 1))
+        setCurrentIndex((prevIndex) => (prevIndex === 0 ? (images?.length ?? 1) - 1 : prevIndex - 1))
     }
 
     const handleNext = () => {
-        setCurrentIndex((prevIndex) => (prevIndex === images.length - 1 ? 0 : prevIndex + 1))
+        setCurrentIndex((nextIndex) => (nextIndex === (images?.length ?? 1) - 1 ? 0 : nextIndex + 1))
     }
 
     return (
@@ -63,23 +56,20 @@ const ImageModal: React.FC<IImageModal> = ({
             bg="blackAlpha.900"
             onClick={onClose}
         >
-            {isLoading && <Box
-                display='flex'
-                alignItems='center'
-                justifyContent='center'
-                h='full'
-            >
-                <Spinner
-                    borderWidth="4px"
-                    animationDuration="0.65s"
-                    color="white"
-                    size="xl"
-                />
-            </Box>
-            }
-
-            {/* Main Content Container */}
-            {!isLoading &&
+            {isLoading ? (
+                <Box
+                    display='flex'
+                    alignItems='center'
+                    justifyContent='center'
+                    h='full'
+                >
+                    <Spinner
+                        borderWidth="4px"
+                        animationDuration="0.65s"
+                        color="white"
+                        size="xl"
+                    />
+                </Box>) : (
                 <Box
                     display='flex'
                     alignItems='center'
@@ -128,7 +118,7 @@ const ImageModal: React.FC<IImageModal> = ({
                             </IconButton>
 
                             <Image
-                                src={currentImage}
+                                src={images && images.length > 0 ? images[currentIndex] : ''}
                                 alt="Collection Image"
                                 objectFit="contain"
                                 h={{ base: '50vh', lg: 'full' }}
@@ -241,7 +231,7 @@ const ImageModal: React.FC<IImageModal> = ({
                         </IconButton>
                     </Box>
                 </Box>
-
+            )
             }
 
         </Box>

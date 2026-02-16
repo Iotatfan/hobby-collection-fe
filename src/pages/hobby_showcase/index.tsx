@@ -1,22 +1,33 @@
-import { Box, Center, Flex, Grid, Text } from "@chakra-ui/react"
+import { Box, Center, Flex, Grid, Spinner, Text } from "@chakra-ui/react"
 import useCollections from "@/hooks/collections/useCollections"
+import useCollectionDetail from "@/hooks/collections/useCollectionDetail"
 import { useEffect, useState } from "react"
 import ItemCard from "./parts/ItemCard"
 import ImageModal from "./parts/ImageModal"
 
 const CollectionList = () => {
     const { getCollections, collections } = useCollections()
+    const { getCollectionDetail, collection } = useCollectionDetail()
     const [isModalOpen, setIsModalOpen] = useState(false)
-
-    const isLoadingCollections = false
+    const [isLoadingCollections, setIsLoadingCollections] = useState(false)
+    const [isLoadingCollectionDetail, setIsLoadingCollectionDetail] = useState(false)
 
     const handleFetchCollections = async () => {
-        await getCollections()
+        setIsLoadingCollections(true)
+        await getCollections().then(() => {
+            setIsLoadingCollections(false)
+        })
     }
 
-    const handleCardClick = (id: number) => {
-        // fetchCollectionDetail(id)
+    const handleCardClick = async (id: number) => {
+        setIsLoadingCollectionDetail(true)
         setIsModalOpen(true)
+        await getCollectionDetail(id).then(() => {
+            setIsLoadingCollectionDetail(false)
+        }).
+            catch(() => {
+                setIsModalOpen(false)
+            })
     }
 
     const handleCloseModal = () => {
@@ -35,7 +46,19 @@ const CollectionList = () => {
                 {
                     isLoadingCollections ? (
                         // Show Skeleton
-                        <Grid></Grid>
+                        <Box
+                            display='flex'
+                            alignItems='center'
+                            justifyContent='center'
+                            h='50vh'
+                        >
+                            <Spinner
+                                borderWidth="4px"
+                                animationDuration="0.65s"
+                                color="blackAlpha.800"
+                                size="xl"
+                            />
+                        </Box>
                     )
                         :
                         (
@@ -71,6 +94,11 @@ const CollectionList = () => {
             {isModalOpen && <ImageModal
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
+                isLoading={isLoadingCollectionDetail}
+                grade={collection?.type.grade.name}
+                title={collection?.title}
+                images={collection?.pictures}
+                description={collection?.description}
             />}
         </Flex>
     )
