@@ -1,4 +1,4 @@
-import { Badge, Box, Card, HStack, Image, Stack, Text } from "@chakra-ui/react";
+import { Badge, Box, Card, Image, Text } from "@chakra-ui/react";
 
 interface IItemCard {
     grade: string;
@@ -6,13 +6,15 @@ interface IItemCard {
     title: string;
     releaseType: string;
     index?: number;
+    onClick?: () => void;
 }
 
 const ItemCard: React.FC<IItemCard> = ({
     grade,
     cover,
     title,
-    releaseType
+    releaseType,
+    onClick
 }) => {
     return (
         <Card.Root
@@ -24,6 +26,7 @@ const ItemCard: React.FC<IItemCard> = ({
             overflow='hidden'
             aspectRatio='3/4'
             _hover={{ borderColor: 'gray.400', cursor: 'pointer' }}
+            onClick={onClick}
         >
             <Box
                 position='relative'
@@ -41,7 +44,7 @@ const ItemCard: React.FC<IItemCard> = ({
                 />
                 <Badge
                     variant='solid'
-                    colorPalette= {grade === 'High Grade' ? 'blue' : 'yellow'}
+                    colorPalette= {grade === 'High Grade' ? 'red' : 'yellow'}
                     position='absolute'
                     bottom={2} left={2}
                     fontSize='xs'

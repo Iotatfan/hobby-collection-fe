@@ -13,6 +13,7 @@
     "@chakra-ui/react": "^3.25.0",
     "@emotion/react": "^11.14.0",
     "axios": "^1.11.0",
+    "lucide-react": "^0.564.0",
     "path": "^0.12.7",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

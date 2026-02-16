@@ -1,15 +1,27 @@
 import { Box, Center, Flex, Grid, Text } from "@chakra-ui/react"
-import ItemCard from "./parts/ItemCard"
 import useCollections from "@/hooks/collections/useCollections"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import ItemCard from "./parts/ItemCard"
+import ImageModal from "./parts/ImageModal"
 
 const CollectionList = () => {
     const { getCollections, collections } = useCollections()
+    const [isModalOpen, setIsModalOpen] = useState(false)
+
     const isLoadingCollections = false
 
     const handleFetchCollections = async () => {
         await getCollections()
     }
+
+    const handleCardClick = (id: number) => {
+        // fetchCollectionDetail(id)
+        setIsModalOpen(true)
+    }
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+    };
 
     useEffect(() => {
         handleFetchCollections()
@@ -47,6 +59,7 @@ const CollectionList = () => {
                                             grade={collection.type.grade.name}
                                             cover={collection.cover}
                                             releaseType={collection.release_type.name}
+                                            onClick={() => handleCardClick(collection.id)}
                                         ></ItemCard>
                                     </Center>
                                 ))}
@@ -54,6 +67,11 @@ const CollectionList = () => {
                         )
                 }
             </Box>
+
+            {isModalOpen && <ImageModal
+                isOpen={isModalOpen}
+                onClose={handleCloseModal}
+            />}
         </Flex>
     )
 }
