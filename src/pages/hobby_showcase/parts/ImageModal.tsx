@@ -28,6 +28,12 @@ const ImageModal: React.FC<IImageModal> = ({
 }) => {
     const [currentIndex, setCurrentIndex] = useState(0)
 
+    const preloadImage = useCallback((src?: string) => {
+        if (!src) return
+        const img = new window.Image()
+        img.src = src
+    }, [])
+
     useEffect(() => {
         if (!isOpen) return
 
@@ -64,6 +70,18 @@ const ImageModal: React.FC<IImageModal> = ({
     const handleNext = useCallback(() => {
         setCurrentIndex((nextIndex) => (nextIndex === (images?.length ?? 1) - 1 ? 0 : nextIndex + 1))
     }, [images])
+
+    useEffect(() => {
+        if (!isOpen || !images?.length) return
+
+        const nextIndex = (currentIndex + 1) % images.length
+        const prevIndex = (currentIndex - 1 + images.length) % images.length
+
+        preloadImage(images[currentIndex])
+        preloadImage(images[nextIndex])
+        preloadImage(images[prevIndex])
+    }, [currentIndex, images, isOpen, preloadImage])
+
     return (
         <MotionBox
             initial={{ opacity: 0 }}
@@ -137,7 +155,8 @@ const ImageModal: React.FC<IImageModal> = ({
                                     h='full'
                                     display='flex'
                                     animate={{ x: `-${currentIndex * 100}%` }}
-                                    transition={{ type: 'spring', stiffness: 250, damping: 40, mass: 1.9 }}
+                                    transition={{ type: 'tween', ease: 'easeOut', duration: 0.28 }}
+                                    style={{ willChange: 'transform' }}
                                 >
                                     {images?.map((image, index) => (
                                         <Box
@@ -156,6 +175,8 @@ const ImageModal: React.FC<IImageModal> = ({
                                                 h='full'
                                                 objectFit='contain'
                                                 draggable={false}
+                                                loading={index === 0 ? 'eager' : 'lazy'}
+                                                decoding='async'
                                             />
                                         </Box>
                                     ))}
@@ -226,6 +247,8 @@ const ImageModal: React.FC<IImageModal> = ({
                                                 height: '100%',
                                                 objectFit: 'cover',
                                             }}
+                                            loading='lazy'
+                                            decoding='async'
                                         />
                                     </Box>
                                 ))}
