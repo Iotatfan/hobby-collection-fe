@@ -9,11 +9,11 @@ const useCollectionDetail = () => {
 
     const getCollectionDetail = useCallback(async (id: number) => {
         const response = await collectionServices.getCollection(id)
+        setCollection(response.data)
+
         if (response.fromCache) {
             return delay(500)
         }
-
-        setCollection(response.data)
     }, [])
 
     return {
