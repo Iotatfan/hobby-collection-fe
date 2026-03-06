@@ -40,6 +40,7 @@ const ItemCard: React.FC<IItemCard> = ({
                 role="group"
                 overflow='hidden'
                 aspectRatio='3/4'
+                minW={{ base: 0, lg: '250px' }}
                 _hover={{ borderColor: 'gray.400', cursor: 'pointer' }}
                 onClick={() => onClick?.(id)}
             >
