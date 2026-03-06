@@ -41,7 +41,9 @@ const ItemCard: React.FC<IItemCard> = ({
                 overflow='hidden'
                 aspectRatio='3/4'
                 minW={{ base: 0, lg: '250px' }}
-                _hover={{ borderColor: 'gray.400', cursor: 'pointer' }}
+                borderColor='gray.200'
+                transition="all 0.2s ease"
+                _hover={{ borderColor: 'gray.400', cursor: 'pointer', transform: "translateY(-10px)" }}
                 onClick={() => onClick?.(id)}
             >
                 <Box
@@ -54,7 +56,7 @@ const ItemCard: React.FC<IItemCard> = ({
                         alt="cover image"
                         objectFit='cover'
                         css={{
-                            aspectRatio: '1',
+                            aspectRatio: '4/3',
                         }}
                         src={cloudinarySizes(cover).cover}
                     />

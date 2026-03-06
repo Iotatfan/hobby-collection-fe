@@ -6,7 +6,7 @@ const customConfig = defineConfig({
             colors: {
                 gold: { value: "#facc15" },
                 regular: { value: "#374151" },
-                blueTint: { value: "#eef2ff" }
+                blueTint: { value: "#F5F7FA" }
             },
         },
         semanticTokens: {

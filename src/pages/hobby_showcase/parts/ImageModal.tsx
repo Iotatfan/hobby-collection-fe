@@ -251,13 +251,14 @@ const ImageModal: React.FC<IImageModal> = ({
                                         h={12}
                                         borderRadius="md"
                                         overflow="hidden"
-                                        border={index === currentIndex ? '1px solid' : '1px solid transparent'}
+                                        border={index === currentIndex ? '2px solid' : '1px solid transparent'}
                                         borderColor={index === currentIndex ? 'red.500' : 'transparent'}
                                         opacity={index == currentIndex ? 1 : 0.5}
                                         _hover={{
                                             opacity: 1
                                         }}
                                         transition='opacity 0.2s, border-color 0.2s'
+                                        scale={index === currentIndex ? '1.2' : '1'}
                                     >
                                         <Image
                                             src={cloudinarySizes(image).thumb}
@@ -265,6 +266,7 @@ const ImageModal: React.FC<IImageModal> = ({
                                                 width: '100%',
                                                 height: '100%',
                                                 objectFit: 'cover',
+                                                aspectRatio: '4/3',
                                             }}
                                             loading='lazy'
                                             decoding='async'
@@ -336,6 +338,7 @@ const ImageModal: React.FC<IImageModal> = ({
                                 fontSize={{ base: 'md', lg: 'lg' }}
                                 color="gray.300"
                                 lineHeight="relaxed"
+                                maxWidth='520px'
                             >
                                 {description || "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."}
                             </Text>
