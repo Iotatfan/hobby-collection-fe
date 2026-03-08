@@ -26,6 +26,7 @@
             "@/services/*": ["./services/*"],
             "@/libs/*": ["./libs/*"],
             "@/utils/*": ["./utils/*"],
+            "@/config/*": ["./config/*"],
         }
     },
     "include": ["src"],
