@@ -26,6 +26,8 @@ const ItemCard: React.FC<IItemCard> = ({
     index,
     onClick
 }) => {
+    const shouldShowGradeScaleBadge = !(grade === "NG" && scale === "Unknown Scale");
+
     return (
         <MotionBox
             initial={{ opacity: 0, y: 50 }}
@@ -60,20 +62,21 @@ const ItemCard: React.FC<IItemCard> = ({
                         }}
                         src={cloudinarySizes(cover).cover}
                     />
-                    <HStack
-                        position='absolute'
-                        bottom='10px' left='10px'
-                    >
-                        <Badge
-                            variant='solid'
-                            colorPalette='cyan'
-                            fontSize='xs'
-                            fontWeight='medium'
+                    {shouldShowGradeScaleBadge && (
+                        <HStack
+                            position='absolute'
+                            bottom='10px' left='10px'
                         >
-                            {grade + ' ' + scale}
-                        </Badge>
-
-                    </HStack>
+                            <Badge
+                                variant='solid'
+                                colorPalette='cyan'
+                                fontSize='xs'
+                                fontWeight='medium'
+                            >
+                                {grade + ' ' + scale}
+                            </Badge>
+                        </HStack>
+                    )}
                 </Box>
 
                 <Card.Body p={2} gap={1}>

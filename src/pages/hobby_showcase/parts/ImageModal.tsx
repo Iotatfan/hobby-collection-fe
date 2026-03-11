@@ -1,15 +1,19 @@
-import { Box, IconButton, Image, VStack, Text, HStack, Badge, Spinner } from "@chakra-ui/react";
+import { Box, IconButton, Image, VStack, Text, HStack, Badge, Spinner, Button } from "@chakra-ui/react";
 import { useCallback, useEffect, useState } from "react";
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AnimatePresence, motion } from "framer-motion";
 import { cloudinarySizes } from "@/utils/cloudinary";
+import { Link as RouterLink } from "react-router-dom";
+import { canManageCollection } from "@/services/http";
 
 
 const MotionBox = motion(Box);
 interface IImageModal {
+    collectionId?: number;
     title?: string;
     images?: string[];
     grade?: string;
+    scale?: string;
     release?: string;
     description?: string;
     isOpen: boolean;
@@ -18,9 +22,11 @@ interface IImageModal {
 }
 
 const ImageModal: React.FC<IImageModal> = ({
+    collectionId,
     title,
     images,
     grade,
+    scale,
     release,
     description,
     isLoading,
@@ -28,8 +34,13 @@ const ImageModal: React.FC<IImageModal> = ({
     onClose
 }) => {
     const [currentIndex, setCurrentIndex] = useState(0)
+    const normalizedGrade = grade?.trim().toLowerCase()
+    const normalizedScale = scale?.trim().toLowerCase()
+    const gradeBadgeLabel = normalizedGrade === "no grade" ? scale : grade
+    const shouldShowGradeBadge = Boolean(gradeBadgeLabel) && normalizedScale !== 'unknown scale'
     const imageCount = images?.length ?? 0
     const currentImage = imageCount ? images?.[currentIndex] : undefined
+    const canManage = canManageCollection()
 
     const preloadImage = useCallback((src?: string) => {
         if (!src) return
@@ -288,17 +299,19 @@ const ImageModal: React.FC<IImageModal> = ({
                         >
                             {/* Label */}
                             <HStack>
-                                <Badge
-                                    variant='solid'
-                                    colorPalette='cyan'
-                                    bottom={2} left={2}
-                                    fontSize='sm'
-                                    fontWeight='bold'
-                                    px={1.5}
-                                    py={1}
-                                >
-                                    {grade}
-                                </Badge>
+                                {shouldShowGradeBadge && (
+                                    <Badge
+                                        variant='solid'
+                                        colorPalette='cyan'
+                                        bottom={2} left={2}
+                                        fontSize='sm'
+                                        fontWeight='bold'
+                                        px={1.5}
+                                        py={1}
+                                    >
+                                        {gradeBadgeLabel}
+                                    </Badge>
+                                )}
 
                                 <Badge
                                     variant='solid'
@@ -324,15 +337,6 @@ const ImageModal: React.FC<IImageModal> = ({
                                 {title}
                             </Text>
 
-                            {/* <Text
-                                fontSize={{ base: 'md', lg: 'lg' }}
-                                fontWeight="bold"
-                                color="white"
-                                lineHeight="relaxed"
-                            >
-                                {title}
-                            </Text> */}
-
                             {/* Description */}
                             <Text
                                 fontSize={{ base: 'md', lg: 'lg' }}
@@ -342,6 +346,12 @@ const ImageModal: React.FC<IImageModal> = ({
                             >
                                 {description || "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."}
                             </Text>
+
+                            {canManage && collectionId && (
+                                <Button asChild colorPalette="blue" variant="solid" onClick={onClose}>
+                                    <RouterLink to={`/collection/${collectionId}/edit`}>Edit Collection</RouterLink>
+                                </Button>
+                            )}
                         </VStack>
 
                         {/* Close Button */}
@@ -369,3 +379,4 @@ const ImageModal: React.FC<IImageModal> = ({
 }
 
 export default ImageModal
+

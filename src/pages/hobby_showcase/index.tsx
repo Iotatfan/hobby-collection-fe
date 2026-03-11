@@ -1,10 +1,12 @@
-import { Box, Center, Flex, Grid, Spinner, Text } from "@chakra-ui/react"
+import { Box, Button, Center, Flex, Grid, Spinner, Text } from "@chakra-ui/react"
 import useCollections from "@/hooks/collections/useCollections"
 import useCollectionDetail from "@/hooks/collections/useCollectionDetail"
 import { useEffect, useState, useCallback } from "react"
 import ItemCard from "./parts/ItemCard"
 import ImageModal from "./parts/ImageModal"
 import { AnimatePresence } from "framer-motion"
+import { Link as RouterLink } from "react-router-dom"
+import { canManageCollection } from "@/services/http"
 
 const CollectionList = () => {
     const { getCollections, collections } = useCollections()
@@ -13,6 +15,7 @@ const CollectionList = () => {
     const [isLoadingCollections, setIsLoadingCollections] = useState(false)
     const [isLoadingCollectionDetail, setIsLoadingCollectionDetail] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const canManage = canManageCollection()
 
     const handleFetchCollections = useCallback(async () => {
         setIsLoadingCollections(true)
@@ -48,7 +51,14 @@ const CollectionList = () => {
     return (
         <Flex w='full' mt='5' minH='90vh' alignItems='flex-start' gap='4' mx='auto' maxW='78rem' px='2'>
             <Box flexGrow='1' maxW='100%'>
-                <Text>Filter Section</Text>
+                <Flex justify='space-between' align='center' gap={3} wrap='wrap'>
+                    <Text fontWeight='semibold'>Filter Section</Text>
+                    {canManage && (
+                        <Button asChild size='sm' colorPalette='blue'>
+                            <RouterLink to='/collection/new'>Add New</RouterLink>
+                        </Button>
+                    )}
+                </Flex>
                 {errorMessage && <Text mt={2} color="red.500">{errorMessage}</Text>}
                 {
                     isLoadingCollections ?
@@ -106,7 +116,9 @@ const CollectionList = () => {
                     isOpen={isModalOpen}
                     onClose={handleCloseModal}
                     isLoading={isLoadingCollectionDetail}
+                    collectionId={collection?.id}
                     grade={collection?.type.grade.name}
+                    scale={collection?.type.scale}
                     release={collection?.release_type.name}
                     title={collection?.title}
                     images={collection?.pictures}
@@ -118,3 +130,4 @@ const CollectionList = () => {
 }
 
 export default CollectionList
+
