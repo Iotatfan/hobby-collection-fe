@@ -385,12 +385,14 @@ const ImageModal: React.FC<IImageModal> = ({
                                     fontSize={{ base: 'sm', lg: 'md' }}
                                     color="gray.400"
                                 >
-                                    About
+                                    Background
                                 </Text>
                                 <Box
-                                    maxH={isDescriptionExpanded ? "none" : { base: "160px", lg: "220px" }}
-                                    overflow="hidden"
+                                    className={isDescriptionExpanded ? "custom-scrollbar" : undefined}
+                                    maxH={isDescriptionExpanded ? { base: "none", lg: "220px" } : { base: "160px", lg: "220px" }}
+                                    overflowY={isDescriptionExpanded ? { base: "visible", lg: "auto" } : "hidden"}
                                     w="full"
+                                    pr={isDescriptionExpanded ? { base: 0, lg: 2 } : 0}
                                 >
                                     <Text
                                         ref={descriptionRef}
@@ -452,4 +454,3 @@ const ImageModal: React.FC<IImageModal> = ({
 }
 
 export default ImageModal
-

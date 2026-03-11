@@ -26,6 +26,32 @@ const customConfig = defineConfig({
                 background: {
                     bg: { value: "{colors.blueTint}" }
                 },
+                scrollbar: {
+                    track: { value: "rgba(26, 32, 44, 0.85)" },
+                    thumb: { value: "rgba(113, 128, 150, 0.75)" },
+                    thumbHover: { value: "rgba(160, 174, 192, 0.9)" },
+                },
+            },
+        },
+    },
+    globalCss: {
+        ".custom-scrollbar": {
+            scrollbarWidth: "thin",
+            scrollbarColor: "{colors.scrollbar.thumb} {colors.scrollbar.track}",
+            "&::-webkit-scrollbar": {
+                width: "8px",
+                height: "8px",
+            },
+            "&::-webkit-scrollbar-track": {
+                background: "{colors.scrollbar.track}",
+                borderRadius: "999px",
+            },
+            "&::-webkit-scrollbar-thumb": {
+                background: "{colors.scrollbar.thumb}",
+                borderRadius: "999px",
+            },
+            "&::-webkit-scrollbar-thumb:hover": {
+                background: "{colors.scrollbar.thumbHover}",
             },
         },
     },
