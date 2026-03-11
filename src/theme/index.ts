@@ -4,9 +4,11 @@ const customConfig = defineConfig({
     theme: {
         tokens: {
             colors: {
-                gold: { value: "#facc15" },
+                gold: { value: "#EAB308" },
                 regular: { value: "#374151" },
-                blueTint: { value: "#F5F7FA" }
+                blueTint: { value: "#F5F7FA" },
+                specificationLabel: { value: "#9CA3AF" },
+                specificationValue: { value: "#F3F4F6" }
             },
         },
         semanticTokens: {

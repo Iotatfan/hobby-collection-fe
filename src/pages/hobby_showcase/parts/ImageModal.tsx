@@ -1,10 +1,11 @@
 import { Box, IconButton, Image, VStack, Text, HStack, Badge, Spinner, Button } from "@chakra-ui/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AnimatePresence, motion } from "framer-motion";
 import { cloudinarySizes } from "@/utils/cloudinary";
 import { Link as RouterLink } from "react-router-dom";
 import { canManageCollection } from "@/services/http";
+import KitSpecificationsCard from "./KitSpecificationsCard";
 
 
 const MotionBox = motion(Box);
@@ -14,6 +15,8 @@ interface IImageModal {
     images?: string[];
     grade?: string;
     scale?: string;
+    series?: string;
+    manufacturer?: string;
     release?: string;
     description?: string;
     isOpen: boolean;
@@ -27,6 +30,8 @@ const ImageModal: React.FC<IImageModal> = ({
     images,
     grade,
     scale,
+    series,
+    manufacturer,
     release,
     description,
     isLoading,
@@ -40,7 +45,11 @@ const ImageModal: React.FC<IImageModal> = ({
     const shouldShowGradeBadge = Boolean(gradeBadgeLabel) && normalizedScale !== 'unknown scale'
     const imageCount = images?.length ?? 0
     const currentImage = imageCount ? images?.[currentIndex] : undefined
+    const descriptionRef = useRef<HTMLParagraphElement | null>(null)
+    const [isDescriptionLong, setIsDescriptionLong] = useState(false)
+    const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
     const canManage = canManageCollection()
+    const descriptionText = description || "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
 
     const preloadImage = useCallback((src?: string) => {
         if (!src) return
@@ -109,6 +118,33 @@ const ImageModal: React.FC<IImageModal> = ({
         preloadImage(images[nextIndex])
         preloadImage(images[prevIndex])
     }, [currentIndex, imageCount, images, isOpen, preloadImage])
+
+    useEffect(() => {
+        if (!isOpen) return
+        setIsDescriptionExpanded(false)
+    }, [description, isOpen])
+
+    useEffect(() => {
+        if (!isOpen || isLoading) return
+
+        const checkDescriptionOverflow = () => {
+            const element = descriptionRef.current
+            if (!element) return
+
+            const hasOverflow = element.scrollHeight > element.clientHeight + 1
+            if (!isDescriptionExpanded) {
+                setIsDescriptionLong(hasOverflow)
+            }
+        }
+
+        const frameId = window.requestAnimationFrame(checkDescriptionOverflow)
+        window.addEventListener("resize", checkDescriptionOverflow)
+
+        return () => {
+            window.cancelAnimationFrame(frameId)
+            window.removeEventListener("resize", checkDescriptionOverflow)
+        }
+    }, [descriptionText, isDescriptionExpanded, isLoading, isOpen])
 
     return (
         <MotionBox
@@ -337,15 +373,52 @@ const ImageModal: React.FC<IImageModal> = ({
                                 {title}
                             </Text>
 
+                            <KitSpecificationsCard
+                                scale={scale}
+                                manufacturer={manufacturer}
+                                series={series}
+                            />
+
                             {/* Description */}
-                            <Text
-                                fontSize={{ base: 'md', lg: 'lg' }}
-                                color="gray.300"
-                                lineHeight="relaxed"
-                                maxWidth='520px'
-                            >
-                                {description || "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."}
-                            </Text>
+                            <VStack align="start" gap={2} maxWidth='520px'>
+                                <Text
+                                    fontSize={{ base: 'sm', lg: 'md' }}
+                                    color="gray.400"
+                                >
+                                    About
+                                </Text>
+                                <Box
+                                    maxH={isDescriptionExpanded ? "none" : { base: "160px", lg: "220px" }}
+                                    overflow="hidden"
+                                    w="full"
+                                >
+                                    <Text
+                                        ref={descriptionRef}
+                                        fontSize={{ base: 'md', lg: 'lg' }}
+                                        color="gray.300"
+                                        lineHeight="relaxed"
+                                        lineClamp={isDescriptionExpanded ? "none" : { base: "4", lg: "6" }}
+                                    >
+                                        {descriptionText}
+                                    </Text>
+                                </Box>
+                                {isDescriptionLong && (
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        color="white"
+                                        onClick={() => setIsDescriptionExpanded((prev) => !prev)}
+                                        w="full"
+                                        justifyContent="center"
+                                        textAlign="center"
+                                        minH="unset"
+                                        height="auto"
+                                        _hover={{ bg: "whiteAlpha.100" }}
+                                    >
+                                        {isDescriptionExpanded ? "View less" : "View more"}
+                                    </Button>
+                                )}
+                            </VStack>
 
                             {canManage && collectionId && (
                                 <Button asChild colorPalette="blue" variant="solid" onClick={onClose}>

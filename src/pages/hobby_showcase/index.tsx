@@ -119,6 +119,8 @@ const CollectionList = () => {
                     collectionId={collection?.id}
                     grade={collection?.type.grade.name}
                     scale={collection?.type.scale}
+                    series={collection?.series?.name}
+                    manufacturer={collection?.manufacturer?.name}
                     release={collection?.release_type.name}
                     title={collection?.title}
                     images={collection?.pictures}
