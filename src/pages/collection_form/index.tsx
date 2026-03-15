@@ -8,6 +8,7 @@ import { Box, Button, Drawer, Field, Flex, Heading, Image, Input, Portal, Simple
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import collectionServices from "@/services/content/collectionServices";
+import { cloudinarySizes } from "@/utils/cloudinary";
 
 type StatusOption = {
     id: 0 | 1 | 2 | 3;
@@ -24,6 +25,23 @@ const STATUS_OPTIONS: StatusOption[] = [
 type ExistingPictureItem = {
     id?: number;
     src: string;
+};
+
+const resolveImageSrc = (value: unknown): string => {
+    if (typeof value === "string") return value;
+    if (!value || typeof value !== "object") return "";
+
+    const imageObject = value as Record<string, unknown>;
+    const candidate =
+        imageObject.url ??
+        imageObject.secure_url ??
+        imageObject.picture_url ??
+        imageObject.cover_url ??
+        imageObject.public_id ??
+        imageObject.picture ??
+        imageObject.cover;
+
+    return typeof candidate === "string" ? candidate : "";
 };
 
 const CollectionForm = () => {
@@ -68,15 +86,24 @@ const CollectionForm = () => {
 
     const coverPreviewUrl = useMemo(() => {
         if (coverFile) return URL.createObjectURL(coverFile);
-        return existingCoverUrl;
+        if (!existingCoverUrl) return "";
+        return cloudinarySizes(existingCoverUrl).cover;
     }, [coverFile, existingCoverUrl]);
 
-    const picturePreviewUrls = useMemo(() => {
-        if (pictureFiles.length > 0) {
-            return pictureFiles.map((file) => URL.createObjectURL(file));
-        }
-        return existingPictures.map((picture) => picture.src);
-    }, [pictureFiles, existingPictures]);
+    const existingPicturePreviewUrls = useMemo(
+        () => existingPictures.map((picture) => cloudinarySizes(picture.src).cover),
+        [existingPictures]
+    );
+
+    const newPicturePreviewUrls = useMemo(
+        () => pictureFiles.map((file) => URL.createObjectURL(file)),
+        [pictureFiles]
+    );
+
+    const picturePreviewUrls = useMemo(
+        () => [...existingPicturePreviewUrls, ...newPicturePreviewUrls],
+        [existingPicturePreviewUrls, newPicturePreviewUrls]
+    );
 
     const existingPictureIds = useMemo(
         () => existingPictures
@@ -123,36 +150,19 @@ const CollectionForm = () => {
                 const response = await collectionServices.getCollection(collectionId);
                 const data: ICollection = response.data;
                 setTitle(data.title ?? "");
-                setExistingCoverUrl(data.cover ?? "");
+                setExistingCoverUrl(resolveImageSrc((data as { cover?: unknown }).cover));
                 setDescription(data.description ?? "");
                 setStatusId(data.status ?? null);
                 const rawPictures = (data as { pictures?: unknown[] }).pictures ?? [];
                 const normalizedPictures = rawPictures
                     .map((picture) => {
-                        if (typeof picture === "string") {
-                            return { src: picture } as ExistingPictureItem;
-                        }
-
-                        if (!picture || typeof picture !== "object") {
-                            return null;
-                        }
+                        const src = resolveImageSrc(picture);
+                        if (!src) return null;
 
                         const pictureObject = picture as {
                             id?: number;
                             picture_id?: number;
-                            url?: string;
-                            secure_url?: string;
-                            picture_url?: string;
-                            public_id?: string;
                         };
-
-                        const src =
-                            pictureObject.url ||
-                            pictureObject.secure_url ||
-                            pictureObject.picture_url ||
-                            pictureObject.public_id;
-
-                        if (!src) return null;
 
                         return {
                             id: typeof pictureObject.id === "number" ? pictureObject.id : pictureObject.picture_id,
@@ -186,19 +196,27 @@ const CollectionForm = () => {
 
     useEffect(() => {
         return () => {
-            picturePreviewUrls.forEach((url) => {
+            newPicturePreviewUrls.forEach((url) => {
                 if (url.startsWith("blob:")) {
                     URL.revokeObjectURL(url);
                 }
             });
         };
-    }, [picturePreviewUrls]);
+    }, [newPicturePreviewUrls]);
 
     const handlePicturesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files ? Array.from(event.target.files) : [];
         if (!files.length) return;
         setPictureFiles((prev) => [...prev, ...files]);
         event.target.value = "";
+    };
+
+    const handleRemoveExistingPicture = (indexToRemove: number) => {
+        setExistingPictures((prev) => prev.filter((_, index) => index !== indexToRemove));
+    };
+
+    const handleRemoveNewPicture = (indexToRemove: number) => {
+        setPictureFiles((prev) => prev.filter((_, index) => index !== indexToRemove));
     };
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -410,13 +428,13 @@ const CollectionForm = () => {
                                     onChange={handlePicturesChange}
                                 />
                                 <Text fontSize="sm" color="fg.muted">
-                                    {pictureFiles.length > 0
-                                        ? `${pictureFiles.length} image(s) selected`
-                                        : (existingPictures.length > 0 ? `Using ${existingPictures.length} existing image(s)` : "No pictures selected")}
+                                    {picturePreviewUrls.length > 0
+                                        ? `${existingPictures.length} existing + ${pictureFiles.length} new image(s)`
+                                        : "No pictures selected"}
                                 </Text>
                                 <SimpleGrid mt={2} columns={{ base: 3, md: 4 }} gap={2}>
-                                    {picturePreviewUrls.map((url, index) => (
-                                        <Box key={`${url}-${index}`} borderWidth="1px" borderRadius="md" overflow="hidden" aspectRatio={1}>
+                                    {existingPicturePreviewUrls.map((url, index) => (
+                                        <Box key={`existing-${url}-${index}`} borderWidth="1px" borderRadius="md" overflow="hidden" aspectRatio={1} position="relative">
                                             <Image
                                                 src={url}
                                                 alt={`Picture preview ${index + 1}`}
@@ -428,6 +446,53 @@ const CollectionForm = () => {
                                                 objectFit="cover"
                                                 objectPosition="center"
                                             />
+                                            <Button
+                                                type="button"
+                                                size="2xs"
+                                                colorPalette="red"
+                                                position="absolute"
+                                                top={1}
+                                                right={1}
+                                                minW="20px"
+                                                h="20px"
+                                                p={0}
+                                                borderRadius="full"
+                                                lineHeight="1"
+                                                onClick={() => handleRemoveExistingPicture(index)}
+                                            >
+                                                X
+                                            </Button>
+                                        </Box>
+                                    ))}
+                                    {newPicturePreviewUrls.map((url, index) => (
+                                        <Box key={`new-${url}-${index}`} borderWidth="1px" borderRadius="md" overflow="hidden" aspectRatio={1} position="relative">
+                                            <Image
+                                                src={url}
+                                                alt={`New picture preview ${index + 1}`}
+                                                w="full"
+                                                h="full"
+                                                maxW="100%"
+                                                maxH="100%"
+                                                display="block"
+                                                objectFit="cover"
+                                                objectPosition="center"
+                                            />
+                                            <Button
+                                                type="button"
+                                                size="2xs"
+                                                colorPalette="red"
+                                                position="absolute"
+                                                top={1}
+                                                right={1}
+                                                minW="20px"
+                                                h="20px"
+                                                p={0}
+                                                borderRadius="full"
+                                                lineHeight="1"
+                                                onClick={() => handleRemoveNewPicture(index)}
+                                            >
+                                                X
+                                            </Button>
                                         </Box>
                                     ))}
                                     <Box
