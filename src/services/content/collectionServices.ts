@@ -74,7 +74,7 @@ const updateCollection = async (id: number, payload: CollectionMutationPayload) 
         throw new Error("Missing or invalid JWT token. Set localStorage jwt.")
     }
 
-    const response = await http.put(`/collection/${id}`, payload, {
+    const response = await http.patch(`/collection/${id}`, payload, {
         headers: {
             ...(payload instanceof FormData ? { "Content-Type": "multipart/form-data" } : {}),
             Authorization: `Bearer ${token}`,

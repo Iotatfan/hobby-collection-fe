@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import collectionServices from "@/services/content/collectionServices";
 import { cloudinarySizes } from "@/utils/cloudinary";
+import { AxiosError } from "axios";
 
 type StatusOption = {
     id: 0 | 1 | 2 | 3;
@@ -42,6 +43,21 @@ const resolveImageSrc = (value: unknown): string => {
         imageObject.cover;
 
     return typeof candidate === "string" ? candidate : "";
+};
+
+const resolveStatusId = (value: unknown): 0 | 1 | 2 | 3 | null => {
+    if (typeof value === "number" && [0, 1, 2, 3].includes(value)) {
+        return value as 0 | 1 | 2 | 3;
+    }
+
+    if (typeof value === "string") {
+        const parsed = Number(value);
+        if ([0, 1, 2, 3].includes(parsed)) {
+            return parsed as 0 | 1 | 2 | 3;
+        }
+    }
+
+    return null;
 };
 
 const CollectionForm = () => {
@@ -152,7 +168,7 @@ const CollectionForm = () => {
                 setTitle(data.title ?? "");
                 setExistingCoverUrl(resolveImageSrc((data as { cover?: unknown }).cover));
                 setDescription(data.description ?? "");
-                setStatusId(data.status ?? null);
+                setStatusId(resolveStatusId((data as { status?: unknown }).status));
                 const rawPictures = (data as { pictures?: unknown[] }).pictures ?? [];
                 const normalizedPictures = rawPictures
                     .map((picture) => {
@@ -233,7 +249,9 @@ const CollectionForm = () => {
             return;
         }
 
-        if (statusId === null || typeId === null || releaseTypeId === null || manufacturerId === null || seriesId === null) {
+        const normalizedStatusId = resolveStatusId(statusId);
+
+        if (normalizedStatusId === null || typeId === null || releaseTypeId === null || manufacturerId === null || seriesId === null) {
             setErrorMessage("Status, type, release type, manufacturer, and series are required.");
             return;
         }
@@ -242,8 +260,8 @@ const CollectionForm = () => {
         try {
             const formData = new FormData();
             formData.append("title", title.trim());
-            formData.append("status", String(statusId));
-            if (statusId === 3) {
+            formData.append("status", String(normalizedStatusId));
+            if (normalizedStatusId === 3) {
                 formData.append("built_at", new Date().toISOString());
             }
             formData.append("description", description.trim());
@@ -280,7 +298,12 @@ const CollectionForm = () => {
 
             navigate("/");
         } catch (error) {
-            setErrorMessage(error instanceof Error ? error.message : "Failed to save collection.");
+            if (error instanceof AxiosError) {
+                const backendMessage = (error.response?.data as { message?: string } | undefined)?.message;
+                setErrorMessage(backendMessage ?? error.message ?? "Failed to save collection.");
+            } else {
+                setErrorMessage(error instanceof Error ? error.message : "Failed to save collection.");
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -302,7 +325,7 @@ const CollectionForm = () => {
                 {isLoading ? (
                     <Text>Loading collection...</Text>
                 ) : (
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit} noValidate>
                         <VStack align="stretch" gap={4}>
                             <Field.Root required>
                                 <Field.Label>Title</Field.Label>
@@ -372,35 +395,35 @@ const CollectionForm = () => {
                             <Stack direction={{ base: "column", md: "row" }} gap={4}>
                                 <Field.Root required>
                                     <Field.Label>Status</Field.Label>
-                                    <Button variant="outline" justifyContent="start" onClick={() => setIsStatusDrawerOpen(true)}>
+                                    <Button type="button" variant="outline" justifyContent="start" onClick={() => setIsStatusDrawerOpen(true)}>
                                         {selectedStatus ? selectedStatus.name : "Choose status"}
                                     </Button>
                                 </Field.Root>
 
                                 <Field.Root required>
                                     <Field.Label>Type</Field.Label>
-                                    <Button variant="outline" justifyContent="start" onClick={() => setIsTypeDrawerOpen(true)}>
+                                    <Button type="button" variant="outline" justifyContent="start" onClick={() => setIsTypeDrawerOpen(true)}>
                                         {selectedType ? getTypeLabel(selectedType) : "Choose collection type"}
                                     </Button>
                                 </Field.Root>
 
                                 <Field.Root required>
                                     <Field.Label>Release Type</Field.Label>
-                                    <Button variant="outline" justifyContent="start" onClick={() => setIsReleaseTypeDrawerOpen(true)}>
+                                    <Button type="button" variant="outline" justifyContent="start" onClick={() => setIsReleaseTypeDrawerOpen(true)}>
                                         {selectedReleaseType ? selectedReleaseType.name : "Choose release type"}
                                     </Button>
                                 </Field.Root>
 
                                 <Field.Root required>
                                     <Field.Label>Series</Field.Label>
-                                    <Button variant="outline" justifyContent="start" onClick={() => setIsSeriesDrawerOpen(true)}>
+                                    <Button type="button" variant="outline" justifyContent="start" onClick={() => setIsSeriesDrawerOpen(true)}>
                                         {selectedSeries ? selectedSeries.name : "Choose series"}
                                     </Button>
                                 </Field.Root>
 
                                 <Field.Root required>
                                     <Field.Label>Manufacturer</Field.Label>
-                                    <Button variant="outline" justifyContent="start" onClick={() => setIsManufacturerDrawerOpen(true)}>
+                                    <Button type="button" variant="outline" justifyContent="start" onClick={() => setIsManufacturerDrawerOpen(true)}>
                                         {selectedManufacturer ? selectedManufacturer.name : "Choose manufacturer"}
                                     </Button>
                                 </Field.Root>
@@ -538,6 +561,7 @@ const CollectionForm = () => {
                                 <VStack align="stretch" gap={2}>
                                     {collectionTypes.map((option) => (
                                         <Button
+                                            type="button"
                                             key={option.id}
                                             variant={option.id === typeId ? "solid" : "outline"}
                                             colorPalette={option.id === typeId ? "blue" : "gray"}
@@ -570,6 +594,7 @@ const CollectionForm = () => {
                                 <VStack align="stretch" gap={2}>
                                     {STATUS_OPTIONS.map((option) => (
                                         <Button
+                                            type="button"
                                             key={option.id}
                                             variant={option.id === statusId ? "solid" : "outline"}
                                             colorPalette={option.id === statusId ? "blue" : "gray"}
@@ -601,6 +626,7 @@ const CollectionForm = () => {
                                 <VStack align="stretch" gap={2}>
                                     {releaseTypes.map((option) => (
                                         <Button
+                                            type="button"
                                             key={option.id}
                                             variant={option.id === releaseTypeId ? "solid" : "outline"}
                                             colorPalette={option.id === releaseTypeId ? "blue" : "gray"}
@@ -633,6 +659,7 @@ const CollectionForm = () => {
                                 <VStack align="stretch" gap={2}>
                                     {seriesOptions.map((option) => (
                                         <Button
+                                            type="button"
                                             key={option.id}
                                             variant={option.id === seriesId ? "solid" : "outline"}
                                             colorPalette={option.id === seriesId ? "blue" : "gray"}
@@ -665,6 +692,7 @@ const CollectionForm = () => {
                                 <VStack align="stretch" gap={2}>
                                     {manufacturers.map((option: IManufacturerDrawerItem) => (
                                         <Button
+                                            type="button"
                                             key={option.id}
                                             variant={option.id === manufacturerId ? "solid" : "outline"}
                                             colorPalette={option.id === manufacturerId ? "blue" : "gray"}
