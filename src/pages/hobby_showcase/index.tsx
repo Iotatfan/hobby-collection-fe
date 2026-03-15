@@ -123,6 +123,7 @@ const CollectionList = () => {
                     manufacturer={collection?.manufacturer?.name}
                     release={collection?.release_type.name}
                     title={collection?.title}
+                    cover={collection?.cover}
                     images={collection?.pictures}
                     description={collection?.description}
                 />}

@@ -1,5 +1,5 @@
 import { Box, IconButton, Image, VStack, Text, HStack, Badge, Spinner, Button } from "@chakra-ui/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AnimatePresence, motion } from "framer-motion";
 import { cloudinarySizes } from "@/utils/cloudinary";
@@ -12,6 +12,7 @@ const MotionBox = motion(Box);
 interface IImageModal {
     collectionId?: number;
     title?: string;
+    cover?: string;
     images?: string[];
     grade?: string;
     scale?: string;
@@ -27,6 +28,7 @@ interface IImageModal {
 const ImageModal: React.FC<IImageModal> = ({
     collectionId,
     title,
+    cover,
     images,
     grade,
     scale,
@@ -39,12 +41,17 @@ const ImageModal: React.FC<IImageModal> = ({
     onClose
 }) => {
     const [currentIndex, setCurrentIndex] = useState(0)
+    const displayImages = useMemo(() => {
+        const pictures = images ?? []
+        if (!cover) return pictures
+        return [cover, ...pictures.filter((image) => image !== cover)]
+    }, [cover, images])
     const normalizedGrade = grade?.trim().toLowerCase()
     const normalizedScale = scale?.trim().toLowerCase()
     const gradeBadgeLabel = normalizedGrade === "no grade" ? scale : grade
     const shouldShowGradeBadge = Boolean(gradeBadgeLabel) && normalizedScale !== 'unknown scale'
-    const imageCount = images?.length ?? 0
-    const currentImage = imageCount ? images?.[currentIndex] : undefined
+    const imageCount = displayImages.length
+    const currentImage = imageCount ? displayImages[currentIndex] : undefined
     const descriptionRef = useRef<HTMLParagraphElement | null>(null)
     const [isDescriptionLong, setIsDescriptionLong] = useState(false)
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
@@ -110,14 +117,14 @@ const ImageModal: React.FC<IImageModal> = ({
     }, [currentIndex, imageCount])
 
     useEffect(() => {
-        if (!isOpen || imageCount < 2 || !images) return
+        if (!isOpen || imageCount < 2) return
 
         const nextIndex = (currentIndex + 1) % imageCount
         const prevIndex = (currentIndex - 1 + imageCount) % imageCount
 
-        preloadImage(images[nextIndex])
-        preloadImage(images[prevIndex])
-    }, [currentIndex, imageCount, images, isOpen, preloadImage])
+        preloadImage(displayImages[nextIndex])
+        preloadImage(displayImages[prevIndex])
+    }, [currentIndex, displayImages, imageCount, isOpen, preloadImage])
 
     useEffect(() => {
         if (!isOpen) return
@@ -287,7 +294,7 @@ const ImageModal: React.FC<IImageModal> = ({
 
                             {/* Carousel Thumbnails */}
                             <HStack gap={2} mt={4} flexWrap="wrap">
-                                {images?.map((image, index) => (
+                                {displayImages.map((image, index) => (
                                     <Box
                                         key={index}
                                         as="button"
