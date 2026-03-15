@@ -5,6 +5,7 @@ const customConfig = defineConfig({
         tokens: {
             colors: {
                 gold: { value: "#EAB308" },
+                purple: { value: "#7C3AED" },
                 regular: { value: "#374151" },
                 blueTint: { value: "#F5F7FA" },
                 specificationLabel: { value: "#9CA3AF" },
@@ -17,6 +18,10 @@ const customConfig = defineConfig({
                     gold: {
                         bg: { value: "{colors.gold}" },
                         fg: { value: "{colors.black}" },
+                    },
+                    purple: {
+                        bg: { value: "{colors.purple}" },
+                        fg: { value: "{colors.white}" },
                     },
                     regular: {
                         bg: { value: "{colors.regular}" },

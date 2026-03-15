@@ -2,6 +2,7 @@ import { memo } from "react";
 import { Badge, Box, Card, HStack, Image } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import { cloudinarySizes } from "@/utils/cloudinary";
+import ReleaseBadge from "./ReleaseBadge";
 
 interface IItemCard {
     id: number;
@@ -73,7 +74,7 @@ const ItemCard: React.FC<IItemCard> = ({
                                 fontSize='xs'
                                 fontWeight='medium'
                             >
-                                {grade + ' ' + scale}
+                                {grade + ' • ' + scale}
                             </Badge>
                         </HStack>
                     )}
@@ -82,14 +83,11 @@ const ItemCard: React.FC<IItemCard> = ({
                 <Card.Body p={2} gap={1}>
                     <Card.Title truncate lineClamp={2} fontSize={'md'} fontWeight='bold'>{title}</Card.Title>
                     <Box>
-                        <Badge
-                            variant='solid'
-                            bg={releaseType === "P-Bandai" ? "badge.gold.bg" : "badge.regular.bg"}
-                            color={releaseType === "P-Bandai" ? "badge.gold.fg" : "badge.regular.fg"}
+                        <ReleaseBadge
+                            release={releaseType}
                             fontSize='xs'
-                            fontWeight='medium'>
-                            {releaseType}
-                        </Badge>
+                            fontWeight='medium'
+                        />
                     </Box>
                     {/* <Text truncate fontSize={'xs'} color='gray.500' fontWeight='medium'>{releaseType}</Text> */}
                 </Card.Body>

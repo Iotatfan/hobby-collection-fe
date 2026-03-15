@@ -6,6 +6,7 @@ import { cloudinarySizes } from "@/utils/cloudinary";
 import { Link as RouterLink } from "react-router-dom";
 import { canManageCollection } from "@/services/http";
 import KitSpecificationsCard from "./KitSpecificationsCard";
+import ReleaseBadge from "./ReleaseBadge";
 
 
 const MotionBox = motion(Box);
@@ -356,18 +357,14 @@ const ImageModal: React.FC<IImageModal> = ({
                                     </Badge>
                                 )}
 
-                                <Badge
-                                    variant='solid'
-                                    bg={release === "P-Bandai" ? "badge.gold.bg" : "badge.regular.bg"}
-                                    color={release === "P-Bandai" ? "badge.gold.fg" : "badge.regular.fg"}
+                                <ReleaseBadge
+                                    release={release}
                                     bottom={2} left={2}
                                     fontSize='sm'
                                     fontWeight='bold'
                                     px={1.5}
                                     py={1}
-                                >
-                                    {release}
-                                </Badge>
+                                />
                             </HStack>
 
                             {/* Title */}
