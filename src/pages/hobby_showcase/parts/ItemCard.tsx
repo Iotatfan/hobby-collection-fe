@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Badge, Box, Card, HStack, Image } from "@chakra-ui/react";
+import { Badge, Box, Card, Image } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import { cloudinarySizes } from "@/utils/cloudinary";
 import ReleaseBadge from "./ReleaseBadge";
@@ -8,6 +8,7 @@ interface IItemCard {
     id: number;
     grade: string;
     scale: string;
+    typeName: string;
     cover: string;
     title: string;
     releaseType: string;
@@ -21,6 +22,7 @@ const ItemCard: React.FC<IItemCard> = ({
     id,
     grade,
     scale,
+    typeName,
     cover,
     title,
     releaseType,
@@ -28,6 +30,10 @@ const ItemCard: React.FC<IItemCard> = ({
     onClick
 }) => {
     const shouldShowGradeScaleBadge = !(grade === "NG" && scale === "Unknown Scale");
+    const regularBadgeColors = {
+        bg: "badge.regular.bg",
+        color: "badge.regular.fg",
+    } as const;
 
     return (
         <MotionBox
@@ -53,6 +59,42 @@ const ItemCard: React.FC<IItemCard> = ({
                     position='relative'
                     overflow='hidden'
                 >
+                    {(typeName || shouldShowGradeScaleBadge) && (
+                        <Box
+                            position='absolute'
+                            top='10px'
+                            left='10px'
+                            zIndex={1}
+                            display='flex'
+                            flexDirection='column'
+                            gap={1}
+                            alignItems='flex-start'
+                        >
+                            {typeName && (
+                                <Badge
+                                    variant='solid'
+                                    bg={regularBadgeColors.bg}
+                                    color={regularBadgeColors.color}
+                                    fontSize='xs'
+                                    fontWeight='medium'
+                                    opacity={0.9}
+                                >
+                                    {typeName}
+                                </Badge>
+                            )}
+                            {shouldShowGradeScaleBadge && (
+                                <Badge
+                                    variant='solid'
+                                    bg={regularBadgeColors.bg}
+                                    color={regularBadgeColors.color}
+                                    fontSize='xs'
+                                    fontWeight='medium'
+                                >
+                                    {`${grade} \u2022 ${scale}`}
+                                </Badge>
+                            )}
+                        </Box>
+                    )}
                     <Image
                         boxSize='full'
                         maxBlockSize='12rem'
@@ -63,21 +105,6 @@ const ItemCard: React.FC<IItemCard> = ({
                         }}
                         src={cloudinarySizes(cover).cover}
                     />
-                    {shouldShowGradeScaleBadge && (
-                        <HStack
-                            position='absolute'
-                            bottom='10px' left='10px'
-                        >
-                            <Badge
-                                variant='solid'
-                                colorPalette='cyan'
-                                fontSize='xs'
-                                fontWeight='medium'
-                            >
-                                {grade + ' • ' + scale}
-                            </Badge>
-                        </HStack>
-                    )}
                 </Box>
 
                 <Card.Body p={2} gap={1}>

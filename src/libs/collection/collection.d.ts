@@ -97,4 +97,11 @@ export interface IGrade {
     short_name: string
 }
 
+export interface ICollectionFilterQuery {
+    collection_type_id?: number
+    grade_id?: number
+    limit?: number
+    offset?: number
+}
+
 export type ICollectionStatus = 0 | 1 | 2 | 3

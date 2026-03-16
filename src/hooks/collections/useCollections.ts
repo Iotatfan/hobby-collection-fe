@@ -1,4 +1,4 @@
-import { ICollection } from "@/libs/collection/collection"
+import { ICollection, ICollectionFilterQuery } from "@/libs/collection/collection"
 import collectionServices from "@/services/content/collectionServices"
 import { useState, useCallback } from "react"
 
@@ -6,8 +6,8 @@ const useCollections = () => {
 
     const [collections, setCollections] = useState<ICollection[]>()
 
-    const getCollections = useCallback(async () => {
-        const response = await collectionServices.getAllCollections()
+    const getCollections = useCallback(async (query?: ICollectionFilterQuery) => {
+        const response = await collectionServices.getAllCollections(query)
         setCollections(response)
     }, [])
 

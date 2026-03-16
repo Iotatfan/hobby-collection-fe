@@ -1,14 +1,21 @@
-import { ICollection, ICollectionDrawerContent, ICollectionUploadPayload, ICollectionUpsertPayload } from "@/libs/collection/collection";
+import { ICollection, ICollectionDrawerContent, ICollectionFilterQuery, ICollectionUploadPayload, ICollectionUpsertPayload } from "@/libs/collection/collection";
 import http, { getAuthToken, isValidJwtToken } from "@/services/http"
 import { getCachedCollection, setCachedCollection, getCachedCollectionList, setCachedCollectionList, invalidateCollectionCache, getCachedCollectionDrawer, setCachedCollectionDrawer } from "@/utils/collectionCaches";
 
-const getAllCollections = async () => {
-    const cached = getCachedCollectionList()
+const getAllCollections = async (query?: ICollectionFilterQuery) => {
+    const cached = getCachedCollectionList(query)
     if (cached) return cached as ICollection[]
 
     try {
-        const response = await http.get('/collection',)
-        setCachedCollectionList(response.data.data.collections as ICollection[])
+        const response = await http.get('/collection', {
+            params: {
+                collection_type_id: query?.collection_type_id,
+                grade_id: query?.grade_id,
+                limit: query?.limit,
+                offset: query?.offset,
+            }
+        })
+        setCachedCollectionList(response.data.data.collections as ICollection[], query)
 
         return response.data.data.collections as ICollection[]
     } catch (error) {
