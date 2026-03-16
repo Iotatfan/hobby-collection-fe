@@ -90,7 +90,9 @@ const ItemCard: React.FC<IItemCard> = ({
                                     fontSize='xs'
                                     fontWeight='medium'
                                 >
-                                    {`${grade} \u2022 ${scale}`}
+                                    {
+                                        grade == "NG" ? `${scale}` :
+                                            `${grade} \u2022 ${scale}`}
                                 </Badge>
                             )}
                         </Box>
