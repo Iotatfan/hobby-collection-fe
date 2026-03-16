@@ -8,7 +8,7 @@ import { AnimatePresence } from "framer-motion"
 import { Link as RouterLink } from "react-router-dom"
 import { canManageCollection } from "@/services/http"
 import collectionServices from "@/services/content/collectionServices"
-import { ICollectionDrawerContent, ICollectionFilterQuery, IGrade } from "@/libs/collection/collection"
+import { ICollectionDrawerContent, ICollectionFilterQuery } from "@/libs/collection/collection"
 
 const CollectionList = () => {
     const { getCollections, collections } = useCollections()
@@ -19,7 +19,6 @@ const CollectionList = () => {
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [drawerContent, setDrawerContent] = useState<ICollectionDrawerContent>()
     const [collectionTypeId, setCollectionTypeId] = useState<number | undefined>()
-    const [gradeId, setGradeId] = useState<number | undefined>()
     const [limit, setLimit] = useState(20)
     const [offset, setOffset] = useState(0)
     const canManage = canManageCollection()
@@ -27,23 +26,10 @@ const CollectionList = () => {
     const query = useMemo<ICollectionFilterQuery>(() => {
         return {
             collection_type_id: collectionTypeId,
-            grade_id: gradeId,
             limit,
             offset,
         }
-    }, [collectionTypeId, gradeId, limit, offset])
-
-    const gradeOptions = useMemo(() => {
-        const uniqueGrades = new Map<number, IGrade>()
-        for (const item of drawerContent?.collection_types ?? []) {
-            const grade = item.grade
-            if (grade && !uniqueGrades.has(grade.id)) {
-                uniqueGrades.set(grade.id, grade)
-            }
-        }
-
-        return Array.from(uniqueGrades.values()).sort((a, b) => a.name.localeCompare(b.name))
-    }, [drawerContent])
+    }, [collectionTypeId, limit, offset])
 
     const handleFetchCollections = useCallback(async () => {
         setIsLoadingCollections(true)
@@ -115,7 +101,7 @@ const CollectionList = () => {
                 </Flex>
                 <Flex gap={3} mt={3} flexWrap='wrap' align='end'>
                     <Field.Root flex='1' minW='220px' maxW='360px'>
-                        <Field.Label>Collection Type</Field.Label>
+                        <Field.Label>Collection</Field.Label>
                         <select
                             style={selectStyle}
                             value={collectionTypeId ?? ""}
@@ -133,28 +119,6 @@ const CollectionList = () => {
                                         : `${type.name} \u2022 ${type.scale}`}
                                 </option>
                             ))}
-                        </select>
-                    </Field.Root>
-
-                    <Field.Root flex='1' minW='170px' maxW='220px'>
-                        <Field.Label>Grade</Field.Label>
-                        <select
-                            style={selectStyle}
-                            value={gradeId ?? ""}
-                            onChange={(event) => {
-                                const value = event.target.value
-                                setGradeId(value ? Number(value) : undefined)
-                                setOffset(0)
-                            }}
-                        >
-                            <option value=''>All Grades</option>
-                            {gradeOptions
-                                .filter((grade) => grade.short_name !== "NG")
-                                .map((grade) => (
-                                    <option key={grade.id} value={grade.id}>
-                                        {grade.short_name}
-                                    </option>
-                                ))}
                         </select>
                     </Field.Root>
 
@@ -180,7 +144,6 @@ const CollectionList = () => {
                         variant='outline'
                         onClick={() => {
                             setCollectionTypeId(undefined)
-                            setGradeId(undefined)
                             setLimit(20)
                             setOffset(0)
                         }}
@@ -289,4 +252,3 @@ const CollectionList = () => {
 }
 
 export default CollectionList
-
