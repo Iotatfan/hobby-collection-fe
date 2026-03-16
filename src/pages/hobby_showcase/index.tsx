@@ -114,9 +114,7 @@ const CollectionList = () => {
                             <option value=''>All Types</option>
                             {(drawerContent?.collection_types ?? []).map((type) => (
                                 <option key={type.id} value={type.id}>
-                                    {type.grade?.short_name && type.grade.short_name !== "NG"
-                                        ? `${type.name} \u2022 ${type.grade.short_name} ${type.scale}`
-                                        : `${type.name} \u2022 ${type.scale}`}
+                                    {type.name}
                                 </option>
                             ))}
                         </select>
