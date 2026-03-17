@@ -1,4 +1,4 @@
-import { ICollection, ICollectionDrawerContent, ICollectionFilterQuery } from "@/libs/collection/collection"
+import { ICollection, ICollectionDrawerContent, ICollectionFilterQuery, ICollectionTypeFilterItem } from "@/libs/collection/collection"
 
 type CollectionDetailCache = {
   data: ICollection
@@ -12,6 +12,11 @@ type CollectionListCache = {
 
 type CollectionDrawerCache = {
   data: ICollectionDrawerContent
+  timestamp: number
+}
+
+type CollectionFilterCache = {
+  data: ICollectionTypeFilterItem[]
   timestamp: number
 }
 
@@ -96,6 +101,29 @@ export function setCachedCollectionDrawer(data: ICollectionDrawerContent) {
   localStorage.setItem(`collection_drawer`, JSON.stringify(entry))
 }
 
+export function getCachedCollectionTypeFilters(): ICollectionTypeFilterItem[] | null {
+  const raw = localStorage.getItem(`collection_filters`)
+  if (!raw) return null
+
+  const parsed: CollectionFilterCache = JSON.parse(raw)
+
+  if (Date.now() - parsed.timestamp > CACHE_DURATION) {
+    localStorage.removeItem(`collection_filters`)
+    return null
+  }
+
+  return parsed.data
+}
+
+export function setCachedCollectionTypeFilters(data: ICollectionTypeFilterItem[]) {
+  const entry: CollectionFilterCache = {
+    data,
+    timestamp: Date.now(),
+  }
+
+  localStorage.setItem(`collection_filters`, JSON.stringify(entry))
+}
+
 export function invalidateCollectionCache(id?: number) {
   const listCacheKeys: string[] = []
   for (let index = 0; index < localStorage.length; index += 1) {
@@ -106,6 +134,7 @@ export function invalidateCollectionCache(id?: number) {
   }
   listCacheKeys.forEach((key) => localStorage.removeItem(key))
   localStorage.removeItem(`collection_drawer`)
+  localStorage.removeItem(`collection_filters`)
   if (typeof id === "number") {
     localStorage.removeItem(`collection_${id}`)
   }

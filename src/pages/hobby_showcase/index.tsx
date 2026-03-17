@@ -8,7 +8,7 @@ import { AnimatePresence } from "framer-motion"
 import { Link as RouterLink } from "react-router-dom"
 import { canManageCollection } from "@/services/http"
 import collectionServices from "@/services/content/collectionServices"
-import { ICollectionDrawerContent, ICollectionFilterQuery } from "@/libs/collection/collection"
+import { ICollectionFilterQuery, ICollectionTypeFilterItem } from "@/libs/collection/collection"
 
 const CollectionList = () => {
     const { getCollections, collections } = useCollections()
@@ -17,7 +17,7 @@ const CollectionList = () => {
     const [isLoadingCollections, setIsLoadingCollections] = useState(false)
     const [isLoadingCollectionDetail, setIsLoadingCollectionDetail] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [drawerContent, setDrawerContent] = useState<ICollectionDrawerContent>()
+    const [filterOptions, setFilterOptions] = useState<ICollectionTypeFilterItem[]>([])
     const [collectionTypeId, setCollectionTypeId] = useState<number | undefined>()
     const [limit, setLimit] = useState(20)
     const [offset, setOffset] = useState(0)
@@ -48,16 +48,16 @@ const CollectionList = () => {
     }, [handleFetchCollections])
 
     useEffect(() => {
-        const loadDrawerContent = async () => {
+        const loadFilterOptions = async () => {
             try {
-                const response = await collectionServices.getDrawerContent()
-                setDrawerContent(response)
+                const response = await collectionServices.getCollectionTypeFilters()
+                setFilterOptions(response)
             } catch {
                 setErrorMessage("Failed to load filter options.")
             }
         }
 
-        void loadDrawerContent()
+        void loadFilterOptions()
     }, [])
 
     const handleCardClick = async (id: number) => {
@@ -112,7 +112,7 @@ const CollectionList = () => {
                             }}
                         >
                             <option value=''>All Types</option>
-                            {(drawerContent?.collection_types ?? []).map((type) => (
+                            {filterOptions.map((type) => (
                                 <option key={type.id} value={type.id}>
                                     {type.name}
                                 </option>

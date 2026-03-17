@@ -1,6 +1,6 @@
-import { ICollection, ICollectionDrawerContent, ICollectionFilterQuery, ICollectionUploadPayload, ICollectionUpsertPayload } from "@/libs/collection/collection";
+import { ICollection, ICollectionDrawerContent, ICollectionFilterQuery, ICollectionTypeFilterItem, ICollectionUploadPayload, ICollectionUpsertPayload } from "@/libs/collection/collection";
 import http, { getAuthToken, isValidJwtToken } from "@/services/http"
-import { getCachedCollection, setCachedCollection, getCachedCollectionList, setCachedCollectionList, invalidateCollectionCache, getCachedCollectionDrawer, setCachedCollectionDrawer } from "@/utils/collectionCaches";
+import { getCachedCollection, setCachedCollection, getCachedCollectionList, setCachedCollectionList, invalidateCollectionCache, getCachedCollectionDrawer, setCachedCollectionDrawer, getCachedCollectionTypeFilters, setCachedCollectionTypeFilters } from "@/utils/collectionCaches";
 
 const getAllCollections = async (query?: ICollectionFilterQuery) => {
     const cached = getCachedCollectionList(query)
@@ -55,6 +55,28 @@ const getDrawerContent = async () => {
     }
 }
 
+const getCollectionTypeFilters = async () => {
+    const cached = getCachedCollectionTypeFilters()
+    if (cached) return cached as ICollectionTypeFilterItem[]
+
+    try {
+        const response = await http.get('/collection/filter')
+        const data = response.data?.data
+
+        const resolved =
+            Array.isArray(data) ? (data as ICollectionTypeFilterItem[]) :
+            Array.isArray(data?.collection_types) ? (data.collection_types as ICollectionTypeFilterItem[]) :
+            Array.isArray(data?.items) ? (data.items as ICollectionTypeFilterItem[]) :
+            ([] as ICollectionTypeFilterItem[])
+
+        setCachedCollectionTypeFilters(resolved)
+        return resolved
+    } catch (error) {
+        console.error("Error fetching collection filters:", error)
+        throw error
+    }
+}
+
 type CollectionMutationPayload = ICollectionUpsertPayload | ICollectionUploadPayload | FormData
 
 const createCollection = async (payload: CollectionMutationPayload) => {
@@ -97,6 +119,7 @@ const collectionServices = {
     getAllCollections,
     getCollection,
     getDrawerContent,
+    getCollectionTypeFilters,
     createCollection,
     updateCollection,
 }

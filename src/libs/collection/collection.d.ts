@@ -17,7 +17,7 @@ export interface ICollectionUpsertPayload {
     status: ICollectionStatus
     built_at?: string
     cover: string
-    type_id: number
+    grade_id: number
     release_type_id: number
     manufacturer_id: number
     series_id: number
@@ -30,7 +30,7 @@ export interface ICollectionUploadPayload {
     status: ICollectionStatus
     built_at?: string
     cover: File
-    type_id: number
+    grade_id: number
     release_type_id: number
     manufacturer_id: number
     series_id: number
@@ -45,13 +45,15 @@ export interface ICollectionDrawerContent {
     series: ISeriesDrawerItem[]
 }
 
+export interface ICollectionTypeFilterItem {
+    id: number
+    name: string
+}
+
 export interface ICollectionTypeDrawerItem {
     id: number
     name: string
-    scale: string
-    GradeID?: number
-    grade_id?: number
-    grade?: IGrade
+    grades: IGrade[]
 }
 
 export interface IReleaseTypeDrawerItem {
