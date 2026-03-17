@@ -2,7 +2,6 @@ import type {
     ICollection,
     ICollectionDrawerContent,
     IManufacturerDrawerItem,
-    ICollectionTypeDrawerItem,
 } from "@/libs/collection/collection";
 import { Box, Button, Drawer, Field, Flex, Heading, Image, Input, Portal, SimpleGrid, Stack, Text, Textarea, VStack } from "@chakra-ui/react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -74,7 +73,7 @@ const CollectionForm = () => {
     const [existingPictures, setExistingPictures] = useState<ExistingPictureItem[]>([]);
     const [description, setDescription] = useState("");
     const [statusId, setStatusId] = useState<0 | 1 | 2 | 3 | null>(null);
-    const [typeId, setTypeId] = useState<number | null>(null);
+    const [gradeId, setGradeId] = useState<number | null>(null);
     const [releaseTypeId, setReleaseTypeId] = useState<number | null>(null);
     const [manufacturerId, setManufacturerId] = useState<number | null>(null);
     const [seriesId, setSeriesId] = useState<number | null>(null);
@@ -89,12 +88,35 @@ const CollectionForm = () => {
     const [isSeriesDrawerOpen, setIsSeriesDrawerOpen] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    const collectionTypes = drawerContent?.collection_types ?? [];
-    const releaseTypes = drawerContent?.release_types ?? [];
-    const manufacturers = drawerContent?.manufacturers ?? [];
-    const seriesOptions = drawerContent?.series ?? [];
+    const drawerGrades = useMemo(() => drawerContent?.grades ?? [], [drawerContent?.grades]);
+    const releaseTypes = useMemo(() => drawerContent?.release_types ?? [], [drawerContent?.release_types]);
+    const manufacturers = useMemo(() => drawerContent?.manufacturers ?? [], [drawerContent?.manufacturers]);
+    const seriesOptions = useMemo(() => drawerContent?.series ?? [], [drawerContent?.series]);
 
-    const selectedType = collectionTypes.find((option) => option.id === typeId);
+    type TypeOption = {
+        grade_id: number;
+        collection_type_name: string;
+        scale: string;
+        grade_short_name: string;
+    };
+    const typeOptions: TypeOption[] = useMemo(() => {
+        return [...drawerGrades]
+            .sort(
+                (a, b) =>
+                    a.collection_type_name.localeCompare(b.collection_type_name) ||
+                    a.scale.localeCompare(b.scale) ||
+                    a.grade_short_name.localeCompare(b.grade_short_name)
+            )
+            .map((grade) => ({
+                grade_id: grade.grade_id,
+                collection_type_name: grade.collection_type_name,
+                scale: grade.scale,
+                grade_short_name: grade.grade_short_name,
+            }));
+    }, [drawerGrades]);
+
+    const selectedType = typeOptions.find((option) => option.grade_id === gradeId) ?? null;
+
     const selectedStatus = STATUS_OPTIONS.find((option) => option.id === statusId);
     const selectedReleaseType = releaseTypes.find((option) => option.id === releaseTypeId);
     const selectedManufacturer = manufacturers.find((option) => option.id === manufacturerId);
@@ -128,10 +150,13 @@ const CollectionForm = () => {
         [existingPictures]
     );
 
-    const getTypeLabel = (type: ICollectionTypeDrawerItem) => {
-        const gradeText = type.grade?.name?.trim();
-        return gradeText ? `${type.name} - ${type.scale} (${gradeText})` : `${type.name} - ${type.scale}`;
+    const getTypeLabel = (type: TypeOption) => {
+        const scalePart = type.scale?.trim() ? ` (${type.scale})` : "";
+        const gradePart = type.grade_short_name?.trim() ? ` - ${type.grade_short_name}` : "";
+        return `${type.collection_type_name}${scalePart}${gradePart}`;
     };
+
+    // grade_id is auto-selected from type.
 
     useEffect(() => {
         const loadDrawerContent = async () => {
@@ -188,7 +213,7 @@ const CollectionForm = () => {
                     .filter((picture): picture is ExistingPictureItem => Boolean(picture));
 
                 setExistingPictures(normalizedPictures);
-                setTypeId(data.type?.id ?? null);
+                setGradeId(data.type?.grade?.id ?? null);
                 setReleaseTypeId(data.release_type?.id ?? null);
                 setManufacturerId(data.manufacturer?.id ?? null);
                 setSeriesId(data.series?.id ?? null);
@@ -201,6 +226,16 @@ const CollectionForm = () => {
 
         void loadCollection();
     }, [id, isEditMode]);
+
+    useEffect(() => {
+        if (drawerGrades.length === 0) return;
+        if (gradeId === null) {
+            setGradeId(drawerGrades[0].grade_id);
+            return;
+        }
+        const stillValid = drawerGrades.some((grade) => grade.grade_id === gradeId);
+        if (!stillValid) setGradeId(drawerGrades[0].grade_id);
+    }, [drawerGrades, gradeId]);
 
     useEffect(() => {
         return () => {
@@ -251,7 +286,7 @@ const CollectionForm = () => {
 
         const normalizedStatusId = resolveStatusId(statusId);
 
-        if (normalizedStatusId === null || typeId === null || releaseTypeId === null || manufacturerId === null || seriesId === null) {
+        if (normalizedStatusId === null || gradeId === null || releaseTypeId === null || manufacturerId === null || seriesId === null) {
             setErrorMessage("Status, type, release type, manufacturer, and series are required.");
             return;
         }
@@ -265,7 +300,7 @@ const CollectionForm = () => {
                 formData.append("built_at", new Date().toISOString());
             }
             formData.append("description", description.trim());
-            formData.append("type_id", String(typeId));
+            formData.append("grade_id", String(gradeId));
             formData.append("release_type_id", String(releaseTypeId));
             formData.append("manufacturer_id", String(manufacturerId));
             formData.append("series_id", String(seriesId));
@@ -559,22 +594,22 @@ const CollectionForm = () => {
                             </Drawer.Header>
                             <Drawer.Body>
                                 <VStack align="stretch" gap={2}>
-                                    {collectionTypes.map((option) => (
+                                    {typeOptions.map((option) => (
                                         <Button
                                             type="button"
-                                            key={option.id}
-                                            variant={option.id === typeId ? "solid" : "outline"}
-                                            colorPalette={option.id === typeId ? "blue" : "gray"}
+                                            key={`${option.grade_id}-${option.collection_type_name}-${option.scale}`}
+                                            variant={option.grade_id === gradeId ? "solid" : "outline"}
+                                            colorPalette={option.grade_id === gradeId ? "blue" : "gray"}
                                             justifyContent="space-between"
                                             onClick={() => {
-                                                setTypeId(option.id);
+                                                setGradeId(option.grade_id);
                                                 setIsTypeDrawerOpen(false);
                                             }}
                                         >
                                             {getTypeLabel(option)}
                                         </Button>
                                     ))}
-                                    {collectionTypes.length === 0 && <Text color="fg.muted">No collection types available.</Text>}
+                                    {typeOptions.length === 0 && <Text color="fg.muted">No collection types available.</Text>}
                                 </VStack>
                             </Drawer.Body>
                         </Drawer.Content>

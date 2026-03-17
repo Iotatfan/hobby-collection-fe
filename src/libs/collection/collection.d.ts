@@ -39,7 +39,7 @@ export interface ICollectionUploadPayload {
 }
 
 export interface ICollectionDrawerContent {
-    collection_types: ICollectionTypeDrawerItem[]
+    grades: IGradeDrawerItem[]
     release_types: IReleaseTypeDrawerItem[]
     manufacturers?: IManufacturerDrawerItem[]
     series: ISeriesDrawerItem[]
@@ -50,10 +50,11 @@ export interface ICollectionTypeFilterItem {
     name: string
 }
 
-export interface ICollectionTypeDrawerItem {
-    id: number
-    name: string
-    grades: IGrade[]
+export interface IGradeDrawerItem {
+    grade_id: number
+    collection_type_name: string
+    grade_short_name: string
+    scale: string
 }
 
 export interface IReleaseTypeDrawerItem {
