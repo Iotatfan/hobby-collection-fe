@@ -3,12 +3,13 @@ import type {
     ICollectionDrawerContent,
     IManufacturerDrawerItem,
 } from "@/libs/collection/collection";
-import { Box, Button, Drawer, Field, Flex, Heading, Image, Input, Portal, SimpleGrid, Stack, Text, Textarea, VStack } from "@chakra-ui/react";
+import { Box, Button, Field, Flex, Heading, Image, Input, SimpleGrid, Stack, Text, Textarea, VStack } from "@chakra-ui/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import collectionServices from "@/services/content/collectionServices";
 import { cloudinarySizes } from "@/utils/cloudinary";
 import { AxiosError } from "axios";
+import FormSelectDrawer from "./parts/FormSelectDrawer";
 
 type StatusOption = {
     id: 0 | 1 | 2 | 3;
@@ -584,169 +585,84 @@ const CollectionForm = () => {
                 )}
             </VStack>
 
-            <Drawer.Root open={isTypeDrawerOpen} onOpenChange={(event) => setIsTypeDrawerOpen(event.open)}>
-                <Portal>
-                    <Drawer.Backdrop />
-                    <Drawer.Positioner>
-                        <Drawer.Content>
-                            <Drawer.Header>
-                                <Drawer.Title>Select Collection Type</Drawer.Title>
-                            </Drawer.Header>
-                            <Drawer.Body>
-                                <VStack align="stretch" gap={2}>
-                                    {typeOptions.map((option) => (
-                                        <Button
-                                            type="button"
-                                            key={`${option.grade_id}-${option.collection_type_name}-${option.scale}`}
-                                            variant={option.grade_id === gradeId ? "solid" : "outline"}
-                                            colorPalette={option.grade_id === gradeId ? "blue" : "gray"}
-                                            justifyContent="space-between"
-                                            onClick={() => {
-                                                setGradeId(option.grade_id);
-                                                setIsTypeDrawerOpen(false);
-                                            }}
-                                        >
-                                            {getTypeLabel(option)}
-                                        </Button>
-                                    ))}
-                                    {typeOptions.length === 0 && <Text color="fg.muted">No collection types available.</Text>}
-                                </VStack>
-                            </Drawer.Body>
-                        </Drawer.Content>
-                    </Drawer.Positioner>
-                </Portal>
-            </Drawer.Root>
+            <FormSelectDrawer
+                open={isTypeDrawerOpen}
+                onOpenChange={setIsTypeDrawerOpen}
+                title="Select Collection Type"
+                options={typeOptions.map((option) => ({
+                    key: `${option.grade_id}-${option.collection_type_name}-${option.scale}`,
+                    label: getTypeLabel(option),
+                    isSelected: option.grade_id === gradeId,
+                    onSelect: () => {
+                        setGradeId(option.grade_id);
+                        setIsTypeDrawerOpen(false);
+                    },
+                }))}
+                emptyText="No collection types available."
+            />
 
-            <Drawer.Root open={isStatusDrawerOpen} onOpenChange={(event) => setIsStatusDrawerOpen(event.open)}>
-                <Portal>
-                    <Drawer.Backdrop />
-                    <Drawer.Positioner>
-                        <Drawer.Content>
-                            <Drawer.Header>
-                                <Drawer.Title>Select Status</Drawer.Title>
-                            </Drawer.Header>
-                            <Drawer.Body>
-                                <VStack align="stretch" gap={2}>
-                                    {STATUS_OPTIONS.map((option) => (
-                                        <Button
-                                            type="button"
-                                            key={option.id}
-                                            variant={option.id === statusId ? "solid" : "outline"}
-                                            colorPalette={option.id === statusId ? "blue" : "gray"}
-                                            justifyContent="space-between"
-                                            onClick={() => {
-                                                setStatusId(option.id);
-                                                setIsStatusDrawerOpen(false);
-                                            }}
-                                        >
-                                            {option.name}
-                                        </Button>
-                                    ))}
-                                </VStack>
-                            </Drawer.Body>
-                        </Drawer.Content>
-                    </Drawer.Positioner>
-                </Portal>
-            </Drawer.Root>
+            <FormSelectDrawer
+                open={isStatusDrawerOpen}
+                onOpenChange={setIsStatusDrawerOpen}
+                title="Select Status"
+                options={STATUS_OPTIONS.map((option) => ({
+                    key: option.id,
+                    label: option.name,
+                    isSelected: option.id === statusId,
+                    onSelect: () => {
+                        setStatusId(option.id);
+                        setIsStatusDrawerOpen(false);
+                    },
+                }))}
+            />
 
-            <Drawer.Root open={isReleaseTypeDrawerOpen} onOpenChange={(event) => setIsReleaseTypeDrawerOpen(event.open)}>
-                <Portal>
-                    <Drawer.Backdrop />
-                    <Drawer.Positioner>
-                        <Drawer.Content>
-                            <Drawer.Header>
-                                <Drawer.Title>Select Release Type</Drawer.Title>
-                            </Drawer.Header>
-                            <Drawer.Body>
-                                <VStack align="stretch" gap={2}>
-                                    {releaseTypes.map((option) => (
-                                        <Button
-                                            type="button"
-                                            key={option.id}
-                                            variant={option.id === releaseTypeId ? "solid" : "outline"}
-                                            colorPalette={option.id === releaseTypeId ? "blue" : "gray"}
-                                            justifyContent="space-between"
-                                            onClick={() => {
-                                                setReleaseTypeId(option.id);
-                                                setIsReleaseTypeDrawerOpen(false);
-                                            }}
-                                        >
-                                            {option.name}
-                                        </Button>
-                                    ))}
-                                    {releaseTypes.length === 0 && <Text color="fg.muted">No release types available.</Text>}
-                                </VStack>
-                            </Drawer.Body>
-                        </Drawer.Content>
-                    </Drawer.Positioner>
-                </Portal>
-            </Drawer.Root>
+            <FormSelectDrawer
+                open={isReleaseTypeDrawerOpen}
+                onOpenChange={setIsReleaseTypeDrawerOpen}
+                title="Select Release Type"
+                options={releaseTypes.map((option) => ({
+                    key: option.id,
+                    label: option.name,
+                    isSelected: option.id === releaseTypeId,
+                    onSelect: () => {
+                        setReleaseTypeId(option.id);
+                        setIsReleaseTypeDrawerOpen(false);
+                    },
+                }))}
+                emptyText="No release types available."
+            />
 
-            <Drawer.Root open={isSeriesDrawerOpen} onOpenChange={(event) => setIsSeriesDrawerOpen(event.open)}>
-                <Portal>
-                    <Drawer.Backdrop />
-                    <Drawer.Positioner>
-                        <Drawer.Content>
-                            <Drawer.Header>
-                                <Drawer.Title>Select Series</Drawer.Title>
-                            </Drawer.Header>
-                            <Drawer.Body>
-                                <VStack align="stretch" gap={2}>
-                                    {seriesOptions.map((option) => (
-                                        <Button
-                                            type="button"
-                                            key={option.id}
-                                            variant={option.id === seriesId ? "solid" : "outline"}
-                                            colorPalette={option.id === seriesId ? "blue" : "gray"}
-                                            justifyContent="space-between"
-                                            onClick={() => {
-                                                setSeriesId(option.id);
-                                                setIsSeriesDrawerOpen(false);
-                                            }}
-                                        >
-                                            {option.name}
-                                        </Button>
-                                    ))}
-                                    {seriesOptions.length === 0 && <Text color="fg.muted">No series available.</Text>}
-                                </VStack>
-                            </Drawer.Body>
-                        </Drawer.Content>
-                    </Drawer.Positioner>
-                </Portal>
-            </Drawer.Root>
+            <FormSelectDrawer
+                open={isSeriesDrawerOpen}
+                onOpenChange={setIsSeriesDrawerOpen}
+                title="Select Series"
+                options={seriesOptions.map((option) => ({
+                    key: option.id,
+                    label: option.name,
+                    isSelected: option.id === seriesId,
+                    onSelect: () => {
+                        setSeriesId(option.id);
+                        setIsSeriesDrawerOpen(false);
+                    },
+                }))}
+                emptyText="No series available."
+            />
 
-            <Drawer.Root open={isManufacturerDrawerOpen} onOpenChange={(event) => setIsManufacturerDrawerOpen(event.open)}>
-                <Portal>
-                    <Drawer.Backdrop />
-                    <Drawer.Positioner>
-                        <Drawer.Content>
-                            <Drawer.Header>
-                                <Drawer.Title>Select Manufacturer</Drawer.Title>
-                            </Drawer.Header>
-                            <Drawer.Body>
-                                <VStack align="stretch" gap={2}>
-                                    {manufacturers.map((option: IManufacturerDrawerItem) => (
-                                        <Button
-                                            type="button"
-                                            key={option.id}
-                                            variant={option.id === manufacturerId ? "solid" : "outline"}
-                                            colorPalette={option.id === manufacturerId ? "blue" : "gray"}
-                                            justifyContent="space-between"
-                                            onClick={() => {
-                                                setManufacturerId(option.id);
-                                                setIsManufacturerDrawerOpen(false);
-                                            }}
-                                        >
-                                            {option.name}
-                                        </Button>
-                                    ))}
-                                    {manufacturers.length === 0 && <Text color="fg.muted">No manufacturers available.</Text>}
-                                </VStack>
-                            </Drawer.Body>
-                        </Drawer.Content>
-                    </Drawer.Positioner>
-                </Portal>
-            </Drawer.Root>
+            <FormSelectDrawer
+                open={isManufacturerDrawerOpen}
+                onOpenChange={setIsManufacturerDrawerOpen}
+                title="Select Manufacturer"
+                options={manufacturers.map((option: IManufacturerDrawerItem) => ({
+                    key: option.id,
+                    label: option.name,
+                    isSelected: option.id === manufacturerId,
+                    onSelect: () => {
+                        setManufacturerId(option.id);
+                        setIsManufacturerDrawerOpen(false);
+                    },
+                }))}
+                emptyText="No manufacturers available."
+            />
         </Flex>
     );
 };
