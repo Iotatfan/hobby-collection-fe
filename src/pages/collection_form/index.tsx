@@ -23,11 +23,6 @@ const STATUS_OPTIONS: StatusOption[] = [
     { id: 3, name: "Built" },
 ];
 
-type ExistingPictureItem = {
-    id?: number;
-    src: string;
-};
-
 const resolveImageSrc = (value: unknown): string => {
     if (typeof value === "string") return value;
     if (!value || typeof value !== "object") return "";
@@ -71,7 +66,8 @@ const CollectionForm = () => {
     const [coverFile, setCoverFile] = useState<File | null>(null);
     const [existingCoverUrl, setExistingCoverUrl] = useState("");
     const [pictureFiles, setPictureFiles] = useState<File[]>([]);
-    const [existingPictures, setExistingPictures] = useState<ExistingPictureItem[]>([]);
+    const [existingPictureUrls, setExistingPictureUrls] = useState<string[]>([]);
+    const [deletedPictureUrls, setDeletedPictureUrls] = useState<string[]>([]);
     const [description, setDescription] = useState("");
     const [statusId, setStatusId] = useState<0 | 1 | 2 | 3 | null>(null);
     const [gradeId, setGradeId] = useState<number | null>(null);
@@ -130,8 +126,8 @@ const CollectionForm = () => {
     }, [coverFile, existingCoverUrl]);
 
     const existingPicturePreviewUrls = useMemo(
-        () => existingPictures.map((picture) => cloudinarySizes(picture.src).cover),
-        [existingPictures]
+        () => existingPictureUrls.map((url) => cloudinarySizes(url).cover),
+        [existingPictureUrls]
     );
 
     const newPicturePreviewUrls = useMemo(
@@ -142,13 +138,6 @@ const CollectionForm = () => {
     const picturePreviewUrls = useMemo(
         () => [...existingPicturePreviewUrls, ...newPicturePreviewUrls],
         [existingPicturePreviewUrls, newPicturePreviewUrls]
-    );
-
-    const existingPictureIds = useMemo(
-        () => existingPictures
-            .map((picture) => picture.id)
-            .filter((id): id is number => typeof id === "number"),
-        [existingPictures]
     );
 
     const getTypeLabel = (type: TypeOption) => {
@@ -196,24 +185,12 @@ const CollectionForm = () => {
                 setDescription(data.description ?? "");
                 setStatusId(resolveStatusId((data as { status?: unknown }).status));
                 const rawPictures = (data as { pictures?: unknown[] }).pictures ?? [];
-                const normalizedPictures = rawPictures
-                    .map((picture) => {
-                        const src = resolveImageSrc(picture);
-                        if (!src) return null;
+                const normalizedPictureUrls = rawPictures
+                    .map((picture) => resolveImageSrc(picture))
+                    .filter((pictureUrl): pictureUrl is string => Boolean(pictureUrl));
 
-                        const pictureObject = picture as {
-                            id?: number;
-                            picture_id?: number;
-                        };
-
-                        return {
-                            id: typeof pictureObject.id === "number" ? pictureObject.id : pictureObject.picture_id,
-                            src,
-                        } as ExistingPictureItem;
-                    })
-                    .filter((picture): picture is ExistingPictureItem => Boolean(picture));
-
-                setExistingPictures(normalizedPictures);
+                setExistingPictureUrls(normalizedPictureUrls);
+                setDeletedPictureUrls([]);
                 setGradeId(data.type?.grade?.id ?? null);
                 setReleaseTypeId(data.release_type?.id ?? null);
                 setManufacturerId(data.manufacturer?.id ?? null);
@@ -264,7 +241,18 @@ const CollectionForm = () => {
     };
 
     const handleRemoveExistingPicture = (indexToRemove: number) => {
-        setExistingPictures((prev) => prev.filter((_, index) => index !== indexToRemove));
+        setExistingPictureUrls((prev) => {
+            const pictureUrlToRemove = prev[indexToRemove];
+            if (pictureUrlToRemove) {
+                setDeletedPictureUrls((deletedPrev) =>
+                    deletedPrev.includes(pictureUrlToRemove)
+                        ? deletedPrev
+                        : [...deletedPrev, pictureUrlToRemove]
+                );
+            }
+
+            return prev.filter((_, index) => index !== indexToRemove);
+        });
     };
 
     const handleRemoveNewPicture = (indexToRemove: number) => {
@@ -315,8 +303,8 @@ const CollectionForm = () => {
                     formData.append("new_pictures", file);
                 });
 
-                existingPictureIds.forEach((existingId) => {
-                    formData.append("existing_picture_ids", String(existingId));
+                deletedPictureUrls.forEach((deletedUrl) => {
+                    formData.append("deleted_picture_urls", deletedUrl);
                 });
 
                 await collectionServices.updateCollection(Number(id), formData);
@@ -488,7 +476,7 @@ const CollectionForm = () => {
                                 />
                                 <Text fontSize="sm" color="fg.muted">
                                     {picturePreviewUrls.length > 0
-                                        ? `${existingPictures.length} existing + ${pictureFiles.length} new image(s)`
+                                        ? `${existingPictureUrls.length} existing + ${pictureFiles.length} new image(s)`
                                         : "No pictures selected"}
                                 </Text>
                                 <SimpleGrid mt={2} columns={{ base: 3, md: 4 }} gap={2}>
