@@ -29,7 +29,7 @@ const ItemCard: React.FC<IItemCard> = ({
     index,
     onClick
 }) => {
-    const shouldShowGradeScaleBadge = !(grade === "NG" && scale === "Unknown Scale");
+    const shouldShowGradeScaleBadge = scale !== "Unknown Scale";
     const regularBadgeColors = {
         bg: "badge.regular.bg",
         color: "badge.regular.fg",

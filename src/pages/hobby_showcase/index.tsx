@@ -234,6 +234,7 @@ const CollectionList = () => {
                     onClose={handleCloseModal}
                     isLoading={isLoadingCollectionDetail}
                     collectionId={collection?.id}
+                    type={collection?.type.name}
                     grade={collection?.type.grade.name}
                     scale={collection?.type.scale}
                     series={collection?.series?.name}

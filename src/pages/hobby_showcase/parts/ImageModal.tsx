@@ -12,6 +12,7 @@ import ReleaseBadge from "./ReleaseBadge";
 const MotionBox = motion(Box);
 interface IImageModal {
     collectionId?: number;
+    type?: string;
     title?: string;
     cover?: string;
     images?: string[];
@@ -28,6 +29,7 @@ interface IImageModal {
 
 const ImageModal: React.FC<IImageModal> = ({
     collectionId,
+    type,
     title,
     cover,
     images,
@@ -48,9 +50,9 @@ const ImageModal: React.FC<IImageModal> = ({
         return [cover, ...pictures.filter((image) => image !== cover)]
     }, [cover, images])
     const normalizedGrade = grade?.trim().toLowerCase()
-    const normalizedScale = scale?.trim().toLowerCase()
+    const normalizedType = type?.trim().toLowerCase()
     const gradeBadgeLabel = normalizedGrade === "no grade" ? scale : grade
-    const shouldShowGradeBadge = Boolean(gradeBadgeLabel) && normalizedScale !== 'unknown scale'
+    const shouldShowGradeBadge = Boolean(gradeBadgeLabel) && normalizedType !== 'figure'
     const imageCount = displayImages.length
     const currentImage = imageCount ? displayImages[currentIndex] : undefined
     const descriptionRef = useRef<HTMLParagraphElement | null>(null)
