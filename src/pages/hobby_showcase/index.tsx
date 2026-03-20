@@ -26,7 +26,7 @@ const CollectionList = () => {
     const query = useMemo<ICollectionFilterQuery>(() => {
         return {
             collection_type_id: collectionTypeId,
-            limit: limit + 1,
+            limit,
             offset,
         }
     }, [collectionTypeId, limit, offset])
@@ -78,9 +78,8 @@ const CollectionList = () => {
         setIsModalOpen(false);
     };
 
-    const visibleCollections = useMemo(() => (collections ?? []).slice(0, limit), [collections, limit])
     const canGoPrev = offset > 0
-    const canGoNext = (collections?.length ?? 0) > limit
+    const canGoNext = (collections?.length ?? 0) >= limit
     const currentPage = Math.floor(offset / limit) + 1
     const selectStyle: CSSProperties = {
         width: "100%",
@@ -184,7 +183,7 @@ const CollectionList = () => {
                                             'repeat(5, 1fr)',
                                         ]
                                     } gap='6px'>
-                                    {visibleCollections.map((collection, index) => (
+                                    {collections?.map((collection, index) => (
                                         <Center key={collection.id}>
                                             <ItemCard
                                                 id={collection.id}
@@ -201,7 +200,7 @@ const CollectionList = () => {
                                     ))}
                                 </Grid>
 
-                                {visibleCollections.length === 0 && (
+                                {collections?.length === 0 && (
                                     <Text mt={4} color='gray.500'>No collection items found for this filter.</Text>
                                 )}
 
