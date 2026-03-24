@@ -33,7 +33,7 @@ export function cloudinarySizes(src: string) {
     ),
     preview: transformCloudinaryUrl(
       src,
-      "w_800,c_limit,q_auto,f_auto"
+      "w_1280,c_limit,q_auto,f_auto"
     ),
   }
 }

@@ -64,7 +64,7 @@ const ImageModal: React.FC<IImageModal> = ({
     const preloadImage = useCallback((src?: string) => {
         if (!src) return
         const img = new window.Image()
-        img.src = src
+        img.src = cloudinarySizes(src).preview
     }, [])
 
     useEffect(() => {
