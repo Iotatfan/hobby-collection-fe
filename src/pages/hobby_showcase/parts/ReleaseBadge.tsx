@@ -28,9 +28,11 @@ const getReleaseBadgeColors = (release?: string) => {
 
 const ReleaseBadge: React.FC<IReleaseBadgeProps> = ({ release, ...badgeProps }) => {
     const normalizedRelease = release?.trim().toLowerCase();
+    const { fontSize, fontWeight } = badgeProps;
+
     if (normalizedRelease === "regular") {
         return (
-            <Text {...badgeProps}>
+            <Text fontSize={fontSize} fontWeight={fontWeight}>
                 {release}
             </Text>
         );
