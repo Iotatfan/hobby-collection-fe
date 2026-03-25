@@ -55,6 +55,23 @@ const resolveStatusId = (value: unknown): 0 | 1 | 2 | 3 | null => {
     return null;
 };
 
+const toDateInputValue = (value?: string): string => {
+    if (!value) return "";
+
+    const parsedDate = new Date(value);
+    if (Number.isNaN(parsedDate.getTime())) return "";
+
+    const year = parsedDate.getFullYear();
+    const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
+    const day = String(parsedDate.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+};
+
+const toIsoDateTime = (dateValue: string): string => {
+    const parsedDate = new Date(`${dateValue}T00:00:00`);
+    return parsedDate.toISOString();
+};
+
 const CollectionForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -69,6 +86,7 @@ const CollectionForm = () => {
     const [existingPictureUrls, setExistingPictureUrls] = useState<string[]>([]);
     const [deletedPictureUrls, setDeletedPictureUrls] = useState<string[]>([]);
     const [description, setDescription] = useState("");
+    const [builtAt, setBuiltAt] = useState("");
     const [statusId, setStatusId] = useState<0 | 1 | 2 | 3 | null>(null);
     const [gradeId, setGradeId] = useState<number | null>(null);
     const [releaseTypeId, setReleaseTypeId] = useState<number | null>(null);
@@ -183,6 +201,7 @@ const CollectionForm = () => {
                 setTitle(data.title ?? "");
                 setExistingCoverUrl(resolveImageSrc((data as { cover?: unknown }).cover));
                 setDescription(data.description ?? "");
+                setBuiltAt(toDateInputValue(data.built_at));
                 setStatusId(resolveStatusId((data as { status?: unknown }).status));
                 const rawPictures = (data as { pictures?: unknown[] }).pictures ?? [];
                 const normalizedPictureUrls = rawPictures
@@ -214,6 +233,12 @@ const CollectionForm = () => {
         const stillValid = drawerGrades.some((grade) => grade.grade_id === gradeId);
         if (!stillValid) setGradeId(drawerGrades[0].grade_id);
     }, [drawerGrades, gradeId]);
+
+    useEffect(() => {
+        if (statusId !== 3 && builtAt) {
+            setBuiltAt("");
+        }
+    }, [builtAt, statusId]);
 
     useEffect(() => {
         return () => {
@@ -274,9 +299,15 @@ const CollectionForm = () => {
         }
 
         const normalizedStatusId = resolveStatusId(statusId);
+        const isBuiltStatus = normalizedStatusId === 3;
 
         if (normalizedStatusId === null || gradeId === null || releaseTypeId === null || manufacturerId === null || seriesId === null) {
             setErrorMessage("Status, type, release type, manufacturer, and series are required.");
+            return;
+        }
+
+        if (isBuiltStatus && !builtAt) {
+            setErrorMessage("Built date is required when status is Built.");
             return;
         }
 
@@ -285,8 +316,8 @@ const CollectionForm = () => {
             const formData = new FormData();
             formData.append("title", title.trim());
             formData.append("status", String(normalizedStatusId));
-            if (normalizedStatusId === 3) {
-                formData.append("built_at", new Date().toISOString());
+            if (isBuiltStatus) {
+                formData.append("built_at", toIsoDateTime(builtAt));
             }
             formData.append("description", description.trim());
             formData.append("grade_id", String(gradeId));
@@ -452,6 +483,17 @@ const CollectionForm = () => {
                                     </Button>
                                 </Field.Root>
                             </Stack>
+
+                            {statusId === 3 && (
+                                <Field.Root required>
+                                    <Field.Label>Built Date</Field.Label>
+                                    <Input
+                                        type="date"
+                                        value={builtAt}
+                                        onChange={(event) => setBuiltAt(event.target.value)}
+                                    />
+                                </Field.Root>
+                            )}
 
                             <Field.Root>
                                 <Field.Label>Description</Field.Label>
