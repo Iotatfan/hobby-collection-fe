@@ -22,6 +22,15 @@ type CollectionFilterCache = {
 
 const CACHE_DURATION  = 24 * 60 * 60 * 1000 // one day
 
+function parseCachedJson<T>(raw: string, key: string): T | null {
+  try {
+    return JSON.parse(raw) as T
+  } catch {
+    localStorage.removeItem(key)
+    return null
+  }
+}
+
 function getCollectionListCacheKey(query?: ICollectionFilterQuery) {
   if (!query) return "collection_list"
 
@@ -33,13 +42,15 @@ function getCollectionListCacheKey(query?: ICollectionFilterQuery) {
 }
 
 export function getCachedCollection(id: number): ICollection | null {
-  const raw = localStorage.getItem(`collection_${id}`)
+  const key = `collection_${id}`
+  const raw = localStorage.getItem(key)
   if (!raw) return null
 
-  const parsed: CollectionDetailCache = JSON.parse(raw)
+  const parsed = parseCachedJson<CollectionDetailCache>(raw, key)
+  if (!parsed) return null
 
   if (Date.now() - parsed.timestamp > CACHE_DURATION ) {
-    localStorage.removeItem(`collection_${id}`)
+    localStorage.removeItem(key)
     return null
   }
 
@@ -56,13 +67,15 @@ export function setCachedCollection(data: ICollection) {
 }
 
 export function getCachedCollectionList(query?: ICollectionFilterQuery): ICollection[] | null {
-  const raw = localStorage.getItem(getCollectionListCacheKey(query))
+  const key = getCollectionListCacheKey(query)
+  const raw = localStorage.getItem(key)
   if (!raw) return null
 
-  const parsed: CollectionListCache = JSON.parse(raw)
+  const parsed = parseCachedJson<CollectionListCache>(raw, key)
+  if (!parsed) return null
 
   if (Date.now() - parsed.timestamp > CACHE_DURATION ) {
-    localStorage.removeItem(getCollectionListCacheKey(query))
+    localStorage.removeItem(key)
     return null
   }
 
@@ -79,13 +92,15 @@ export function setCachedCollectionList(data: ICollection[], query?: ICollection
 }
 
 export function getCachedCollectionDrawer(): ICollectionDrawerContent | null {
-  const raw = localStorage.getItem(`collection_drawer`)
+  const key = `collection_drawer`
+  const raw = localStorage.getItem(key)
   if (!raw) return null
 
-  const parsed: CollectionDrawerCache = JSON.parse(raw)
+  const parsed = parseCachedJson<CollectionDrawerCache>(raw, key)
+  if (!parsed) return null
 
   if (Date.now() - parsed.timestamp > CACHE_DURATION) {
-    localStorage.removeItem(`collection_drawer`)
+    localStorage.removeItem(key)
     return null
   }
 
@@ -102,13 +117,15 @@ export function setCachedCollectionDrawer(data: ICollectionDrawerContent) {
 }
 
 export function getCachedCollectionTypeFilters(): ICollectionTypeFilterItem[] | null {
-  const raw = localStorage.getItem(`collection_filters`)
+  const key = `collection_filters`
+  const raw = localStorage.getItem(key)
   if (!raw) return null
 
-  const parsed: CollectionFilterCache = JSON.parse(raw)
+  const parsed = parseCachedJson<CollectionFilterCache>(raw, key)
+  if (!parsed) return null
 
   if (Date.now() - parsed.timestamp > CACHE_DURATION) {
-    localStorage.removeItem(`collection_filters`)
+    localStorage.removeItem(key)
     return null
   }
 
