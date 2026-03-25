@@ -189,11 +189,11 @@ const CollectionList = () => {
                                                 id={collection.id}
                                                 index={index}
                                                 title={collection.title}
-                                                grade={collection.type.grade.short_name}
-                                                scale={collection.type.scale}
-                                                typeName={collection.type.name}
+                                                grade={collection.type?.grade?.short_name}
+                                                scale={collection.type?.scale}
+                                                typeName={collection.type?.name}
                                                 cover={collection.cover}
-                                                releaseType={collection.release_type.name}
+                                                releaseType={collection.release_type?.name}
                                                 onClick={() => handleCardClick(collection.id)}
                                             ></ItemCard>
                                         </Center>
@@ -234,12 +234,12 @@ const CollectionList = () => {
                     onClose={handleCloseModal}
                     isLoading={isLoadingCollectionDetail}
                     collectionId={collection?.id}
-                    type={collection?.type.name}
-                    grade={collection?.type.grade.name}
-                    scale={collection?.type.scale}
+                    type={collection?.type?.name}
+                    grade={collection?.type?.grade?.name}
+                    scale={collection?.type?.scale}
                     series={collection?.series?.name}
                     manufacturer={collection?.manufacturer?.name}
-                    release={collection?.release_type.name}
+                    release={collection?.release_type?.name}
                     title={collection?.title}
                     cover={collection?.cover}
                     images={collection?.pictures}
