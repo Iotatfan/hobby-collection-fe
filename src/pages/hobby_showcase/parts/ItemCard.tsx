@@ -103,6 +103,7 @@ const ItemCard: React.FC<IItemCard> = ({
                                     color={regularBadgeColors.color}
                                     fontSize='xs'
                                     fontWeight='medium'
+                                    opacity={0.9}
                                 >
                                     {
                                         grade == "NG" ? `${scale}` :
@@ -124,7 +125,7 @@ const ItemCard: React.FC<IItemCard> = ({
                 </Box>
 
                 <Card.Body p={2} gap={1}>
-                    <Card.Title truncate lineClamp={2} fontSize={'md'} fontWeight='bold'>{title}</Card.Title>
+                    <Card.Title truncate lineClamp={2} fontSize={'md'} fontWeight='bold' pb='6px'>{title}</Card.Title>
                     <Box>
                         <ReleaseBadge
                             release={releaseType}
@@ -132,12 +133,11 @@ const ItemCard: React.FC<IItemCard> = ({
                             fontWeight='medium'
                         />
                             {builtDateLabel && (
-                                <Text mt={1} fontSize='xs' fontWeight='medium' color='gray.500'>
+                                <Text mt={1} fontSize='xs' fontWeight='medium' color='blackAlpha.900'>
                                     Built: {builtDateLabel}
                                 </Text>
                             )}
                     </Box>
-                    {/* <Text truncate fontSize={'xs'} color='gray.500' fontWeight='medium'>{releaseType}</Text> */}
                 </Card.Body>
             </Card.Root>
         </MotionBox>

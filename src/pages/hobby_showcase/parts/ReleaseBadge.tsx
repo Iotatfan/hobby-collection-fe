@@ -1,4 +1,4 @@
-import { Badge } from "@chakra-ui/react";
+import { Badge, Text } from "@chakra-ui/react";
 import { ComponentProps } from "react";
 
 interface IReleaseBadgeProps extends Omit<ComponentProps<typeof Badge>, "children" | "bg" | "color"> {
@@ -27,6 +27,15 @@ const getReleaseBadgeColors = (release?: string) => {
 };
 
 const ReleaseBadge: React.FC<IReleaseBadgeProps> = ({ release, ...badgeProps }) => {
+    const normalizedRelease = release?.trim().toLowerCase();
+    if (normalizedRelease === "regular") {
+        return (
+            <Text {...badgeProps}>
+                {release}
+            </Text>
+        );
+    }
+
     const badgeColors = getReleaseBadgeColors(release);
 
     return (
@@ -34,6 +43,7 @@ const ReleaseBadge: React.FC<IReleaseBadgeProps> = ({ release, ...badgeProps }) 
             variant='solid'
             bg={badgeColors.bg}
             color={badgeColors.color}
+            opacity={0.7}
             {...badgeProps}
         >
             {release}
