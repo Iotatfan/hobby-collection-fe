@@ -103,6 +103,8 @@ export interface IGrade {
 export interface ICollectionFilterQuery {
     collection_type_id?: number
     grade_id?: number
+    release_type_id?: number[]
+    sort?: string
     limit?: number
     offset?: number
 }

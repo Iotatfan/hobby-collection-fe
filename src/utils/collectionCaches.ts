@@ -34,11 +34,16 @@ function parseCachedJson<T>(raw: string, key: string): T | null {
 function getCollectionListCacheKey(query?: ICollectionFilterQuery) {
   if (!query) return "collection_list"
 
-  const { collection_type_id, grade_id, limit, offset } = query
+  const { collection_type_id, grade_id, release_type_id, sort, limit, offset } = query
+  const releaseTypeKey = (release_type_id && release_type_id.length > 0)
+    ? [...release_type_id].sort((a, b) => a - b).join("-")
+    : undefined
   const hasQuery = [collection_type_id, grade_id, limit, offset].some((value) => typeof value === "number")
+    || Boolean(sort)
+    || Boolean(releaseTypeKey)
   if (!hasQuery) return "collection_list"
 
-  return `collection_list_ct${collection_type_id ?? "all"}_g${grade_id ?? "all"}_l${limit ?? "all"}_o${offset ?? "all"}`
+  return `collection_list_ct${collection_type_id ?? "all"}_g${grade_id ?? "all"}_l${limit ?? "all"}_o${offset ?? "all"}_s${sort ?? "default"}_rt${releaseTypeKey ?? "none"}`
 }
 
 export function getCachedCollection(id: number): ICollection | null {

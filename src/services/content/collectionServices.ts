@@ -11,9 +11,14 @@ const getAllCollections = async (query?: ICollectionFilterQuery) => {
             params: {
                 collection_type_id: query?.collection_type_id,
                 grade_id: query?.grade_id,
+                release_type_id: query?.release_type_id,
+                sort: query?.sort,
                 limit: query?.limit,
                 offset: query?.offset,
-            }
+            },
+            paramsSerializer: {
+                indexes: null,
+            },
         })
         setCachedCollectionList(response.data.data.collections as ICollection[], query)
 
