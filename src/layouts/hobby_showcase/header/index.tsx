@@ -8,7 +8,7 @@ const Header = () => {
                 <Flex alignItems='center' padding={4} justifyContent='space-between' gap={4}>
                     <VStack align={'start'}>
                         <Text fontWeight='bold' fontSize={24} color='white'>Hobby Collection</Text>
-                        <Text fontWeight='medium' fontSize={15} color='white'>Work in progress</Text>
+                        <Text fontWeight='medium' fontSize={15} color='white'>In development. Gunpla builds ongoing; photography improving.</Text>
                     </VStack>
                 </Flex>
             </Container>

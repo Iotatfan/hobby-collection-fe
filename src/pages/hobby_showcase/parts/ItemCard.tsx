@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Badge, Box, Card, Image } from "@chakra-ui/react";
+import { Badge, Box, Card, Image, Text } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import { cloudinarySizes } from "@/utils/cloudinary";
 import ReleaseBadge from "./ReleaseBadge";
@@ -12,6 +12,7 @@ interface IItemCard {
     cover: string;
     title: string;
     releaseType: string;
+    builtAt?: string | null;
     index?: number;
     onClick?: (id: number) => void;
 }
@@ -26,6 +27,7 @@ const ItemCard: React.FC<IItemCard> = ({
     cover,
     title,
     releaseType,
+    builtAt,
     index,
     onClick
 }) => {
@@ -34,6 +36,18 @@ const ItemCard: React.FC<IItemCard> = ({
         bg: "badge.regular.bg",
         color: "badge.regular.fg",
     } as const;
+    const builtDateLabel = (() => {
+        if (!builtAt) return null;
+        const normalizedBuiltAt = builtAt.trim().toLowerCase();
+        if (!normalizedBuiltAt || normalizedBuiltAt === "null") return null;
+        const parsedDate = new Date(builtAt);
+        if (Number.isNaN(parsedDate.getTime())) return null;
+        return parsedDate.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+        });
+    })();
 
     return (
         <MotionBox
@@ -117,6 +131,11 @@ const ItemCard: React.FC<IItemCard> = ({
                             fontSize='xs'
                             fontWeight='medium'
                         />
+                            {builtDateLabel && (
+                                <Text mt={1} fontSize='xs' fontWeight='medium' color='gray.500'>
+                                    Built: {builtDateLabel}
+                                </Text>
+                            )}
                     </Box>
                     {/* <Text truncate fontSize={'xs'} color='gray.500' fontWeight='medium'>{releaseType}</Text> */}
                 </Card.Body>

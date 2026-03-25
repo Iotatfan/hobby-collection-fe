@@ -5,23 +5,78 @@ import { useEffect, useState, useCallback, useMemo, type CSSProperties } from "r
 import ItemCard from "./parts/ItemCard"
 import ImageModal from "./parts/ImageModal"
 import { AnimatePresence } from "framer-motion"
-import { Link as RouterLink } from "react-router-dom"
+import { Link as RouterLink, useSearchParams } from "react-router-dom"
 import { canManageCollection } from "@/services/http"
 import collectionServices from "@/services/content/collectionServices"
 import { ICollectionFilterQuery, ICollectionTypeFilterItem } from "@/libs/collection/collection"
 
+const LIMIT_OPTIONS = [10, 20, 30, 50] as const
+const DEFAULT_LIMIT = 20
+const DEFAULT_OFFSET = 0
+
+const parsePositiveNumberParam = (value: string | null): number | undefined => {
+    if (!value) return undefined
+    const parsed = Number(value)
+    if (!Number.isInteger(parsed) || parsed < 1) return undefined
+    return parsed
+}
+
+const toCollectionSlug = (value: string): string => {
+    return value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+}
+
+const normalizeCollectionName = (value: string): string => value.trim().toLowerCase()
+
+const parseLimitParam = (value: string | null): number => {
+    const parsed = Number(value)
+    if (!Number.isInteger(parsed) || !LIMIT_OPTIONS.includes(parsed as (typeof LIMIT_OPTIONS)[number])) {
+        return DEFAULT_LIMIT
+    }
+    return parsed
+}
+
+const parseOffsetParam = (value: string | null): number => {
+    const parsed = Number(value)
+    if (!Number.isInteger(parsed) || parsed < 0) return DEFAULT_OFFSET
+    return parsed
+}
+
 const CollectionList = () => {
     const { getCollections, collections } = useCollections()
     const { getCollectionDetail, collection } = useCollectionDetail()
+    const [searchParams, setSearchParams] = useSearchParams()
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isLoadingCollections, setIsLoadingCollections] = useState(false)
     const [isLoadingCollectionDetail, setIsLoadingCollectionDetail] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [filterOptions, setFilterOptions] = useState<ICollectionTypeFilterItem[]>([])
-    const [collectionTypeId, setCollectionTypeId] = useState<number | undefined>()
-    const [limit, setLimit] = useState(20)
-    const [offset, setOffset] = useState(0)
     const canManage = canManageCollection()
+    const collectionValue = useMemo(() => searchParams.get("collection") ?? "", [searchParams])
+    const collectionTypeId = useMemo(() => {
+        const legacyCollectionTypeId = parsePositiveNumberParam(searchParams.get("collection_type_id"))
+        if (legacyCollectionTypeId) return legacyCollectionTypeId
+        if (!collectionValue) return undefined
+
+        const normalizedCollectionValue = normalizeCollectionName(collectionValue)
+        const matchedOption = filterOptions.find((option) => {
+            const normalizedName = normalizeCollectionName(option.name)
+            return normalizedName === normalizedCollectionValue || toCollectionSlug(option.name) === collectionValue
+        })
+        return matchedOption?.id
+    }, [collectionValue, filterOptions, searchParams])
+    const limit = useMemo(() => parseLimitParam(searchParams.get("limit")), [searchParams])
+    const offset = useMemo(() => parseOffsetParam(searchParams.get("offset")), [searchParams])
+    const isResolvingCollectionSlug = Boolean(collectionValue) && filterOptions.length === 0
+
+    const updateSearchParams = useCallback((updater: (nextParams: URLSearchParams) => void) => {
+        const nextParams = new URLSearchParams(searchParams)
+        updater(nextParams)
+        setSearchParams(nextParams)
+    }, [searchParams, setSearchParams])
 
     const query = useMemo<ICollectionFilterQuery>(() => {
         return {
@@ -32,6 +87,7 @@ const CollectionList = () => {
     }, [collectionTypeId, limit, offset])
 
     const handleFetchCollections = useCallback(async () => {
+        if (isResolvingCollectionSlug) return
         setIsLoadingCollections(true)
         setErrorMessage(null)
         try {
@@ -41,7 +97,7 @@ const CollectionList = () => {
         } finally {
             setIsLoadingCollections(false)
         }
-    }, [getCollections, query])
+    }, [getCollections, isResolvingCollectionSlug, query])
 
     useEffect(() => {
         void handleFetchCollections()
@@ -59,6 +115,18 @@ const CollectionList = () => {
 
         void loadFilterOptions()
     }, [])
+
+    useEffect(() => {
+        const legacyCollectionTypeId = parsePositiveNumberParam(searchParams.get("collection_type_id"))
+        if (!legacyCollectionTypeId) return
+        if (filterOptions.length === 0) return
+
+        const selected = filterOptions.find((option) => option.id === legacyCollectionTypeId)
+        updateSearchParams((nextParams) => {
+            if (selected) nextParams.set("collection", selected.name)
+            nextParams.delete("collection_type_id")
+        })
+    }, [filterOptions, searchParams, updateSearchParams])
 
     const handleCardClick = async (id: number) => {
         setIsLoadingCollectionDetail(true)
@@ -107,8 +175,16 @@ const CollectionList = () => {
                             value={collectionTypeId ?? ""}
                             onChange={(event) => {
                                 const value = event.target.value
-                                setCollectionTypeId(value ? Number(value) : undefined)
-                                setOffset(0)
+                                updateSearchParams((nextParams) => {
+                                    if (value) {
+                                        const selected = filterOptions.find((option) => option.id === Number(value))
+                                        if (selected) nextParams.set("collection", selected.name)
+                                    } else {
+                                        nextParams.delete("collection")
+                                    }
+                                    nextParams.delete("collection_type_id")
+                                    nextParams.delete("offset")
+                                })
                             }}
                         >
                             <option value=''>All Types</option>
@@ -126,14 +202,17 @@ const CollectionList = () => {
                             style={selectStyle}
                             value={limit}
                             onChange={(event) => {
-                                setLimit(Number(event.target.value))
-                                setOffset(0)
+                                const selectedLimit = Number(event.target.value)
+                                updateSearchParams((nextParams) => {
+                                    if (selectedLimit === DEFAULT_LIMIT) nextParams.delete("limit")
+                                    else nextParams.set("limit", String(selectedLimit))
+                                    nextParams.delete("offset")
+                                })
                             }}
                         >
-                            <option value={10}>10</option>
-                            <option value={20}>20</option>
-                            <option value={30}>30</option>
-                            <option value={50}>50</option>
+                            {LIMIT_OPTIONS.map((limitOption) => (
+                                <option key={limitOption} value={limitOption}>{limitOption}</option>
+                            ))}
                         </select>
                     </Field.Root>
 
@@ -141,9 +220,12 @@ const CollectionList = () => {
                         size='sm'
                         variant='outline'
                         onClick={() => {
-                            setCollectionTypeId(undefined)
-                            setLimit(20)
-                            setOffset(0)
+                            updateSearchParams((nextParams) => {
+                                nextParams.delete("collection")
+                                nextParams.delete("collection_type_id")
+                                nextParams.delete("limit")
+                                nextParams.delete("offset")
+                            })
                         }}
                     >
                         Reset
@@ -194,6 +276,7 @@ const CollectionList = () => {
                                                 typeName={collection.type?.name}
                                                 cover={collection.cover}
                                                 releaseType={collection.release_type?.name}
+                                                builtAt={collection.built_at}
                                                 onClick={() => handleCardClick(collection.id)}
                                             ></ItemCard>
                                         </Center>
@@ -209,7 +292,13 @@ const CollectionList = () => {
                                         size='sm'
                                         variant='outline'
                                         disabled={!canGoPrev}
-                                        onClick={() => setOffset((prev) => Math.max(0, prev - limit))}
+                                        onClick={() => {
+                                            updateSearchParams((nextParams) => {
+                                                const nextOffset = Math.max(0, offset - limit)
+                                                if (nextOffset === DEFAULT_OFFSET) nextParams.delete("offset")
+                                                else nextParams.set("offset", String(nextOffset))
+                                            })
+                                        }}
                                     >
                                         Previous
                                     </Button>
@@ -218,7 +307,13 @@ const CollectionList = () => {
                                         size='sm'
                                         variant='outline'
                                         disabled={!canGoNext}
-                                        onClick={() => setOffset((prev) => prev + limit)}
+                                        onClick={() => {
+                                            updateSearchParams((nextParams) => {
+                                                const nextOffset = offset + limit
+                                                if (nextOffset === DEFAULT_OFFSET) nextParams.delete("offset")
+                                                else nextParams.set("offset", String(nextOffset))
+                                            })
+                                        }}
                                     >
                                         Next
                                     </Button>
