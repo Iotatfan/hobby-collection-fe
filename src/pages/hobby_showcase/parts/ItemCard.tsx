@@ -2,6 +2,8 @@ import { memo } from "react";
 import { Badge, Box, Card, Image, Text } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import { cloudinarySizes } from "@/utils/cloudinary";
+import { formatBuiltDateLabel } from "@/utils/date";
+import { ICollectionStatus } from "@/libs/collection/collection";
 import ReleaseBadge from "./ReleaseBadge";
 
 interface IItemCard {
@@ -12,7 +14,9 @@ interface IItemCard {
     cover: string;
     title: string;
     releaseType: string;
+    status?: ICollectionStatus | string | null;
     builtAt?: string | null;
+    acquiredAt?: string | null;
     index?: number;
     onClick?: (id: number) => void;
 }
@@ -27,7 +31,9 @@ const ItemCard: React.FC<IItemCard> = ({
     cover,
     title,
     releaseType,
+    status,
     builtAt,
+    acquiredAt,
     index,
     onClick
 }) => {
@@ -36,18 +42,12 @@ const ItemCard: React.FC<IItemCard> = ({
         bg: "badge.regular.bg",
         color: "badge.regular.fg",
     } as const;
-    const builtDateLabel = (() => {
-        if (!builtAt) return null;
-        const normalizedBuiltAt = builtAt.trim().toLowerCase();
-        if (!normalizedBuiltAt || normalizedBuiltAt === "null") return null;
-        const parsedDate = new Date(builtAt);
-        if (Number.isNaN(parsedDate.getTime())) return null;
-        return parsedDate.toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-        });
-    })();
+    const normalizedStatus = String(status ?? "").trim().toLowerCase();
+    const shouldUseAcquiredDate =
+        normalizedStatus === "1" ||
+        normalizedStatus === "2"
+    const dateLabelPrefix = shouldUseAcquiredDate ? "Acquired" : "Built";
+    const statusDateLabel = formatBuiltDateLabel(shouldUseAcquiredDate ? acquiredAt : builtAt);
 
     return (
         <MotionBox
@@ -132,9 +132,9 @@ const ItemCard: React.FC<IItemCard> = ({
                             fontSize='xs'
                             fontWeight='medium'
                         />
-                            {builtDateLabel && (
+                            {statusDateLabel && (
                                 <Text mt={1} fontSize='xs' fontWeight='medium' color='blackAlpha.900'>
-                                    Built: {builtDateLabel}
+                                    {dateLabelPrefix}: {statusDateLabel}
                                 </Text>
                             )}
                     </Box>

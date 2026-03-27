@@ -3,6 +3,7 @@ import { ComponentProps } from "react";
 
 interface IReleaseBadgeProps extends Omit<ComponentProps<typeof Badge>, "children" | "bg" | "color"> {
     release?: string;
+    hideRegular?: boolean;
 }
 
 const getReleaseBadgeColors = (release?: string) => {
@@ -26,11 +27,15 @@ const getReleaseBadgeColors = (release?: string) => {
     };
 };
 
-const ReleaseBadge: React.FC<IReleaseBadgeProps> = ({ release, ...badgeProps }) => {
+const ReleaseBadge: React.FC<IReleaseBadgeProps> = ({ release, hideRegular = false, ...badgeProps }) => {
     const normalizedRelease = release?.trim().toLowerCase();
     const { fontSize, fontWeight } = badgeProps;
 
     if (normalizedRelease === "regular") {
+        if (hideRegular) {
+            return null;
+        }
+
         return (
             <Text fontSize={fontSize} fontWeight={fontWeight}>
                 {release}
@@ -45,7 +50,7 @@ const ReleaseBadge: React.FC<IReleaseBadgeProps> = ({ release, ...badgeProps }) 
             variant='solid'
             bg={badgeColors.bg}
             color={badgeColors.color}
-            opacity={0.7}
+            opacity={hideRegular ? 1 : 0.7}
             {...badgeProps}
         >
             {release}

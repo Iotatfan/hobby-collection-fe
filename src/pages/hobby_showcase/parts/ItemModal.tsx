@@ -7,10 +7,11 @@ import { Link as RouterLink } from "react-router-dom";
 import { canManageCollection } from "@/services/http";
 import KitSpecificationsCard from "./KitSpecificationsCard";
 import ReleaseBadge from "./ReleaseBadge";
+import { ICollectionStatus } from "@/libs/collection/collection";
 
 
 const MotionBox = motion(Box);
-interface IImageModal {
+interface IItemModal {
     collectionId?: number;
     type?: string;
     title?: string;
@@ -22,12 +23,15 @@ interface IImageModal {
     manufacturer?: string;
     release?: string;
     description?: string;
+    status?: ICollectionStatus | string | null;
+    builtDate?: string | null;
+    acquiredDate?: string | null;
     isOpen: boolean;
     isLoading?: boolean;
     onClose: () => void;
 }
 
-const ImageModal: React.FC<IImageModal> = ({
+const ItemModal: React.FC<IItemModal> = ({
     collectionId,
     type,
     title,
@@ -39,6 +43,9 @@ const ImageModal: React.FC<IImageModal> = ({
     manufacturer,
     release,
     description,
+    status,
+    builtDate,
+    acquiredDate,
     isLoading,
     isOpen,
     onClose
@@ -361,6 +368,7 @@ const ImageModal: React.FC<IImageModal> = ({
 
                                 <ReleaseBadge
                                     release={release}
+                                    hideRegular
                                     bottom={2} left={2}
                                     fontSize='sm'
                                     fontWeight='bold'
@@ -383,6 +391,9 @@ const ImageModal: React.FC<IImageModal> = ({
                                 scale={scale}
                                 manufacturer={manufacturer}
                                 series={series}
+                                status={status}
+                                builtDate={builtDate}
+                                acquiredDate={acquiredDate}
                             />
 
                             {/* Description */}
@@ -459,4 +470,4 @@ const ImageModal: React.FC<IImageModal> = ({
     )
 }
 
-export default ImageModal
+export default ItemModal

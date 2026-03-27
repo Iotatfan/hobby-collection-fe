@@ -87,6 +87,7 @@ const CollectionForm = () => {
     const [deletedPictureUrls, setDeletedPictureUrls] = useState<string[]>([]);
     const [description, setDescription] = useState("");
     const [builtAt, setBuiltAt] = useState("");
+    const [acquiredAt, setAcquiredAt] = useState("");
     const [statusId, setStatusId] = useState<0 | 1 | 2 | 3 | null>(null);
     const [gradeId, setGradeId] = useState<number | null>(null);
     const [releaseTypeId, setReleaseTypeId] = useState<number | null>(null);
@@ -202,6 +203,7 @@ const CollectionForm = () => {
                 setExistingCoverUrl(resolveImageSrc((data as { cover?: unknown }).cover));
                 setDescription(data.description ?? "");
                 setBuiltAt(toDateInputValue(data.built_at));
+                setAcquiredAt(toDateInputValue(data.acquired_at));
                 setStatusId(resolveStatusId((data as { status?: unknown }).status));
                 const rawPictures = (data as { pictures?: unknown[] }).pictures ?? [];
                 const normalizedPictureUrls = rawPictures
@@ -239,6 +241,12 @@ const CollectionForm = () => {
             setBuiltAt("");
         }
     }, [builtAt, statusId]);
+
+    useEffect(() => {
+        if (statusId !== 1 && statusId !== 2 && acquiredAt) {
+            setAcquiredAt("");
+        }
+    }, [acquiredAt, statusId]);
 
     useEffect(() => {
         return () => {
@@ -300,6 +308,7 @@ const CollectionForm = () => {
 
         const normalizedStatusId = resolveStatusId(statusId);
         const isBuiltStatus = normalizedStatusId === 3;
+        const isAcquiredStatus = normalizedStatusId === 1 || normalizedStatusId === 2;
 
         if (normalizedStatusId === null || gradeId === null || releaseTypeId === null || manufacturerId === null || seriesId === null) {
             setErrorMessage("Status, type, release type, manufacturer, and series are required.");
@@ -311,6 +320,11 @@ const CollectionForm = () => {
             return;
         }
 
+        if (isAcquiredStatus && !acquiredAt) {
+            setErrorMessage("Acquired date is required when status is Backlog or Owned.");
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             const formData = new FormData();
@@ -318,6 +332,9 @@ const CollectionForm = () => {
             formData.append("status", String(normalizedStatusId));
             if (isBuiltStatus) {
                 formData.append("built_at", toIsoDateTime(builtAt));
+            }
+            if (isAcquiredStatus) {
+                formData.append("acquired_at", toIsoDateTime(acquiredAt));
             }
             formData.append("description", description.trim());
             formData.append("grade_id", String(gradeId));
@@ -491,6 +508,17 @@ const CollectionForm = () => {
                                         type="date"
                                         value={builtAt}
                                         onChange={(event) => setBuiltAt(event.target.value)}
+                                    />
+                                </Field.Root>
+                            )}
+
+                            {(statusId === 1 || statusId === 2) && (
+                                <Field.Root required>
+                                    <Field.Label>Acquired Date</Field.Label>
+                                    <Input
+                                        type="date"
+                                        value={acquiredAt}
+                                        onChange={(event) => setAcquiredAt(event.target.value)}
                                     />
                                 </Field.Root>
                             )}

@@ -3,6 +3,7 @@ export interface ICollection {
     title: string,
     status?: ICollectionStatus
     built_at?: string
+    acquired_at?: string
     type: IType,
     release_type: IReleaseType
     manufacturer?: IManufacturer
@@ -16,6 +17,7 @@ export interface ICollectionUpsertPayload {
     title: string
     status: ICollectionStatus
     built_at?: string
+    acquired_at?: string
     cover: string
     grade_id: number
     release_type_id: number
@@ -29,6 +31,7 @@ export interface ICollectionUploadPayload {
     title: string
     status: ICollectionStatus
     built_at?: string
+    acquired_at?: string
     cover: File
     grade_id: number
     release_type_id: number

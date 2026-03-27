@@ -3,7 +3,7 @@ import useCollections from "@/hooks/collections/useCollections"
 import useCollectionDetail from "@/hooks/collections/useCollectionDetail"
 import { useEffect, useState, useCallback, useMemo } from "react"
 import ItemCard from "./parts/ItemCard"
-import ImageModal from "./parts/ImageModal"
+import ItemModal from "./parts/ItemModal"
 import { AnimatePresence } from "framer-motion"
 import { Link as RouterLink, useSearchParams } from "react-router-dom"
 import { canManageCollection } from "@/services/http"
@@ -516,7 +516,9 @@ const CollectionList = () => {
                                                 typeName={collection.type?.name}
                                                 cover={collection.cover}
                                                 releaseType={collection.release_type?.name}
+                                                status={collection.status}
                                                 builtAt={collection.built_at}
+                                                acquiredAt={collection.acquired_at}
                                                 onClick={() => handleCardClick(collection.id)}
                                             ></ItemCard>
                                         </Center>
@@ -564,7 +566,7 @@ const CollectionList = () => {
             </Box>
 
             <AnimatePresence>
-                {isModalOpen && <ImageModal
+                {isModalOpen && <ItemModal
                     isOpen={isModalOpen}
                     onClose={handleCloseModal}
                     isLoading={isLoadingCollectionDetail}
@@ -576,6 +578,9 @@ const CollectionList = () => {
                     manufacturer={collection?.manufacturer?.name}
                     release={collection?.release_type?.name}
                     title={collection?.title}
+                    status={collection?.status}
+                    builtDate={collection?.built_at}
+                    acquiredDate={collection?.acquired_at}
                     cover={collection?.cover}
                     images={collection?.pictures}
                     description={collection?.description}
