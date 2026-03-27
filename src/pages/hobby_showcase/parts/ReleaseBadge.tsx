@@ -14,7 +14,14 @@ const getReleaseBadgeColors = (release?: string) => {
         };
     }
 
-    if (release === "Gundam Base Limited") {
+    if (release === "Limited") {
+        return {
+            bg: "badge.gold.bg",
+            color: "badge.gold.fg",
+        };
+    }
+
+    if (release === "Gundam Base Exclusive") {
         return {
             bg: "badge.purple.bg",
             color: "badge.purple.fg",

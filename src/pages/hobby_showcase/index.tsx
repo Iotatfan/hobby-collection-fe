@@ -16,7 +16,7 @@ const DEFAULT_OFFSET = 0
 const DEFAULT_SORT = "latest"
 const ALL_COLLECTION_VALUE = "__all__"
 const SORT_OPTIONS = [
-    { value: "latest", label: "Latest Build Date" },
+    { value: "latest", label: "Latest Activity" },
     { value: "name", label: "Name (A-Z)" },
     { value: "name_desc", label: "Name (Z-A)" },
 ] as const
