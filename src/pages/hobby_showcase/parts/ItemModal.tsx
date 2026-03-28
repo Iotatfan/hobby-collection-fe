@@ -7,7 +7,7 @@ import { Link as RouterLink } from "react-router-dom";
 import { canManageCollection } from "@/services/http";
 import KitSpecificationsCard from "./KitSpecificationsCard";
 import ReleaseBadge from "./ReleaseBadge";
-import { ICollectionStatus } from "@/libs/collection/collection";
+import { ICollectionAddon, ICollectionStatus } from "@/libs/collection/collection";
 
 
 const MotionBox = motion(Box);
@@ -22,6 +22,7 @@ interface IItemModal {
     series?: string;
     manufacturer?: string;
     release?: string;
+    addons?: ICollectionAddon[];
     description?: string;
     status?: ICollectionStatus | string | null;
     builtDate?: string | null;
@@ -42,6 +43,7 @@ const ItemModal: React.FC<IItemModal> = ({
     series,
     manufacturer,
     release,
+    addons,
     description,
     status,
     builtDate,
@@ -67,6 +69,19 @@ const ItemModal: React.FC<IItemModal> = ({
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
     const canManage = canManageCollection()
     const descriptionText = description || "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+    const addonLabels = useMemo(() => {
+        const source = addons ?? []
+        return source
+            .map((addon) => {
+                const name = (addon?.name ?? "").trim()
+                const rawBrand = addon.manufacturer
+                const brand = (rawBrand?.name ?? "").trim()
+                if (!name) return null
+                if (!brand) return name
+                return `${name} - ${brand}`
+            })
+            .filter((addon): addon is string => Boolean(addon))
+    }, [addons])
 
     const preloadImage = useCallback((src?: string) => {
         if (!src) return
@@ -395,6 +410,27 @@ const ItemModal: React.FC<IItemModal> = ({
                                 builtDate={builtDate}
                                 acquiredDate={acquiredDate}
                             />
+
+                            {addonLabels.length > 0 && (
+                                <VStack align="start" gap={1} maxWidth='520px'>
+                                    <Text
+                                        fontSize={{ base: 'sm', lg: 'md' }}
+                                        color="gray.400"
+                                    >
+                                        Addons
+                                    </Text>
+                                    {addonLabels.map((addon) => (
+                                        <Text
+                                            key={addon}
+                                            fontSize={{ base: 'md', lg: 'lg' }}
+                                            color="gray.300"
+                                            lineHeight="relaxed"
+                                        >
+                                            {addon}
+                                        </Text>
+                                    ))}
+                                </VStack>
+                            )}
 
                             {/* Description */}
                             <VStack align="start" gap={2} maxWidth='520px'>

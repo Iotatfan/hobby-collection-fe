@@ -583,6 +583,7 @@ const CollectionList = () => {
                     acquiredDate={collection?.acquired_at}
                     cover={collection?.cover}
                     images={collection?.pictures}
+                    addons={collection?.addons}
                     description={collection?.description}
                 />}
             </AnimatePresence>

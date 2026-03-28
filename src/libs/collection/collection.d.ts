@@ -10,6 +10,7 @@ export interface ICollection {
     series?: ISeries
     cover: string
     pictures?: string[]
+    addons?: ICollectionAddon[]
     description?: string
 }
 
@@ -24,6 +25,7 @@ export interface ICollectionUpsertPayload {
     manufacturer_id: number
     series_id: number
     pictures?: string[]
+    addons?: ICollectionAddonPayload[]
     description?: string
 }
 
@@ -38,6 +40,7 @@ export interface ICollectionUploadPayload {
     manufacturer_id: number
     series_id: number
     pictures?: File[]
+    addons?: ICollectionAddonPayload[]
     description?: string
 }
 
@@ -73,6 +76,17 @@ export interface ISeriesDrawerItem {
 export interface IManufacturerDrawerItem {
     id: number
     name: string
+}
+
+export interface ICollectionAddon {
+    id?: number
+    name?: string
+    manufacturer?: IManufacturer
+}
+
+export interface ICollectionAddonPayload {
+    name: string
+    manufacturer_id: number
 }
 
 interface IReleaseType {

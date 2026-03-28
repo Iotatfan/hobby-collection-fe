@@ -46,6 +46,7 @@ const ItemCard: React.FC<IItemCard> = ({
     const shouldUseAcquiredDate =
         normalizedStatus === "1" ||
         normalizedStatus === "2"
+    const shouldShowBacklogLabel = normalizedStatus === "1";
     const dateLabelPrefix = shouldUseAcquiredDate ? "Acquired" : "Built";
     const statusDateLabel = formatBuiltDateLabel(shouldUseAcquiredDate ? acquiredAt : builtAt);
 
@@ -66,8 +67,12 @@ const ItemCard: React.FC<IItemCard> = ({
                 minW={{ base: 0, lg: '250px' }}
                 borderColor='gray.200'
                 transition="all 0.2s ease"
-                _hover={{ borderColor: 'gray.400', cursor: 'pointer', transform: "translateY(-10px)" }}
-                onClick={() => onClick?.(id)}
+                _hover={shouldShowBacklogLabel ?
+                    { borderColor: 'gray.400', cursor: 'disabled', transform: "translateY(-10px)" } :
+                    { borderColor: 'gray.400', cursor: 'pointer', transform: "translateY(-10px)" }}
+                onClick={() => {
+                    if (!shouldShowBacklogLabel) onClick?.(id)
+                }}
             >
                 <Box
                     position='relative'
@@ -132,11 +137,18 @@ const ItemCard: React.FC<IItemCard> = ({
                             fontSize='xs'
                             fontWeight='medium'
                         />
-                            {statusDateLabel && (
+                        {
+                            shouldShowBacklogLabel && (
                                 <Text mt={1} fontSize='xs' fontWeight='medium' color='blackAlpha.900'>
-                                    {dateLabelPrefix}: {statusDateLabel}
+                                    Backlog
                                 </Text>
-                            )}
+                            )
+                        }
+                        {statusDateLabel && (
+                            <Text mt={1} fontSize='xs' fontWeight='medium' color='blackAlpha.900'>
+                                {dateLabelPrefix}: {statusDateLabel}
+                            </Text>
+                        )}
                     </Box>
                 </Card.Body>
             </Card.Root>
