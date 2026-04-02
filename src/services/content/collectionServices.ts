@@ -2,6 +2,12 @@ import { ICollection, ICollectionDrawerContent, ICollectionFilterQuery, ICollect
 import http, { getAuthToken, isValidJwtToken } from "@/services/http"
 import { getCachedCollection, setCachedCollection, getCachedCollectionList, setCachedCollectionList, invalidateCollectionCache, getCachedCollectionDrawer, setCachedCollectionDrawer, getCachedCollectionTypeFilters, setCachedCollectionTypeFilters } from "@/utils/collectionCaches";
 
+const logError = (...args: unknown[]) => {
+    if (import.meta.env.DEV) {
+        console.error(...args)
+    }
+}
+
 const getAllCollections = async (query?: ICollectionFilterQuery) => {
     const cached = getCachedCollectionList(query)
     if (cached) return cached as ICollection[]
@@ -24,7 +30,7 @@ const getAllCollections = async (query?: ICollectionFilterQuery) => {
 
         return response.data.data.collections as ICollection[]
     } catch (error) {
-        console.error("Error fetching collections:", error)
+        logError("Error fetching collections:", error)
         throw error
     }
 }
@@ -41,7 +47,7 @@ const getCollection = async (id: number) => {
 
         return { data: response.data.data as ICollection, fromCache: false }
     } catch (error) {
-        console.error("Error fetching collection detail:", error)
+        logError("Error fetching collection detail:", error)
         throw error
     }
 }
@@ -55,7 +61,7 @@ const getDrawerContent = async () => {
         setCachedCollectionDrawer(response.data.data as ICollectionDrawerContent)
         return response.data.data as ICollectionDrawerContent
     } catch (error) {
-        console.error("Error fetching drawer content:", error)
+        logError("Error fetching drawer content:", error)
         throw error
     }
 }
@@ -77,7 +83,7 @@ const getCollectionTypeFilters = async () => {
         setCachedCollectionTypeFilters(resolved)
         return resolved
     } catch (error) {
-        console.error("Error fetching collection filters:", error)
+        logError("Error fetching collection filters:", error)
         throw error
     }
 }

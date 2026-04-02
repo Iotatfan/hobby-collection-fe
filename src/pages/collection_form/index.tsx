@@ -1,4 +1,5 @@
 import type {
+    ICollectionAddon,
     ICollection,
     ICollectionDrawerContent,
     IManufacturerDrawerItem,
@@ -14,6 +15,15 @@ import FormSelectDrawer from "./parts/FormSelectDrawer";
 type StatusOption = {
     id: 0 | 1 | 2 | 3;
     name: string;
+};
+
+type AddonFormItem = {
+    rowId: number;
+    addonId: number | null;
+    name: string;
+    manufacturerId: number | null;
+    originalName: string;
+    originalManufacturerId: number | null;
 };
 
 const STATUS_OPTIONS: StatusOption[] = [
@@ -72,12 +82,22 @@ const toIsoDateTime = (dateValue: string): string => {
     return parsedDate.toISOString();
 };
 
+const normalizeAddonManufacturerId = (value: unknown): number | null => {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string") {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) return parsed;
+    }
+    return null;
+};
+
 const CollectionForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const isEditMode = useMemo(() => Boolean(id), [id]);
     const coverInputRef = useRef<HTMLInputElement>(null);
     const picturesInputRef = useRef<HTMLInputElement>(null);
+    const addonRowIdRef = useRef(0);
 
     const [title, setTitle] = useState("");
     const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -93,6 +113,8 @@ const CollectionForm = () => {
     const [releaseTypeId, setReleaseTypeId] = useState<number | null>(null);
     const [manufacturerId, setManufacturerId] = useState<number | null>(null);
     const [seriesId, setSeriesId] = useState<number | null>(null);
+    const [addons, setAddons] = useState<AddonFormItem[]>([]);
+    const [deletedAddonIds, setDeletedAddonIds] = useState<number[]>([]);
     const [drawerContent, setDrawerContent] = useState<ICollectionDrawerContent>();
     const [isLoadingCollection, setIsLoadingCollection] = useState(false);
     const [isLoadingDrawer, setIsLoadingDrawer] = useState(false);
@@ -102,6 +124,7 @@ const CollectionForm = () => {
     const [isReleaseTypeDrawerOpen, setIsReleaseTypeDrawerOpen] = useState(false);
     const [isManufacturerDrawerOpen, setIsManufacturerDrawerOpen] = useState(false);
     const [isSeriesDrawerOpen, setIsSeriesDrawerOpen] = useState(false);
+    const [activeAddonManufacturerIndex, setActiveAddonManufacturerIndex] = useState<number | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const drawerGrades = useMemo(() => drawerContent?.grades ?? [], [drawerContent?.grades]);
@@ -137,6 +160,10 @@ const CollectionForm = () => {
     const selectedReleaseType = releaseTypes.find((option) => option.id === releaseTypeId);
     const selectedManufacturer = manufacturers.find((option) => option.id === manufacturerId);
     const selectedSeries = seriesOptions.find((option) => option.id === seriesId);
+    const activeAddonManufacturer =
+        activeAddonManufacturerIndex === null
+            ? undefined
+            : manufacturers.find((option) => option.id === addons[activeAddonManufacturerIndex]?.manufacturerId);
 
     const coverPreviewUrl = useMemo(() => {
         if (coverFile) return URL.createObjectURL(coverFile);
@@ -163,6 +190,21 @@ const CollectionForm = () => {
         const scalePart = type.scale?.trim() ? ` (${type.scale})` : "";
         const gradePart = type.grade_short_name?.trim() ? ` - ${type.grade_short_name}` : "";
         return `${type.collection_type_name}${scalePart}${gradePart}`;
+    };
+
+    const createAddonRow = (addon?: ICollectionAddon): AddonFormItem => {
+        const addonName = (addon?.name ?? "").trim();
+        const addonManufacturerId = normalizeAddonManufacturerId(addon?.manufacturer?.id);
+
+        addonRowIdRef.current += 1;
+        return {
+            rowId: addonRowIdRef.current,
+            addonId: addon?.id ?? null,
+            name: addonName,
+            manufacturerId: addonManufacturerId,
+            originalName: addonName,
+            originalManufacturerId: addonManufacturerId,
+        };
     };
 
     // grade_id is auto-selected from type.
@@ -216,6 +258,8 @@ const CollectionForm = () => {
                 setReleaseTypeId(data.release_type?.id ?? null);
                 setManufacturerId(data.manufacturer?.id ?? null);
                 setSeriesId(data.series?.id ?? null);
+                setAddons((data.addons ?? []).map((addon) => createAddonRow(addon)));
+                setDeletedAddonIds([]);
             } catch {
                 setErrorMessage("Failed to load collection data.");
             } finally {
@@ -325,6 +369,21 @@ const CollectionForm = () => {
             return;
         }
 
+        const normalizedAddons = addons.map((addon) => ({
+            ...addon,
+            name: addon.name.trim(),
+        }));
+
+        const hasIncompleteAddon = normalizedAddons.some(
+            (addon) => (addon.name && addon.manufacturerId === null) || (!addon.name && addon.manufacturerId !== null)
+        );
+        if (hasIncompleteAddon) {
+            setErrorMessage("Each addon needs both a name and a manufacturer.");
+            return;
+        }
+
+        const completeAddons = normalizedAddons.filter((addon) => addon.name && addon.manufacturerId !== null);
+
         setIsSubmitting(true);
         try {
             const formData = new FormData();
@@ -355,6 +414,31 @@ const CollectionForm = () => {
                     formData.append("deleted_picture_urls", deletedUrl);
                 });
 
+                const existingAddons = completeAddons.filter((addon) => addon.addonId !== null);
+                const newAddons = completeAddons.filter((addon) => addon.addonId === null);
+                const updatedAddons = existingAddons.filter(
+                    (addon) => addon.name !== addon.originalName || addon.manufacturerId !== addon.originalManufacturerId
+                );
+
+                existingAddons.forEach((addon) => {
+                    formData.append("existing_addon_ids", String(addon.addonId));
+                });
+
+                updatedAddons.forEach((addon) => {
+                    formData.append("update_addon_ids", String(addon.addonId));
+                    formData.append("update_addon_names", addon.name);
+                    formData.append("update_addons_manufacturer_id", String(addon.manufacturerId));
+                });
+
+                deletedAddonIds.forEach((deletedAddonId) => {
+                    formData.append("deleted_addon_ids", String(deletedAddonId));
+                });
+
+                newAddons.forEach((addon) => {
+                    formData.append("new_addon_names", addon.name);
+                    formData.append("new_addons_manufacturer_id", String(addon.manufacturerId));
+                });
+
                 await collectionServices.updateCollection(Number(id), formData);
             } else {
                 if (coverFile) {
@@ -363,6 +447,11 @@ const CollectionForm = () => {
 
                 pictureFiles.forEach((file) => {
                     formData.append("pictures", file);
+                });
+
+                completeAddons.forEach((addon) => {
+                    formData.append("addon_names", addon.name);
+                    formData.append("addons_manufacturer_id", String(addon.manufacturerId));
                 });
 
                 await collectionServices.createCollection(formData);
@@ -382,6 +471,33 @@ const CollectionForm = () => {
     };
 
     const isLoading = isLoadingCollection || isLoadingDrawer;
+
+    const handleAddAddon = () => {
+        setAddons((prev) => [...prev, createAddonRow()]);
+    };
+
+    const handleRemoveAddon = (rowId: number) => {
+        setAddons((prev) => {
+            const addonToRemove = prev.find((addon) => addon.rowId === rowId);
+            const addonIdToRemove = addonToRemove?.addonId;
+
+            if (isEditMode && addonIdToRemove !== null && addonIdToRemove !== undefined) {
+                setDeletedAddonIds((deletedPrev) =>
+                    deletedPrev.includes(addonIdToRemove)
+                        ? deletedPrev
+                        : [...deletedPrev, addonIdToRemove]
+                );
+            }
+
+            return prev.filter((addon) => addon.rowId !== rowId);
+        });
+    };
+
+    const handleAddonNameChange = (rowId: number, name: string) => {
+        setAddons((prev) =>
+            prev.map((addon) => (addon.rowId === rowId ? { ...addon, name } : addon))
+        );
+    };
 
     return (
         <Flex w="full" justify="center" px={4} py={8}>
@@ -531,6 +647,43 @@ const CollectionForm = () => {
                                     placeholder="Optional description"
                                     rows={4}
                                 />
+                            </Field.Root>
+
+                            <Field.Root>
+                                <Field.Label>Addons</Field.Label>
+                                <VStack align="stretch" gap={3}>
+                                    {addons.map((addon, index) => {
+                                        const addonManufacturer = manufacturers.find((option) => option.id === addon.manufacturerId);
+                                        return (
+                                            <Stack key={addon.rowId} direction={{ base: "column", md: "row" }} gap={2}>
+                                                <Input
+                                                    value={addon.name}
+                                                    onChange={(event) => handleAddonNameChange(addon.rowId, event.target.value)}
+                                                    placeholder={`Addon ${index + 1} name`}
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    justifyContent="start"
+                                                    onClick={() => setActiveAddonManufacturerIndex(index)}
+                                                >
+                                                    {addonManufacturer ? addonManufacturer.name : "Choose manufacturer"}
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    colorPalette="red"
+                                                    onClick={() => handleRemoveAddon(addon.rowId)}
+                                                >
+                                                    Remove
+                                                </Button>
+                                            </Stack>
+                                        );
+                                    })}
+                                    <Button type="button" variant="outline" onClick={handleAddAddon}>
+                                        Add addon
+                                    </Button>
+                                </VStack>
                             </Field.Root>
 
                             <Field.Root>
@@ -717,6 +870,31 @@ const CollectionForm = () => {
                     onSelect: () => {
                         setManufacturerId(option.id);
                         setIsManufacturerDrawerOpen(false);
+                    },
+                }))}
+                emptyText="No manufacturers available."
+            />
+
+            <FormSelectDrawer
+                open={activeAddonManufacturerIndex !== null}
+                onOpenChange={(open) => {
+                    if (!open) setActiveAddonManufacturerIndex(null);
+                }}
+                title="Select Addon Manufacturer"
+                options={manufacturers.map((option: IManufacturerDrawerItem) => ({
+                    key: option.id,
+                    label: option.name,
+                    isSelected: option.id === activeAddonManufacturer?.id,
+                    onSelect: () => {
+                        if (activeAddonManufacturerIndex === null) return;
+                        setAddons((prev) =>
+                            prev.map((addon, index) =>
+                                index === activeAddonManufacturerIndex
+                                    ? { ...addon, manufacturerId: option.id }
+                                    : addon
+                            )
+                        );
+                        setActiveAddonManufacturerIndex(null);
                     },
                 }))}
                 emptyText="No manufacturers available."
