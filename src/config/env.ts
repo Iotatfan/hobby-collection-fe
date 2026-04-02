@@ -10,7 +10,7 @@ const env = {
     cloudinaryCloudName: runtimeConfig?.CLOUDINARY_CLOUD_NAME || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME,
 } as const
 
-if (!env.apiBaseUrl) {
+if (!env.apiBaseUrl && import.meta.env.DEV) {
     console.warn("Missing API base URL. Set window.__APP_CONFIG__.API_BASE_URL or VITE_API_BASE_URL.")
 }
 

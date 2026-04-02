@@ -4,6 +4,7 @@ import * as path from 'path';
 import { visualizer } from 'rollup-plugin-visualizer';
 
 const base = process.env.DEPLOY_TARGET === "github-pages" ? "/hobby-collection/" : "/";
+const isAnalyze = process.env.ANALYZE === "true";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -15,6 +16,6 @@ export default defineConfig({
     },
     plugins: [
         react(),
-        visualizer() as PluginOption,
+        ...(isAnalyze ? [visualizer() as PluginOption] : []),
     ],
 });
