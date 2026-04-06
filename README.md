@@ -17,6 +17,7 @@ npm run dev
 ## E2E Testing (Playwright)
 
 This repo includes a Playwright E2E architecture with:
+
 - `e2e/specs`: user journey tests (route protection, list, create flow)
 - `e2e/fixtures`: reusable auth + API mocking helpers
 - `e2e/data`: fixture builders and seeded test data
@@ -51,9 +52,9 @@ Priority order:
 
 ```js
 window.__APP_CONFIG__ = {
-  API_BASE_URL: "",
-  API_JWT: "",
-}
+  API_BASE_URL: '',
+  API_JWT: '',
+};
 ```
 
 In production, generate/overwrite `dist/app-config.js` during deploy/startup using platform env vars.
@@ -115,15 +116,15 @@ export default tseslint.config([
       // other options...
     },
   },
-])
+]);
 ```
 
 You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
 ```js
 // eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+import reactX from 'eslint-plugin-react-x';
+import reactDom from 'eslint-plugin-react-dom';
 
 export default tseslint.config([
   globalIgnores(['dist']),
@@ -144,5 +145,5 @@ export default tseslint.config([
       // other options...
     },
   },
-])
+]);
 ```
