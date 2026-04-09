@@ -1,11 +1,11 @@
-import CollectionList from '@/pages/hobby_showcase';
 import { lazy, FC } from 'react';
-import CollectionForm from '@/pages/collection_form';
 
 const PublicRouter = lazy(() => import('@/router/middleware/publicRouter'));
 const ProtectedRoute = lazy(() => import('@/router/middleware/protectedRoute'));
+const CollectionList = lazy(() => import('@/pages/hobby_showcase'));
+const CollectionForm = lazy(() => import('@/pages/collection_form'));
 
-interface IRoute {
+export interface IRoute {
   name: string;
   path: string;
   component: FC;
