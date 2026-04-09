@@ -9,7 +9,7 @@ import {
   Spinner,
   Button,
 } from '@chakra-ui/react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cloudinarySizes } from '@/utils/cloudinary';
@@ -18,6 +18,14 @@ import { canManageCollection } from '@/services/http';
 import KitSpecificationsCard from './KitSpecificationsCard';
 import ReleaseBadge from './ReleaseBadge';
 import { ICollectionAddon, ICollectionStatus } from '@/libs/collection/collection';
+import useModalLifecycle from './useModalLifecycle';
+import useItemModalCarousel from './useItemModalCarousel';
+import useDescriptionToggle from './useDescriptionToggle';
+import {
+  buildAddonLabels,
+  FALLBACK_DESCRIPTION,
+  resolveGradeBadge,
+} from './itemModal.helpers';
 
 const MotionBox = motion(Box);
 interface IItemModal {
@@ -61,131 +69,37 @@ const ItemModal: React.FC<IItemModal> = ({
   isOpen,
   onClose,
 }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const displayImages = useMemo(() => {
-    const pictures = images ?? [];
-    if (!cover) return pictures;
-    return [cover, ...pictures.filter((image) => image !== cover)];
-  }, [cover, images]);
-  const normalizedGrade = grade?.trim().toLowerCase();
-  const normalizedType = type?.trim().toLowerCase();
-  const gradeBadgeLabel = normalizedGrade === 'no grade' ? scale : grade;
-  const shouldShowGradeBadge = Boolean(gradeBadgeLabel) && normalizedType !== 'figure';
-  const imageCount = displayImages.length;
-  const currentImage = imageCount ? displayImages[currentIndex] : undefined;
-  const descriptionRef = useRef<HTMLParagraphElement | null>(null);
-  const [isDescriptionLong, setIsDescriptionLong] = useState(false);
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const { label: gradeBadgeLabel, shouldShow: shouldShowGradeBadge } = useMemo(
+    () => resolveGradeBadge(grade, scale, type),
+    [grade, scale, type],
+  );
+  const {
+    currentImage,
+    currentIndex,
+    displayImages,
+    handleCarouselClick,
+    handleNext,
+    handlePrev,
+    imageCount,
+  } = useItemModalCarousel({
+    cover,
+    images,
+    isOpen,
+  });
+  const descriptionText = description || FALLBACK_DESCRIPTION;
+  const { descriptionRef, isDescriptionExpanded, isDescriptionLong, setIsDescriptionExpanded } =
+    useDescriptionToggle({
+      description: descriptionText,
+      isLoading,
+      isOpen,
+    });
   const canManage = canManageCollection();
-  const descriptionText =
-    description ||
-    'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.';
-  const addonLabels = useMemo(() => {
-    const source = addons ?? [];
-    return source
-      .map((addon) => {
-        const name = (addon?.name ?? '').trim();
-        const rawBrand = addon.manufacturer;
-        const brand = (rawBrand?.name ?? '').trim();
-        if (!name) return null;
-        if (!brand) return name;
-        return `${name} - ${brand}`;
-      })
-      .filter((addon): addon is string => Boolean(addon));
-  }, [addons]);
+  const addonLabels = useMemo(() => buildAddonLabels(addons), [addons]);
 
-  const preloadImage = useCallback((src?: string) => {
-    if (!src) return;
-    const img = new window.Image();
-    img.src = cloudinarySizes(src).preview;
-  }, []);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, onClose]);
-
-  const handleCarouselClick = (index: number) => {
-    if (!imageCount) return;
-    setCurrentIndex(index);
-  };
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
-
-  const handlePrev = useCallback(() => {
-    if (imageCount < 2) return;
-    setCurrentIndex((prevIndex) => (prevIndex === 0 ? imageCount - 1 : prevIndex - 1));
-  }, [imageCount]);
-
-  const handleNext = useCallback(() => {
-    if (imageCount < 2) return;
-    setCurrentIndex((nextIndex) => (nextIndex === imageCount - 1 ? 0 : nextIndex + 1));
-  }, [imageCount]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    setCurrentIndex(0);
-  }, [isOpen, images]);
-
-  useEffect(() => {
-    if (!imageCount) return;
-    if (currentIndex > imageCount - 1) {
-      setCurrentIndex(0);
-    }
-  }, [currentIndex, imageCount]);
-
-  useEffect(() => {
-    if (!isOpen || imageCount < 2) return;
-
-    const nextIndex = (currentIndex + 1) % imageCount;
-    const prevIndex = (currentIndex - 1 + imageCount) % imageCount;
-
-    preloadImage(displayImages[nextIndex]);
-    preloadImage(displayImages[prevIndex]);
-  }, [currentIndex, displayImages, imageCount, isOpen, preloadImage]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    setIsDescriptionExpanded(false);
-  }, [description, isOpen]);
-
-  useEffect(() => {
-    if (!isOpen || isLoading) return;
-
-    const checkDescriptionOverflow = () => {
-      const element = descriptionRef.current;
-      if (!element) return;
-
-      const hasOverflow = element.scrollHeight > element.clientHeight + 1;
-      if (!isDescriptionExpanded) {
-        setIsDescriptionLong(hasOverflow);
-      }
-    };
-
-    const frameId = window.requestAnimationFrame(checkDescriptionOverflow);
-    window.addEventListener('resize', checkDescriptionOverflow);
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      window.removeEventListener('resize', checkDescriptionOverflow);
-    };
-  }, [descriptionText, isDescriptionExpanded, isLoading, isOpen]);
+  useModalLifecycle({
+    isOpen,
+    onClose,
+  });
 
   return (
     <MotionBox
@@ -337,7 +251,7 @@ const ItemModal: React.FC<IItemModal> = ({
                     overflow="hidden"
                     border={index === currentIndex ? '2px solid' : '1px solid transparent'}
                     borderColor={index === currentIndex ? 'red.500' : 'transparent'}
-                    opacity={index == currentIndex ? 1 : 0.5}
+                    opacity={index === currentIndex ? 1 : 0.5}
                     _hover={{
                       opacity: 1,
                     }}
