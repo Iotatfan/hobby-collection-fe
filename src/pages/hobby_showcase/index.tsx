@@ -24,7 +24,7 @@ import useCollectionListFilters, {
   ALL_COLLECTION_VALUE,
   LIMIT_OPTIONS,
   SORT_OPTIONS,
-} from './useCollectionListFilters';
+} from './hooks/useCollectionListFilters';
 
 const CollectionList = () => {
   const { getCollections, collections } = useCollections();

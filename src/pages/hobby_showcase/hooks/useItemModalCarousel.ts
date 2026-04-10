@@ -1,6 +1,6 @@
 import { cloudinarySizes } from '@/utils/cloudinary';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { buildDisplayImages } from './itemModal.helpers';
+import { buildDisplayImages } from '../helpers/itemModal.helpers';
 
 type UseItemModalCarouselOptions = {
   cover?: string;

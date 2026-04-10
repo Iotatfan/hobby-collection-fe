@@ -18,14 +18,14 @@ import { canManageCollection } from '@/services/http';
 import KitSpecificationsCard from './KitSpecificationsCard';
 import ReleaseBadge from './ReleaseBadge';
 import { ICollectionAddon, ICollectionStatus } from '@/libs/collection/collection';
-import useModalLifecycle from './useModalLifecycle';
-import useItemModalCarousel from './useItemModalCarousel';
-import useDescriptionToggle from './useDescriptionToggle';
+import useModalLifecycle from '../hooks/useModalLifecycle';
+import useItemModalCarousel from '../hooks/useItemModalCarousel';
+import useDescriptionToggle from '../hooks/useDescriptionToggle';
 import {
   buildAddonLabels,
   FALLBACK_DESCRIPTION,
   resolveGradeBadge,
-} from './itemModal.helpers';
+} from '../helpers/itemModal.helpers';
 
 const MotionBox = motion(Box);
 interface IItemModal {
