@@ -190,8 +190,8 @@ const useCollectionListFilters = ({
       updateSearchParams((nextParams) => {
         const currentIds = parseReleaseTypeParam(
           nextParams.get('release_type_id') ??
-            nextParams.get('release_type') ??
-            nextParams.get('groups'),
+          nextParams.get('release_type') ??
+          nextParams.get('groups'),
         );
         const nextIds = shouldCheck
           ? Array.from(new Set([...currentIds, releaseTypeId]))
@@ -245,21 +245,28 @@ const useCollectionListFilters = ({
     });
   }, [updateSearchParams]);
 
+  const scrollToTop = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
+  }, []);
+
   const goPrevPage = useCallback(() => {
+    scrollToTop();
     updateSearchParams((nextParams) => {
       const nextOffset = Math.max(0, offset - limit);
       if (nextOffset === DEFAULT_OFFSET) nextParams.delete('offset');
       else nextParams.set('offset', String(nextOffset));
     });
-  }, [limit, offset, updateSearchParams]);
+  }, [limit, offset, updateSearchParams, scrollToTop]);
 
   const goNextPage = useCallback(() => {
+    scrollToTop();
     updateSearchParams((nextParams) => {
       const nextOffset = offset + limit;
       if (nextOffset === DEFAULT_OFFSET) nextParams.delete('offset');
       else nextParams.set('offset', String(nextOffset));
     });
-  }, [limit, offset, updateSearchParams]);
+  }, [limit, offset, updateSearchParams, scrollToTop]);
 
   return {
     canGoNext,
