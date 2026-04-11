@@ -1,17 +1,20 @@
 type AppRuntimeConfig = {
-    API_BASE_URL?: string
-    CLOUDINARY_CLOUD_NAME?: string
-}
+  API_BASE_URL?: string;
+  CLOUDINARY_CLOUD_NAME?: string;
+};
 
-const runtimeConfig = window.__APP_CONFIG__ as AppRuntimeConfig | undefined
+const runtimeConfig = window.__APP_CONFIG__ as AppRuntimeConfig | undefined;
 
 const env = {
-    apiBaseUrl: runtimeConfig?.API_BASE_URL || import.meta.env.VITE_API_BASE_URL || "",
-    cloudinaryCloudName: runtimeConfig?.CLOUDINARY_CLOUD_NAME || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME,
-} as const
+  apiBaseUrl: runtimeConfig?.API_BASE_URL || import.meta.env.VITE_API_BASE_URL || '',
+  cloudinaryCloudName:
+    runtimeConfig?.CLOUDINARY_CLOUD_NAME || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME,
+} as const;
 
 if (!env.apiBaseUrl && import.meta.env.DEV) {
-    console.warn("Missing API base URL. Set window.__APP_CONFIG__.API_BASE_URL or VITE_API_BASE_URL.")
+  console.warn(
+    'Missing API base URL. Set window.__APP_CONFIG__.API_BASE_URL or VITE_API_BASE_URL.',
+  );
 }
 
-export default env
+export default env;

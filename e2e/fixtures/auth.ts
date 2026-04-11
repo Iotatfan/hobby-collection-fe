@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Page } from '@playwright/test';
 
 type JwtPayload = {
   exp: number;
@@ -8,18 +8,18 @@ type JwtPayload = {
 
 const base64UrlEncode = (value: string) => {
   return Buffer.from(value)
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
 };
 
 export const createJwtToken = (payloadOverrides?: Partial<JwtPayload>) => {
-  const header = { alg: "HS256", typ: "JWT" };
+  const header = { alg: 'HS256', typ: 'JWT' };
   const payload: JwtPayload = {
     exp: Math.floor(Date.now() / 1000) + 60 * 60,
-    sub: "playwright-user",
-    role: "manager",
+    sub: 'playwright-user',
+    role: 'manager',
     ...payloadOverrides,
   };
 
@@ -29,12 +29,12 @@ export const createJwtToken = (payloadOverrides?: Partial<JwtPayload>) => {
 export const setManagerJwt = async (page: Page) => {
   const token = createJwtToken();
   await page.addInitScript((jwtToken) => {
-    window.localStorage.setItem("jwt", jwtToken);
+    window.localStorage.setItem('jwt', jwtToken);
   }, token);
 };
 
 export const clearJwt = async (page: Page) => {
   await page.addInitScript(() => {
-    window.localStorage.removeItem("jwt");
+    window.localStorage.removeItem('jwt');
   });
 };
