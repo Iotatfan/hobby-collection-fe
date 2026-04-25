@@ -2,7 +2,9 @@ import {
   ICollection,
   ICollectionDrawerContent,
   ICollectionFilterQuery,
+  ICollectionFilterOptions,
   ICollectionTypeFilterItem,
+  IReleaseTypeDrawerItem,
   ICollectionUploadPayload,
   ICollectionUpsertPayload,
 } from '@/libs/collection/collection';
@@ -85,19 +87,28 @@ const getDrawerContent = async () => {
 
 const getCollectionTypeFilters = async () => {
   const cached = getCachedCollectionTypeFilters();
-  if (cached) return cached as ICollectionTypeFilterItem[];
+  if (cached) return cached as ICollectionFilterOptions;
 
   try {
     const response = await http.get('/collection/filter');
     const data = response.data?.data;
 
-    const resolved = Array.isArray(data)
+    const collectionTypes = Array.isArray(data)
       ? (data as ICollectionTypeFilterItem[])
       : Array.isArray(data?.collection_types)
         ? (data.collection_types as ICollectionTypeFilterItem[])
         : Array.isArray(data?.items)
           ? (data.items as ICollectionTypeFilterItem[])
           : ([] as ICollectionTypeFilterItem[]);
+
+    const releaseTypes = Array.isArray(data?.release_types)
+      ? (data.release_types as IReleaseTypeDrawerItem[])
+      : ([] as IReleaseTypeDrawerItem[]);
+
+    const resolved: ICollectionFilterOptions = {
+      collection_types: collectionTypes,
+      release_types: releaseTypes,
+    };
 
     setCachedCollectionTypeFilters(resolved);
     return resolved;

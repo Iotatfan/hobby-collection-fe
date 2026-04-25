@@ -2,7 +2,7 @@ import {
   ICollection,
   ICollectionDrawerContent,
   ICollectionFilterQuery,
-  ICollectionTypeFilterItem,
+  ICollectionFilterOptions,
 } from '@/libs/collection/collection';
 
 type CollectionDetailCache = {
@@ -21,7 +21,7 @@ type CollectionDrawerCache = {
 };
 
 type CollectionFilterCache = {
-  data: ICollectionTypeFilterItem[];
+  data: ICollectionFilterOptions;
   timestamp: number;
 };
 
@@ -128,7 +128,7 @@ export function setCachedCollectionDrawer(data: ICollectionDrawerContent) {
   localStorage.setItem(`collection_drawer`, JSON.stringify(entry));
 }
 
-export function getCachedCollectionTypeFilters(): ICollectionTypeFilterItem[] | null {
+export function getCachedCollectionTypeFilters(): ICollectionFilterOptions | null {
   const key = `collection_filters`;
   const raw = localStorage.getItem(key);
   if (!raw) return null;
@@ -141,10 +141,17 @@ export function getCachedCollectionTypeFilters(): ICollectionTypeFilterItem[] | 
     return null;
   }
 
-  return parsed.data;
+  const data = parsed.data;
+
+  if (Array.isArray(data)) {
+    localStorage.removeItem(key);
+    return null;
+  }
+
+  return data;
 }
 
-export function setCachedCollectionTypeFilters(data: ICollectionTypeFilterItem[]) {
+export function setCachedCollectionTypeFilters(data: ICollectionFilterOptions) {
   const entry: CollectionFilterCache = {
     data,
     timestamp: Date.now(),
