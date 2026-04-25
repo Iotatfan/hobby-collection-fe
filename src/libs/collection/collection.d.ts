@@ -56,6 +56,11 @@ export interface ICollectionTypeFilterItem {
   name: string;
 }
 
+export interface ICollectionFilterOptions {
+  collection_types: ICollectionTypeFilterItem[];
+  release_types: IReleaseTypeDrawerItem[];
+}
+
 export interface IGradeDrawerItem {
   grade_id: number;
   collection_type_name: string;

@@ -82,12 +82,9 @@ const CollectionList = () => {
   useEffect(() => {
     const loadFilterOptions = async () => {
       try {
-        const [collectionFilters, drawerContent] = await Promise.all([
-          collectionServices.getCollectionTypeFilters(),
-          collectionServices.getDrawerContent(),
-        ]);
-        setFilterOptions(collectionFilters);
-        setReleaseTypeOptions(drawerContent.release_types ?? []);
+        const filterContent = await collectionServices.getCollectionTypeFilters();
+        setFilterOptions(filterContent.collection_types ?? []);
+        setReleaseTypeOptions(filterContent.release_types ?? []);
       } catch {
         setErrorMessage('Failed to load filter options.');
       }
