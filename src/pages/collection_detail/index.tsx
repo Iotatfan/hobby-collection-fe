@@ -36,6 +36,7 @@ const CollectionDetail = () => {
   const { getCollectionDetail, collection } = useCollectionDetail();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const thumbnailContainerRef = useRef<HTMLDivElement>(null);
   const thumbnailContentRef = useRef<HTMLDivElement>(null);
@@ -62,19 +63,59 @@ const CollectionDetail = () => {
     (index: number) => {
       if (!imageCount) return;
       setCurrentIndex(index);
+      // Animate to center the selected thumbnail
+      animateToThumbnail(index);
     },
     [imageCount],
   );
 
   const handlePrev = useCallback(() => {
     if (imageCount < 2) return;
-    setCurrentIndex((prev) => (prev === 0 ? imageCount - 1 : prev - 1));
-  }, [imageCount]);
+    const prevIndex = currentIndex === 0 ? imageCount - 1 : currentIndex - 1;
+    setCurrentIndex(prevIndex);
+    animateToThumbnail(prevIndex);
+  }, [imageCount, currentIndex]);
 
   const handleNext = useCallback(() => {
     if (imageCount < 2) return;
-    setCurrentIndex((next) => (next === imageCount - 1 ? 0 : next + 1));
-  }, [imageCount]);
+    const nextIndex = currentIndex === imageCount - 1 ? 0 : currentIndex + 1;
+    setCurrentIndex(nextIndex);
+    animateToThumbnail(nextIndex);
+  }, [imageCount, currentIndex]);
+
+  // Helper function to animate carousel to show thumbnail at index
+  const animateToThumbnail = useCallback(
+    (index: number) => {
+      if (isDragging) return;
+
+      // Defer animation to next frame to ensure DOM is ready
+      window.requestAnimationFrame(() => {
+        if (thumbnailContainerRef.current && thumbnailContentRef.current) {
+          const containerW = thumbnailContainerRef.current.offsetWidth;
+          const contentW = thumbnailContentRef.current.scrollWidth;
+
+          // If content is smaller than container, keep it centered
+          if (contentW <= containerW) {
+            thumbnailControls.start({ x: 0 });
+            return;
+          }
+
+          // Use same constraint logic as dragConstraints effect to ensure consistency
+          const minX = Math.min(0, containerW - contentW - 16);
+
+          const itemW = 80; // 72px width + 8px gap
+          const targetX = containerW / 2 - (index * itemW + 36); // Center the selected thumbnail
+          const clampedX = Math.max(minX, Math.min(0, targetX));
+
+          thumbnailControls.start({
+            x: clampedX,
+            transition: { type: 'spring', stiffness: 300, damping: 30 },
+          });
+        }
+      });
+    },
+    [isDragging, thumbnailControls],
+  );
 
   useEffect(() => {
     setCurrentIndex(0);
@@ -93,7 +134,6 @@ const CollectionDetail = () => {
     preloadImage(displayImages[prevIndex]);
   }, [currentIndex, displayImages, imageCount, preloadImage]);
 
-  // --- Thumbnail dragging & auto-positioning ---
   useEffect(() => {
     const updateConstraints = () => {
       window.requestAnimationFrame(() => {
@@ -124,16 +164,12 @@ const CollectionDetail = () => {
         return;
       }
 
-      const itemW = 80; // 72px width + 8px gap
-      const targetX = containerW / 2 - (currentIndex * itemW + 36 + 8); // 36 is half item, 8 is px padding
-      const clampedX = Math.max(dragConstraints.left, Math.min(0, targetX));
-
-      thumbnailControls.start({
-        x: clampedX,
-        transition: { type: 'spring', stiffness: 300, damping: 30 },
-      });
+      // Only auto-scroll on initial load
+      if (currentIndex === 0) {
+        thumbnailControls.start({ x: 0 });
+      }
     }
-  }, [currentIndex, dragConstraints, thumbnailControls]);
+  }, [dragConstraints.left, thumbnailControls]);
 
   // --- Description toggle ---
   const descriptionRef = useRef<HTMLParagraphElement | null>(null);
@@ -399,6 +435,9 @@ const CollectionDetail = () => {
               flexWrap="nowrap"
               w="max-content"
               px={2}
+              dragTransition={{ power: 0.2, restDelta: 0.001 }}
+              onDragStart={() => setIsDragging(true)}
+              onDragEnd={() => setIsDragging(false)}
               drag="x"
               dragConstraints={dragConstraints}
               dragElastic={0.1}
@@ -453,7 +492,7 @@ const CollectionDetail = () => {
           justifyContent="center"
           bg="background.bg"
           align="start"
-          w='full'
+          w="full"
           gap={6}
           zIndex={1}
         >
