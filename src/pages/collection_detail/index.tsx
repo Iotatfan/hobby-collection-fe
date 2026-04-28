@@ -78,7 +78,7 @@ const CollectionDetail = () => {
 
   useEffect(() => {
     setCurrentIndex(0);
-  }, [collection?.pictures]);
+  }, [id, collection?.pictures]);
 
   useEffect(() => {
     if (!imageCount) return;
@@ -96,20 +96,22 @@ const CollectionDetail = () => {
   // --- Thumbnail dragging & auto-positioning ---
   useEffect(() => {
     const updateConstraints = () => {
-      if (thumbnailContainerRef.current && thumbnailContentRef.current) {
-        const containerW = thumbnailContainerRef.current.offsetWidth;
-        const contentW = thumbnailContentRef.current.scrollWidth;
-        setDragConstraints({
-          left: Math.min(0, containerW - contentW - 16), // 16 for some padding
-          right: 0,
-        });
-      }
+      window.requestAnimationFrame(() => {
+        if (thumbnailContainerRef.current && thumbnailContentRef.current) {
+          const containerW = thumbnailContainerRef.current.offsetWidth;
+          const contentW = thumbnailContentRef.current.scrollWidth;
+          setDragConstraints({
+            left: Math.min(0, containerW - contentW - 16), // 16 for some padding
+            right: 0,
+          });
+        }
+      });
     };
 
     updateConstraints();
     window.addEventListener('resize', updateConstraints);
     return () => window.removeEventListener('resize', updateConstraints);
-  }, [displayImages.length]);
+  }, [displayImages]);
 
   useEffect(() => {
     if (thumbnailContainerRef.current && thumbnailContentRef.current) {
@@ -379,12 +381,14 @@ const CollectionDetail = () => {
           </Box>
 
           <Box
+            key={id}
             ref={thumbnailContainerRef}
             w="full"
             flexShrink={0}
             pt={3}
             display="flex"
             alignItems="center"
+            justifyContent={dragConstraints.left < 0 ? 'flex-start' : 'center'}
             overflowX="hidden"
             overflowY="hidden"
             position="relative"
@@ -394,7 +398,6 @@ const CollectionDetail = () => {
               gap={2}
               flexWrap="nowrap"
               w="max-content"
-              mx="auto"
               px={2}
               drag="x"
               dragConstraints={dragConstraints}
