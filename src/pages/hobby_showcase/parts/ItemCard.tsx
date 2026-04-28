@@ -57,7 +57,7 @@ const ItemCard: React.FC<IItemCard> = ({
     <MotionBox
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: (index || 0) * 0.2, duration: 0.5 }}
+      transition={{ delay: (index || 0) * 0.05, duration: 0.5 }}
     >
       <Card.Root
         w="full"

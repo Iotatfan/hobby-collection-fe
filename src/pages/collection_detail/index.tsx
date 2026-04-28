@@ -12,7 +12,7 @@ import {
 } from '@chakra-ui/react';
 import { useMemo, useEffect, useState, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useAnimation } from 'framer-motion';
 import { cloudinarySizes } from '@/utils/cloudinary';
 import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
 import { canManageCollection } from '@/services/http';
@@ -28,6 +28,7 @@ import useCollectionDetail from '@/hooks/collections/useCollectionDetail';
 import { useRef } from 'react';
 
 const MotionBox = motion(Box);
+const MotionHStack = motion(HStack);
 
 const CollectionDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -35,6 +36,11 @@ const CollectionDetail = () => {
   const { getCollectionDetail, collection } = useCollectionDetail();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const thumbnailContainerRef = useRef<HTMLDivElement>(null);
+  const thumbnailContentRef = useRef<HTMLDivElement>(null);
+  const [dragConstraints, setDragConstraints] = useState({ left: 0, right: 0 });
+  const thumbnailControls = useAnimation();
   const canManage = canManageCollection();
 
   // --- Carousel state (adapted from useItemModalCarousel) ---
@@ -87,6 +93,46 @@ const CollectionDetail = () => {
     preloadImage(displayImages[prevIndex]);
   }, [currentIndex, displayImages, imageCount, preloadImage]);
 
+  // --- Thumbnail dragging & auto-positioning ---
+  useEffect(() => {
+    const updateConstraints = () => {
+      if (thumbnailContainerRef.current && thumbnailContentRef.current) {
+        const containerW = thumbnailContainerRef.current.offsetWidth;
+        const contentW = thumbnailContentRef.current.scrollWidth;
+        setDragConstraints({
+          left: Math.min(0, containerW - contentW - 16), // 16 for some padding
+          right: 0,
+        });
+      }
+    };
+
+    updateConstraints();
+    window.addEventListener('resize', updateConstraints);
+    return () => window.removeEventListener('resize', updateConstraints);
+  }, [displayImages.length]);
+
+  useEffect(() => {
+    if (thumbnailContainerRef.current && thumbnailContentRef.current) {
+      const containerW = thumbnailContainerRef.current.offsetWidth;
+      const contentW = thumbnailContentRef.current.scrollWidth;
+
+      // If content is smaller than container, keep it centered
+      if (contentW <= containerW) {
+        thumbnailControls.start({ x: 0 });
+        return;
+      }
+
+      const itemW = 80; // 72px width + 8px gap
+      const targetX = containerW / 2 - (currentIndex * itemW + 36 + 8); // 36 is half item, 8 is px padding
+      const clampedX = Math.max(dragConstraints.left, Math.min(0, targetX));
+
+      thumbnailControls.start({
+        x: clampedX,
+        transition: { type: 'spring', stiffness: 300, damping: 30 },
+      });
+    }
+  }, [currentIndex, dragConstraints, thumbnailControls]);
+
   // --- Description toggle ---
   const descriptionRef = useRef<HTMLParagraphElement | null>(null);
   const [isDescriptionLong, setIsDescriptionLong] = useState(false);
@@ -131,14 +177,25 @@ const CollectionDetail = () => {
 
   // --- Derived values ---
   const { label: gradeBadgeLabel, shouldShow: shouldShowGradeBadge } = useMemo(
-    () => resolveGradeBadge(collection?.type?.grade?.name, collection?.type?.scale, collection?.type?.name),
+    () =>
+      resolveGradeBadge(
+        collection?.type?.grade?.name,
+        collection?.type?.scale,
+        collection?.type?.name,
+      ),
     [collection],
   );
   const addonLabels = useMemo(() => buildAddonLabels(collection?.addons), [collection?.addons]);
 
   if (isLoading) {
     return (
-      <Box display="flex" alignItems="center" justifyContent="center" minH="100vh" bg="background.bg">
+      <Box
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        minH="100vh"
+        bg="background.bg"
+      >
         <Spinner borderWidth="4px" animationDuration="0.65s" color="blackAlpha.800" size="xl" />
       </Box>
     );
@@ -146,8 +203,18 @@ const CollectionDetail = () => {
 
   if (errorMessage) {
     return (
-      <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" minH="100vh" bg="background.bg" gap={4}>
-        <Text color="red.500" fontSize="lg">{errorMessage}</Text>
+      <Box
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+        justifyContent="center"
+        minH="100vh"
+        bg="background.bg"
+        gap={4}
+      >
+        <Text color="red.500" fontSize="lg">
+          {errorMessage}
+        </Text>
         <Button asChild variant="outline" size="sm">
           <RouterLink to="/">Back to Collection</RouterLink>
         </Button>
@@ -157,320 +224,335 @@ const CollectionDetail = () => {
 
   return (
     <Flex w="full" mt="0" minH="80vh" alignItems="flex-start" gap="4" mx="auto" maxW="78rem" px="2">
-      <Box flexGrow="1" maxW="100%">
-        {/* Main content */}
+      {/* Main content */}
+      <Box
+        display="flex"
+        flexDirection={{ base: 'column', lg: 'row' }}
+        flexGrow="1"
+        maxW="100%"
+        alignItems="flex-start"
+      >
+        {/* Image Section */}
         <Box
+          flex="1"
+          minW="0"
           display="flex"
-          flexDirection={{ base: 'column', lg: 'row' }}
-          maxW="1400px"
-          mx="auto"
+          flexDirection="column"
+          bg="background.bg"
           w="full"
-          alignItems="flex-start"
+          h={{ base: 'auto', lg: '80vh' }}
+          zIndex={1}
+          pt={{ base: 4, lg: 6 }}
+          px={{ base: 4, lg: 6 }}
+          pb={{ base: 4, lg: 6 }}
         >
-          {/* Image Section */}
-          <Box
-            flex="1"
-            display="flex"
-            flexDirection="column"
-            bg="background.bg"
-            w="full"
-            h={{ base: 'auto', lg: '80vh' }}
-            zIndex={1}
-            pt={{ base: 4, lg: 6 }}
-            px={{ base: 4, lg: 6 }}
-            pb={{ base: 4, lg: 6 }}
+          {/* Back button above image */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(-1)}
+            display="inline-flex"
+            alignItems="center"
+            gap={1}
+            color="gray.600"
+            _hover={{ bg: 'gray.100' }}
+            alignSelf="flex-start"
+            mb={3}
+            px={2}
           >
-            {/* Back button above image */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(-1)}
-              display="inline-flex"
-              alignItems="center"
-              gap={1}
-              color="gray.600"
-              _hover={{ bg: 'gray.100' }}
-              alignSelf="flex-start"
-              mb={3}
-              px={2}
-            >
-              <ArrowLeft size={16} />
-              Back to Collection
-            </Button>
+            <ArrowLeft size={16} />
+            Back to Collection
+          </Button>
 
-            {/* Main image — fills remaining space above thumbnails */}
-            <Box
-              position="relative"
-              w="full"
-              flex={{ base: 'none', lg: '1' }}
-              h={{ base: '55vh', lg: 'auto' }}
-              minH={0}
-              borderRadius="xl"
-              overflow="hidden"
-              bg="gray.100"
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                {currentImage ? (
-                  <MotionBox
-                    key={`${currentImage}-${currentIndex}`}
+          {/* Main image — fills remaining space above thumbnails */}
+          <Box
+            position="relative"
+            w="full"
+            flex={{ base: 'none', lg: '1' }}
+            h={{ base: '55vh', lg: 'auto' }}
+            minH={0}
+            borderRadius="xl"
+            overflow="hidden"
+            bg="gray.100"
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              {currentImage ? (
+                <MotionBox
+                  key={`${currentImage}-${currentIndex}`}
+                  w="full"
+                  h="full"
+                  initial={{ opacity: 0.2 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0.2 }}
+                  transition={{ duration: 0.2 }}
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                >
+                  <Image
+                    src={cloudinarySizes(currentImage).preview}
+                    alt={`${collection?.title ?? 'Image'} ${currentIndex + 1}`}
                     w="full"
                     h="full"
-                    initial={{ opacity: 0.2 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0.2 }}
-                    transition={{ duration: 0.2 }}
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <Image
-                      src={cloudinarySizes(currentImage).preview}
-                      alt={`${collection?.title ?? 'Image'} ${currentIndex + 1}`}
-                      w="full"
-                      h="full"
-                      objectFit="contain"
-                      draggable={false}
-                      loading="eager"
-                      decoding="async"
-                    />
-                  </MotionBox>
-                ) : (
-                  <Text color="gray.400">No images available</Text>
-                )}
-              </AnimatePresence>
-
-              {/* Image counter badge */}
-              {imageCount > 0 && (
-                <Box
-                  position="absolute"
-                  top={3}
-                  right={3}
-                  bg="whiteAlpha.800"
-                  backdropFilter="blur(4px)"
-                  borderRadius="md"
-                  px={2.5}
-                  py={1}
-                  fontSize="sm"
-                  fontWeight="semibold"
-                  color="gray.700"
-                  lineHeight="1"
-                  zIndex={5}
-                >
-                  {currentIndex + 1} / {imageCount}
-                </Box>
+                    objectFit="contain"
+                    draggable={false}
+                    loading="eager"
+                    decoding="async"
+                  />
+                </MotionBox>
+              ) : (
+                <Text color="gray.400">No images available</Text>
               )}
+            </AnimatePresence>
 
-              {imageCount > 1 && (
-                <IconButton
-                  position="absolute"
-                  right={3}
-                  top="50%"
-                  transform="translateY(-50%)"
-                  zIndex={10}
-                  aria-label="Next image"
-                  onClick={handleNext}
-                  variant="ghost"
-                  color="white"
-                  bg="blackAlpha.400"
-                  _hover={{ bg: 'blackAlpha.600' }}
-                  borderRadius="full"
-                  size="lg"
-                >
-                  <ChevronRight size={28} />
-                </IconButton>
-              )}
+            {/* Image counter badge */}
+            {imageCount > 0 && (
+              <Box
+                position="absolute"
+                top={3}
+                right={3}
+                bg="whiteAlpha.800"
+                backdropFilter="blur(4px)"
+                borderRadius="md"
+                px={2.5}
+                py={1}
+                fontSize="sm"
+                fontWeight="semibold"
+                color="gray.700"
+                lineHeight="1"
+                zIndex={5}
+              >
+                {currentIndex + 1} / {imageCount}
+              </Box>
+            )}
 
-              {imageCount > 1 && (
-                <IconButton
-                  position="absolute"
-                  left={3}
-                  top="50%"
-                  transform="translateY(-50%)"
-                  zIndex={10}
-                  aria-label="Previous image"
-                  onClick={handlePrev}
-                  variant="ghost"
-                  color="white"
-                  bg="blackAlpha.400"
-                  _hover={{ bg: 'blackAlpha.600' }}
-                  borderRadius="full"
-                  size="lg"
-                >
-                  <ChevronLeft size={28} />
-                </IconButton>
-              )}
-            </Box>
+            {imageCount > 1 && (
+              <IconButton
+                position="absolute"
+                right={3}
+                top="50%"
+                transform="translateY(-50%)"
+                zIndex={10}
+                aria-label="Next image"
+                onClick={handleNext}
+                variant="ghost"
+                color="white"
+                bg="blackAlpha.400"
+                _hover={{ bg: 'blackAlpha.600' }}
+                borderRadius="full"
+                size="lg"
+              >
+                <ChevronRight size={28} />
+              </IconButton>
+            )}
 
-            {/* Thumbnails — fixed height, always visible below the image */}
-            <Box
-              w="full"
-              flexShrink={0}
-              pt={3}
-              display="flex"
-              alignItems="center"
-              overflowX="auto"
-              overflowY="hidden"
-              css={{ '&::-webkit-scrollbar': { display: 'none' } }}
-            >
-              <HStack gap={2} flexWrap="nowrap" justifyContent="center" w="full">
-                {displayImages.map((image, index) => (
-                  <Box
-                    key={index}
-                    as="button"
-                    onClick={() => handleCarouselClick(index)}
-                    flexShrink={0}
-                    w="72px"
-                    h="56px"
-                    borderRadius="lg"
-                    overflow="hidden"
-                    border="2px solid"
-                    borderColor={index === currentIndex ? 'gray.800' : 'transparent'}
-                    opacity={index === currentIndex ? 1 : 0.55}
-                    _hover={{ opacity: 1 }}
-                    transition="opacity 0.2s, border-color 0.2s"
-                    bg="gray.200"
-                  >
-                    <Image
-                      src={cloudinarySizes(image).thumb}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                      }}
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </Box>
-                ))}
-              </HStack>
-            </Box>
+            {imageCount > 1 && (
+              <IconButton
+                position="absolute"
+                left={3}
+                top="50%"
+                transform="translateY(-50%)"
+                zIndex={10}
+                aria-label="Previous image"
+                onClick={handlePrev}
+                variant="ghost"
+                color="white"
+                bg="blackAlpha.400"
+                _hover={{ bg: 'blackAlpha.600' }}
+                borderRadius="full"
+                size="lg"
+              >
+                <ChevronLeft size={28} />
+              </IconButton>
+            )}
           </Box>
 
-          {/* Info Section */}
-          <VStack
-            flex="1"
-            p={{ base: 6, lg: 10 }}
+          <Box
+            ref={thumbnailContainerRef}
+            w="full"
+            flexShrink={0}
+            pt={3}
             display="flex"
-            flexDirection="column"
-            justifyContent="center"
-            bg="background.bg"
-            align="start"
-            gap={6}
-            zIndex={1}
+            alignItems="center"
+            overflowX="hidden"
+            overflowY="hidden"
+            position="relative"
           >
-            {/* Badges */}
-            <HStack>
-              {shouldShowGradeBadge && (
-                <Badge
-                  variant="solid"
-                  colorPalette="cyan"
-                  fontSize="sm"
-                  fontWeight="bold"
-                  px={1.5}
-                  py={1}
+            <MotionHStack
+              ref={thumbnailContentRef}
+              gap={2}
+              flexWrap="nowrap"
+              w="max-content"
+              mx="auto"
+              px={2}
+              drag="x"
+              dragConstraints={dragConstraints}
+              dragElastic={0.1}
+              animate={thumbnailControls}
+              style={{ x: 0 }}
+              cursor="grab"
+              _active={{ cursor: 'grabbing' }}
+            >
+              {displayImages.map((image, index) => (
+                <Box
+                  key={index}
+                  as="button"
+                  onClick={() => handleCarouselClick(index)}
+                  flexShrink={0}
+                  w="72px"
+                  h="56px"
+                  borderRadius="lg"
+                  overflow="hidden"
+                  border="2px solid"
+                  borderColor={index === currentIndex ? 'gray.800' : 'transparent'}
+                  opacity={index === currentIndex ? 1 : 0.55}
+                  _hover={{ opacity: 1 }}
+                  transition="opacity 0.2s, border-color 0.2s"
+                  bg="gray.200"
+                  style={{ userSelect: 'none' }}
                 >
-                  {gradeBadgeLabel}
-                </Badge>
-              )}
+                  <Image
+                    src={cloudinarySizes(image).thumb}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      pointerEvents: 'none', // Prevents image drag from interfering
+                    }}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </Box>
+              ))}
+            </MotionHStack>
+          </Box>
+        </Box>
 
-              <ReleaseBadge
-                release={collection?.release_type?.name}
-                hideRegular
+        {/* Info Section */}
+        <VStack
+          flex="1"
+          minW="0"
+          p={{ base: 6, lg: 10 }}
+          display="flex"
+          flexDirection="column"
+          justifyContent="center"
+          bg="background.bg"
+          align="start"
+          gap={6}
+          zIndex={1}
+        >
+          {/* Badges */}
+          <HStack>
+            {shouldShowGradeBadge && (
+              <Badge
+                variant="solid"
+                colorPalette="cyan"
                 fontSize="sm"
                 fontWeight="bold"
                 px={1.5}
                 py={1}
-              />
-            </HStack>
-
-            {/* Title */}
-            <Text
-              fontSize={{ base: '2xl', lg: '3xl' }}
-              fontWeight="bold"
-              color="gray.800"
-              lineHeight="shorter"
-            >
-              {collection?.title}
-            </Text>
-
-            <KitSpecificationsCard
-              scale={collection?.type?.scale}
-              manufacturer={collection?.manufacturer?.name}
-              series={collection?.series?.name}
-              status={collection?.status}
-              builtDate={collection?.built_at}
-              acquiredDate={collection?.acquired_at}
-            />
-
-            {addonLabels.length > 0 && (
-              <VStack align="start" gap={1} maxWidth="520px">
-                <Text fontSize={{ base: 'sm', lg: 'md' }} color="gray.500">
-                  Addons
-                </Text>
-                {addonLabels.map((addon) => (
-                  <Text
-                    key={addon}
-                    fontSize={{ base: 'md', lg: 'lg' }}
-                    color="gray.700"
-                    lineHeight="relaxed"
-                  >
-                    {addon}
-                  </Text>
-                ))}
-              </VStack>
+              >
+                {gradeBadgeLabel}
+              </Badge>
             )}
 
-            {/* Description */}
-            <VStack align="start" gap={2} maxWidth="520px">
+            <ReleaseBadge
+              release={collection?.release_type?.name}
+              hideRegular
+              fontSize="sm"
+              fontWeight="bold"
+              px={1.5}
+              py={1}
+            />
+          </HStack>
+
+          {/* Title */}
+          <Text
+            fontSize={{ base: '2xl', lg: '3xl' }}
+            fontWeight="bold"
+            color="gray.800"
+            lineHeight="shorter"
+          >
+            {collection?.title}
+          </Text>
+
+          <KitSpecificationsCard
+            scale={collection?.type?.scale}
+            manufacturer={collection?.manufacturer?.name}
+            series={collection?.series?.name}
+            status={collection?.status}
+            builtDate={collection?.built_at}
+            acquiredDate={collection?.acquired_at}
+          />
+
+          {addonLabels.length > 0 && (
+            <VStack align="start" gap={1} maxWidth="520px">
               <Text fontSize={{ base: 'sm', lg: 'md' }} color="gray.500">
-                About
+                Addons
               </Text>
-              <Box
-                className={isDescriptionExpanded ? 'custom-scrollbar' : undefined}
-                maxH={
-                  isDescriptionExpanded
-                    ? { base: 'none', lg: '220px' }
-                    : { base: '160px', lg: '220px' }
-                }
-                overflowY={isDescriptionExpanded ? { base: 'visible', lg: 'auto' } : 'hidden'}
-                w="full"
-                pr={isDescriptionExpanded ? { base: 0, lg: 2 } : 0}
-              >
+              {addonLabels.map((addon) => (
                 <Text
-                  ref={descriptionRef}
+                  key={addon}
                   fontSize={{ base: 'md', lg: 'lg' }}
                   color="gray.700"
                   lineHeight="relaxed"
-                  lineClamp={isDescriptionExpanded ? 'none' : { base: '4', lg: '6' }}
                 >
-                  {descriptionText}
+                  {addon}
                 </Text>
-              </Box>
-              {isDescriptionLong && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  color="gray.700"
-                  onClick={() => setIsDescriptionExpanded((prev) => !prev)}
-                  w="full"
-                  justifyContent="center"
-                  textAlign="center"
-                  minH="unset"
-                  height="auto"
-                  _hover={{ bg: 'gray.100' }}
-                >
-                  {isDescriptionExpanded ? 'View less' : 'View more'}
-                </Button>
-              )}
+              ))}
             </VStack>
+          )}
 
-            {canManage && collection?.id && (
-              <Button asChild colorPalette="blue" variant="solid">
-                <RouterLink to={`/collection/${collection.id}/edit`}>Edit Collection</RouterLink>
+          {/* Description */}
+          <VStack align="start" gap={2} maxWidth="520px">
+            <Text fontSize={{ base: 'sm', lg: 'md' }} color="gray.500">
+              About
+            </Text>
+            <Box
+              className={isDescriptionExpanded ? 'custom-scrollbar' : undefined}
+              maxH={
+                isDescriptionExpanded
+                  ? { base: 'none', lg: '220px' }
+                  : { base: '160px', lg: '220px' }
+              }
+              overflowY={isDescriptionExpanded ? { base: 'visible', lg: 'auto' } : 'hidden'}
+              w="full"
+              pr={isDescriptionExpanded ? { base: 0, lg: 2 } : 0}
+            >
+              <Text
+                ref={descriptionRef}
+                fontSize={{ base: 'md', lg: 'lg' }}
+                color="gray.700"
+                lineHeight="relaxed"
+                lineClamp={isDescriptionExpanded ? 'none' : { base: '4', lg: '6' }}
+              >
+                {descriptionText}
+              </Text>
+            </Box>
+            {isDescriptionLong && (
+              <Button
+                size="sm"
+                variant="ghost"
+                color="gray.700"
+                onClick={() => setIsDescriptionExpanded((prev) => !prev)}
+                w="full"
+                justifyContent="center"
+                textAlign="center"
+                minH="unset"
+                height="auto"
+                _hover={{ bg: 'gray.100' }}
+              >
+                {isDescriptionExpanded ? 'View less' : 'View more'}
               </Button>
             )}
           </VStack>
-        </Box>
+
+          {canManage && collection?.id && (
+            <Button asChild colorPalette="blue" variant="solid">
+              <RouterLink to={`/collection/${collection.id}/edit`}>Edit Collection</RouterLink>
+            </Button>
+          )}
+        </VStack>
       </Box>
     </Flex>
   );

@@ -88,8 +88,18 @@ const CollectionList = () => {
   }, []);
 
   return (
-    <Flex w="full" mt="5" pb="2" minH="90vh" alignItems="flex-start" gap="4" mx="auto" maxW="78rem" px="2">
-      <Box flexGrow="1" maxW="100%">
+    <Flex
+      w="full"
+      mt="5"
+      pb="2"
+      minH="80vh"
+      alignItems="flex-start"
+      gap="4"
+      mx="auto"
+      maxW="78rem"
+      px="2"
+    >
+      <Box flexGrow="1" maxW="100%" px={{ base: 4, lg: 6 }}>
         <Flex justify="space-between" align="center" gap={3} wrap="wrap">
           {canManage && (
             <Button asChild size="sm" colorPalette="blue">
@@ -307,11 +317,7 @@ const CollectionList = () => {
             </Menu.Root>
           </Field.Root>
 
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={resetFilters}
-          >
+          <Button size="sm" variant="outline" onClick={resetFilters}>
             Reset
           </Button>
         </Flex>
@@ -364,21 +370,11 @@ const CollectionList = () => {
             )}
 
             <Flex justify="space-between" align="center" mt={4}>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={!canGoPrev}
-                onClick={goPrevPage}
-              >
+              <Button size="sm" variant="outline" disabled={!canGoPrev} onClick={goPrevPage}>
                 Previous
               </Button>
               <Text fontSize="sm">Page {currentPage}</Text>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={!canGoNext}
-                onClick={goNextPage}
-              >
+              <Button size="sm" variant="outline" disabled={!canGoNext} onClick={goNextPage}>
                 Next
               </Button>
             </Flex>

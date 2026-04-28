@@ -427,7 +427,9 @@ const useCollectionForm = () => {
     if (activeAddonManufacturerIndex === null) return;
     setAddons((prev) =>
       prev.map((addon, index) =>
-        index === activeAddonManufacturerIndex ? { ...addon, manufacturerId: manufacturer.id } : addon,
+        index === activeAddonManufacturerIndex
+          ? { ...addon, manufacturerId: manufacturer.id }
+          : addon,
       ),
     );
     setActiveAddonManufacturerIndex(null);

@@ -40,12 +40,37 @@ const customConfig = defineConfig({
     },
   },
   globalCss: {
+    html: {
+      overflowY: 'scroll',
+      scrollbarWidth: 'thin',
+      scrollbarColor: '{colors.scrollbar.thumb} {colors.scrollbar.track}',
+      '&::-webkit-scrollbar': {
+        width: '8px',
+        height: '8px',
+      },
+      '&::-webkit-scrollbar-button': {
+        display: 'none',
+      },
+      '&::-webkit-scrollbar-track': {
+        background: '{colors.scrollbar.track}',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        background: '{colors.scrollbar.thumb}',
+        borderRadius: '999px',
+      },
+      '&::-webkit-scrollbar-thumb:hover': {
+        background: '{colors.scrollbar.thumbHover}',
+      },
+    },
     '.custom-scrollbar': {
       scrollbarWidth: 'thin',
       scrollbarColor: '{colors.scrollbar.thumb} {colors.scrollbar.track}',
       '&::-webkit-scrollbar': {
         width: '8px',
         height: '8px',
+      },
+      '&::-webkit-scrollbar-button': {
+        display: 'none',
       },
       '&::-webkit-scrollbar-track': {
         background: '{colors.scrollbar.track}',
