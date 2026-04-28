@@ -33,14 +33,14 @@ const KitSpecificationsCard: React.FC<IKitSpecificationsCard> = ({
     <Box
       w="full"
       maxW="520px"
-      bg="gray.900"
+      bg="gray.100"
       borderRadius="lg"
       borderWidth="1px"
       borderColor="whiteAlpha.200"
       px={{ base: 4, lg: 5 }}
       py={{ base: 3, lg: 4 }}
     >
-      <Text fontSize={{ base: 'sm', lg: 'md' }} color="gray.400" mb={2}>
+      <Text fontSize={{ base: 'sm', lg: 'md' }} color="gray.700" mb={2}>
         Kit Specifications
       </Text>
       <Grid

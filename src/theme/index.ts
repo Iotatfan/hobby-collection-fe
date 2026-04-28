@@ -8,8 +8,8 @@ const customConfig = defineConfig({
         purple: { value: '#7C3AED' },
         regular: { value: '#374151' },
         blueTint: { value: '#F5F7FA' },
-        specificationLabel: { value: '#9CA3AF' },
-        specificationValue: { value: '#F3F4F6' },
+        specificationLabel: { value: '#55585fff' },
+        specificationValue: { value: '#222325ff' },
       },
     },
     semanticTokens: {
@@ -40,12 +40,37 @@ const customConfig = defineConfig({
     },
   },
   globalCss: {
+    html: {
+      overflowY: 'scroll',
+      scrollbarWidth: 'thin',
+      scrollbarColor: '{colors.scrollbar.thumb} {colors.scrollbar.track}',
+      '&::-webkit-scrollbar': {
+        width: '8px',
+        height: '8px',
+      },
+      '&::-webkit-scrollbar-button': {
+        display: 'none',
+      },
+      '&::-webkit-scrollbar-track': {
+        background: '{colors.scrollbar.track}',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        background: '{colors.scrollbar.thumb}',
+        borderRadius: '999px',
+      },
+      '&::-webkit-scrollbar-thumb:hover': {
+        background: '{colors.scrollbar.thumbHover}',
+      },
+    },
     '.custom-scrollbar': {
       scrollbarWidth: 'thin',
       scrollbarColor: '{colors.scrollbar.thumb} {colors.scrollbar.track}',
       '&::-webkit-scrollbar': {
         width: '8px',
         height: '8px',
+      },
+      '&::-webkit-scrollbar-button': {
+        display: 'none',
       },
       '&::-webkit-scrollbar-track': {
         background: '{colors.scrollbar.track}',

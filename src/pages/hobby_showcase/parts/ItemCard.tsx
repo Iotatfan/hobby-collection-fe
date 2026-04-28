@@ -5,6 +5,7 @@ import { cloudinarySizes } from '@/utils/cloudinary';
 import { formatBuiltDateLabel } from '@/utils/date';
 import { ICollectionStatus } from '@/libs/collection/collection';
 import ReleaseBadge from './ReleaseBadge';
+import { Link as RouterLink } from 'react-router-dom';
 
 interface IItemCard {
   id: number;
@@ -19,7 +20,6 @@ interface IItemCard {
   acquiredAt?: string | null;
   index?: number;
   canManage?: boolean;
-  onClick?: (id: number) => void;
 }
 
 const MotionBox = motion(Box);
@@ -37,7 +37,6 @@ const ItemCard: React.FC<IItemCard> = ({
   acquiredAt,
   index,
   canManage = false,
-  onClick,
 }) => {
   const shouldShowGradeScaleBadge = scale !== 'Unknown Scale';
   const regularBadgeColors = {
@@ -52,11 +51,13 @@ const ItemCard: React.FC<IItemCard> = ({
   const dateLabelPrefix = shouldUseAcquiredDate ? 'Acquired' : 'Built';
   const statusDateLabel = formatBuiltDateLabel(shouldUseAcquiredDate ? acquiredAt : builtAt);
 
-  return (
+  const isClickable = !shouldShowBacklogLabel || canManage;
+
+  const cardContent = (
     <MotionBox
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: (index || 0) * 0.2, duration: 0.5 }}
+      transition={{ delay: (index || 0) * 0.05, duration: 0.5 }}
     >
       <Card.Root
         w="full"
@@ -70,13 +71,10 @@ const ItemCard: React.FC<IItemCard> = ({
         borderColor="gray.200"
         transition="all 0.2s ease"
         _hover={
-          shouldShowBacklogLabel
-            ? { borderColor: 'gray.400', cursor: 'disabled', transform: 'translateY(-10px)' }
-            : { borderColor: 'gray.400', cursor: 'pointer', transform: 'translateY(-10px)' }
+          isClickable
+            ? { borderColor: 'gray.400', cursor: 'pointer', transform: 'translateY(-10px)' }
+            : { borderColor: 'gray.200', cursor: 'default' }
         }
-        onClick={() => {
-          if (!shouldShowBacklogLabel || canManage) onClick?.(id);
-        }}
       >
         <Box position="relative" overflow="hidden">
           {(typeName || shouldShowGradeScaleBadge) && (
@@ -149,6 +147,16 @@ const ItemCard: React.FC<IItemCard> = ({
       </Card.Root>
     </MotionBox>
   );
+
+  if (isClickable) {
+    return (
+      <RouterLink to={`/collection/${id}`} style={{ display: 'block', width: '100%' }}>
+        {cardContent}
+      </RouterLink>
+    );
+  }
+
+  return cardContent;
 };
 
 export default memo(ItemCard);

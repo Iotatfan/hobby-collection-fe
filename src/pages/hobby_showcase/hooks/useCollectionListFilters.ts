@@ -190,8 +190,8 @@ const useCollectionListFilters = ({
       updateSearchParams((nextParams) => {
         const currentIds = parseReleaseTypeParam(
           nextParams.get('release_type_id') ??
-          nextParams.get('release_type') ??
-          nextParams.get('groups'),
+            nextParams.get('release_type') ??
+            nextParams.get('groups'),
         );
         const nextIds = shouldCheck
           ? Array.from(new Set([...currentIds, releaseTypeId]))
