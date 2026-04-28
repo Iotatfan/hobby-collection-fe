@@ -223,7 +223,17 @@ const CollectionDetail = () => {
   }
 
   return (
-    <Flex w="full" mt="0" minH="80vh" alignItems="flex-start" gap="4" mx="auto" maxW="78rem" px="2">
+    <Flex
+      w="full"
+      mt="6"
+      pb="10"
+      minH="80vh"
+      alignItems="flex-start"
+      gap="4"
+      mx="auto"
+      maxW="78rem"
+      px={{ base: 4, md: 6, lg: 8 }}
+    >
       {/* Main content */}
       <Box
         display="flex"
@@ -243,8 +253,9 @@ const CollectionDetail = () => {
           h={{ base: 'auto', lg: '80vh' }}
           zIndex={1}
           pt={{ base: 4, lg: 6 }}
-          px={{ base: 4, lg: 6 }}
+          pr={{ base: 4, lg: 6 }}
           pb={{ base: 4, lg: 6 }}
+          pl="0"
         >
           {/* Back button above image */}
           <Button
@@ -432,12 +443,15 @@ const CollectionDetail = () => {
         <VStack
           flex="1"
           minW="0"
-          p={{ base: 6, lg: 10 }}
+          pl={{ base: 0, lg: 4 }}
+          pr="0"
+          py={{ base: 6, lg: 10 }}
           display="flex"
           flexDirection="column"
           justifyContent="center"
           bg="background.bg"
           align="start"
+          w='full'
           gap={6}
           zIndex={1}
         >

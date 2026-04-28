@@ -90,16 +90,16 @@ const CollectionList = () => {
   return (
     <Flex
       w="full"
-      mt="5"
-      pb="2"
+      mt="6"
+      pb="10"
       minH="80vh"
       alignItems="flex-start"
       gap="4"
       mx="auto"
       maxW="78rem"
-      px="2"
+      px={{ base: 4, md: 6, lg: 8 }}
     >
-      <Box flexGrow="1" maxW="100%" px={{ base: 4, lg: 6 }}>
+      <Box flexGrow="1" maxW="100%">
         <Flex justify="space-between" align="center" gap={3} wrap="wrap">
           {canManage && (
             <Button asChild size="sm" colorPalette="blue">
