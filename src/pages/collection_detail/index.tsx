@@ -403,7 +403,6 @@ const CollectionDetail = () => {
               dragConstraints={dragConstraints}
               dragElastic={0.1}
               animate={thumbnailControls}
-              style={{ x: 0 }}
               cursor="grab"
               _active={{ cursor: 'grabbing' }}
             >
