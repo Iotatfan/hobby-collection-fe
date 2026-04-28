@@ -9,9 +9,6 @@ const Header = () => {
             <Text fontWeight="bold" fontSize={24} color="white">
               Hobby Collection
             </Text>
-            <Text fontWeight="medium" fontSize={15} color="white">
-              Site under development and still learning photography.
-            </Text>
           </VStack>
         </Flex>
       </Container>

@@ -11,11 +11,8 @@ import {
   Text,
 } from '@chakra-ui/react';
 import useCollections from '@/hooks/collections/useCollections';
-import useCollectionDetail from '@/hooks/collections/useCollectionDetail';
 import { useEffect, useState, useCallback } from 'react';
 import ItemCard from './parts/ItemCard';
-import ItemModal from './parts/ItemModal';
-import { AnimatePresence } from 'framer-motion';
 import { Link as RouterLink } from 'react-router-dom';
 import { canManageCollection } from '@/services/http';
 import collectionServices from '@/services/content/collectionServices';
@@ -28,10 +25,7 @@ import useCollectionListFilters, {
 
 const CollectionList = () => {
   const { getCollections, collections } = useCollections();
-  const { getCollectionDetail, collection } = useCollectionDetail();
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoadingCollections, setIsLoadingCollections] = useState(false);
-  const [isLoadingCollectionDetail, setIsLoadingCollectionDetail] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [filterOptions, setFilterOptions] = useState<ICollectionTypeFilterItem[]>([]);
   const [releaseTypeOptions, setReleaseTypeOptions] = useState<IReleaseTypeDrawerItem[]>([]);
@@ -93,26 +87,8 @@ const CollectionList = () => {
     void loadFilterOptions();
   }, []);
 
-  const handleCardClick = async (id: number) => {
-    setIsLoadingCollectionDetail(true);
-    setIsModalOpen(true);
-    setErrorMessage(null);
-    try {
-      await getCollectionDetail(id);
-    } catch {
-      setIsModalOpen(false);
-      setErrorMessage('Failed to load collection detail.');
-    } finally {
-      setIsLoadingCollectionDetail(false);
-    }
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-  };
-
   return (
-    <Flex w="full" mt="5" minH="90vh" alignItems="flex-start" gap="4" mx="auto" maxW="78rem" px="2">
+    <Flex w="full" mt="5" pb="2" minH="90vh" alignItems="flex-start" gap="4" mx="auto" maxW="78rem" px="2">
       <Box flexGrow="1" maxW="100%">
         <Flex justify="space-between" align="center" gap={3} wrap="wrap">
           {canManage && (
@@ -345,12 +321,10 @@ const CollectionList = () => {
           </Text>
         )}
         {isLoadingCollections ? (
-          // Show Skeleton
           <Box display="flex" alignItems="center" justifyContent="center" h="50vh">
             <Spinner borderWidth="4px" animationDuration="0.65s" color="blackAlpha.800" size="xl" />
           </Box>
         ) : (
-          // Loading Complete
           <>
             <Grid
               marginTop={4}
@@ -378,8 +352,7 @@ const CollectionList = () => {
                     builtAt={collection.built_at}
                     acquiredAt={collection.acquired_at}
                     canManage={canManage}
-                    onClick={() => handleCardClick(collection.id)}
-                  ></ItemCard>
+                  />
                 </Center>
               ))}
             </Grid>
@@ -412,31 +385,6 @@ const CollectionList = () => {
           </>
         )}
       </Box>
-
-      <AnimatePresence>
-        {isModalOpen && (
-          <ItemModal
-            isOpen={isModalOpen}
-            onClose={handleCloseModal}
-            isLoading={isLoadingCollectionDetail}
-            collectionId={collection?.id}
-            type={collection?.type?.name}
-            grade={collection?.type?.grade?.name}
-            scale={collection?.type?.scale}
-            series={collection?.series?.name}
-            manufacturer={collection?.manufacturer?.name}
-            release={collection?.release_type?.name}
-            title={collection?.title}
-            status={collection?.status}
-            builtDate={collection?.built_at}
-            acquiredDate={collection?.acquired_at}
-            cover={collection?.cover}
-            images={collection?.pictures}
-            addons={collection?.addons}
-            description={collection?.description}
-          />
-        )}
-      </AnimatePresence>
     </Flex>
   );
 };

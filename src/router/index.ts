@@ -3,6 +3,7 @@ import { lazy, FC } from 'react';
 const PublicRouter = lazy(() => import('@/router/middleware/publicRouter'));
 const ProtectedRoute = lazy(() => import('@/router/middleware/protectedRoute'));
 const CollectionList = lazy(() => import('@/pages/hobby_showcase'));
+const CollectionDetail = lazy(() => import('@/pages/collection_detail'));
 const CollectionForm = lazy(() => import('@/pages/collection_form'));
 
 export interface IRoute {
@@ -22,6 +23,11 @@ export const routes: IRoute[] = [
         name: 'collection-list',
         path: '/',
         component: CollectionList,
+      },
+      {
+        name: 'collection-detail',
+        path: '/collection/:id',
+        component: CollectionDetail,
       },
       {
         name: 'collection-protected',
