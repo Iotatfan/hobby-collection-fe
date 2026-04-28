@@ -117,8 +117,16 @@ const CollectionDetail = () => {
     [isDragging, thumbnailControls],
   );
 
+  // Initialize carousel on image load
+  useEffect(() => {
+    if (imageCount > 0 && dragConstraints.left !== 0) {
+      animateToThumbnail(currentIndex);
+    }
+  }, [imageCount, dragConstraints.left, currentIndex, animateToThumbnail]);
+
   useEffect(() => {
     setCurrentIndex(0);
+    setIsDragging(false);
   }, [id, collection?.pictures]);
 
   useEffect(() => {
@@ -151,7 +159,7 @@ const CollectionDetail = () => {
     updateConstraints();
     window.addEventListener('resize', updateConstraints);
     return () => window.removeEventListener('resize', updateConstraints);
-  }, [displayImages]);
+  }, [displayImages.length]);
 
   useEffect(() => {
     if (thumbnailContainerRef.current && thumbnailContentRef.current) {
@@ -160,12 +168,6 @@ const CollectionDetail = () => {
 
       // If content is smaller than container, keep it centered
       if (contentW <= containerW) {
-        thumbnailControls.start({ x: 0 });
-        return;
-      }
-
-      // Only auto-scroll on initial load
-      if (currentIndex === 0) {
         thumbnailControls.start({ x: 0 });
       }
     }
