@@ -10,7 +10,7 @@ import {
   Button,
   Flex,
 } from '@chakra-ui/react';
-import { useMemo, useEffect, useState, useCallback } from 'react';
+import { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import { AnimatePresence, motion, useAnimation } from 'framer-motion';
 import { cloudinarySizes } from '@/utils/cloudinary';
@@ -25,7 +25,6 @@ import {
   buildDisplayImages,
 } from '@/pages/hobby_showcase/helpers/itemModal.helpers';
 import useCollectionDetail from '@/hooks/collections/useCollectionDetail';
-import { useRef } from 'react';
 
 const MotionBox = motion(Box);
 const MotionHStack = motion(HStack);
@@ -41,6 +40,7 @@ const CollectionDetail = () => {
   const thumbnailContainerRef = useRef<HTMLDivElement>(null);
   const thumbnailContentRef = useRef<HTMLDivElement>(null);
   const [dragConstraints, setDragConstraints] = useState({ left: 0, right: 0 });
+  const [isOverflowing, setIsOverflowing] = useState(false);
   const thumbnailControls = useAnimation();
   const canManage = canManageCollection();
 
@@ -59,14 +59,69 @@ const CollectionDetail = () => {
     img.src = cloudinarySizes(src).preview;
   }, []);
 
+  // Helper function to animate carousel to show thumbnail at index
+  const animateToThumbnail = useCallback(
+    (index: number) => {
+      if (isDragging) return;
+
+      window.requestAnimationFrame(() => {
+        if (thumbnailContainerRef.current && thumbnailContentRef.current) {
+          const container = thumbnailContainerRef.current;
+          const content = thumbnailContentRef.current;
+          const thumbnails = content.children;
+          const targetThumbnail = thumbnails[index] as HTMLElement;
+
+          if (!targetThumbnail) return;
+
+          const containerW = container.offsetWidth;
+          const contentW = content.scrollWidth;
+
+          // If content is smaller than container, CSS handles centering (minW=100%, justify=center)
+          if (contentW <= containerW) {
+            thumbnailControls.start({ x: 0 });
+            return;
+          }
+
+          const minX = Math.min(0, containerW - contentW - 16);
+
+          const containerRect = container.getBoundingClientRect();
+          const thumbRect = targetThumbnail.getBoundingClientRect();
+
+          const style = window.getComputedStyle(content);
+          const matrix = new DOMMatrixReadOnly(style.transform);
+          const currentX = matrix.m41;
+
+          let targetX = currentX;
+          const padding = 8;
+
+          if (thumbRect.left < containerRect.left + padding) {
+            targetX = currentX + (containerRect.left + padding - thumbRect.left);
+          }
+          else if (thumbRect.right > containerRect.right - padding) {
+            targetX = currentX - (thumbRect.right - (containerRect.right - padding));
+          }
+
+          const clampedX = Math.max(minX, Math.min(0, targetX));
+
+          if (Math.abs(clampedX - currentX) > 1) {
+            thumbnailControls.start({
+              x: clampedX,
+              transition: { type: 'spring', stiffness: 300, damping: 30 },
+            });
+          }
+        }
+      });
+    },
+    [isDragging, thumbnailControls],
+  );
+
   const handleCarouselClick = useCallback(
     (index: number) => {
       if (!imageCount) return;
       setCurrentIndex(index);
-      // Animate to center the selected thumbnail
       animateToThumbnail(index);
     },
-    [imageCount],
+    [imageCount, animateToThumbnail],
   );
 
   const handlePrev = useCallback(() => {
@@ -74,50 +129,15 @@ const CollectionDetail = () => {
     const prevIndex = currentIndex === 0 ? imageCount - 1 : currentIndex - 1;
     setCurrentIndex(prevIndex);
     animateToThumbnail(prevIndex);
-  }, [imageCount, currentIndex]);
+  }, [imageCount, currentIndex, animateToThumbnail]);
 
   const handleNext = useCallback(() => {
     if (imageCount < 2) return;
     const nextIndex = currentIndex === imageCount - 1 ? 0 : currentIndex + 1;
     setCurrentIndex(nextIndex);
     animateToThumbnail(nextIndex);
-  }, [imageCount, currentIndex]);
+  }, [imageCount, currentIndex, animateToThumbnail]);
 
-  // Helper function to animate carousel to show thumbnail at index
-  const animateToThumbnail = useCallback(
-    (index: number) => {
-      if (isDragging) return;
-
-      // Defer animation to next frame to ensure DOM is ready
-      window.requestAnimationFrame(() => {
-        if (thumbnailContainerRef.current && thumbnailContentRef.current) {
-          const containerW = thumbnailContainerRef.current.offsetWidth;
-          const contentW = thumbnailContentRef.current.scrollWidth;
-
-          // If content is smaller than container, keep it centered
-          if (contentW <= containerW) {
-            thumbnailControls.start({ x: 0 });
-            return;
-          }
-
-          // Use same constraint logic as dragConstraints effect to ensure consistency
-          const minX = Math.min(0, containerW - contentW - 16);
-
-          const itemW = 80; // 72px width + 8px gap
-          const targetX = containerW / 2 - (index * itemW + 36); // Center the selected thumbnail
-          const clampedX = Math.max(minX, Math.min(0, targetX));
-
-          thumbnailControls.start({
-            x: clampedX,
-            transition: { type: 'spring', stiffness: 300, damping: 30 },
-          });
-        }
-      });
-    },
-    [isDragging, thumbnailControls],
-  );
-
-  // Initialize carousel on image load
   useEffect(() => {
     if (imageCount > 0 && dragConstraints.left !== 0) {
       animateToThumbnail(currentIndex);
@@ -127,7 +147,9 @@ const CollectionDetail = () => {
   useEffect(() => {
     setCurrentIndex(0);
     setIsDragging(false);
-  }, [id, collection?.pictures]);
+    // Instantly reset position when viewing a new item
+    thumbnailControls.set({ x: 0 });
+  }, [id, collection?.pictures, thumbnailControls]);
 
   useEffect(() => {
     if (!imageCount) return;
@@ -143,35 +165,43 @@ const CollectionDetail = () => {
   }, [currentIndex, displayImages, imageCount, preloadImage]);
 
   useEffect(() => {
+    let animationFrameId: number;
     const updateConstraints = () => {
-      window.requestAnimationFrame(() => {
+      animationFrameId = window.requestAnimationFrame(() => {
         if (thumbnailContainerRef.current && thumbnailContentRef.current) {
           const containerW = thumbnailContainerRef.current.offsetWidth;
           const contentW = thumbnailContentRef.current.scrollWidth;
+          const overflow = contentW > containerW;
+          
+          setIsOverflowing(overflow);
           setDragConstraints({
-            left: Math.min(0, containerW - contentW - 16), // 16 for some padding
+            left: overflow ? containerW - contentW - 16 : 0, // 16 for padding
             right: 0,
           });
+
+          if (!overflow) {
+            thumbnailControls.start({ x: 0 });
+          }
         }
       });
     };
 
     updateConstraints();
-    window.addEventListener('resize', updateConstraints);
-    return () => window.removeEventListener('resize', updateConstraints);
-  }, [displayImages.length]);
 
-  useEffect(() => {
-    if (thumbnailContainerRef.current && thumbnailContentRef.current) {
-      const containerW = thumbnailContainerRef.current.offsetWidth;
-      const contentW = thumbnailContentRef.current.scrollWidth;
+    const observer = new ResizeObserver(updateConstraints);
 
-      // If content is smaller than container, keep it centered
-      if (contentW <= containerW) {
-        thumbnailControls.start({ x: 0 });
-      }
+    if (thumbnailContainerRef.current) {
+      observer.observe(thumbnailContainerRef.current);
     }
-  }, [dragConstraints.left, thumbnailControls]);
+    if (thumbnailContentRef.current) {
+      observer.observe(thumbnailContentRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+      window.cancelAnimationFrame(animationFrameId);
+    };
+  }, [displayImages.length, thumbnailControls]);
 
   // --- Description toggle ---
   const descriptionRef = useRef<HTMLParagraphElement | null>(null);
@@ -426,7 +456,7 @@ const CollectionDetail = () => {
             pt={3}
             display="flex"
             alignItems="center"
-            justifyContent={dragConstraints.left < 0 ? 'flex-start' : 'center'}
+            justifyContent="flex-start"
             overflowX="hidden"
             overflowY="hidden"
             position="relative"
@@ -435,17 +465,20 @@ const CollectionDetail = () => {
               ref={thumbnailContentRef}
               gap={2}
               flexWrap="nowrap"
+              minW="100%"
+              justifyContent="center"
               w="max-content"
               px={2}
+              flexShrink={0}
               dragTransition={{ power: 0.2, restDelta: 0.001 }}
               onDragStart={() => setIsDragging(true)}
               onDragEnd={() => setIsDragging(false)}
-              drag="x"
+              drag={isOverflowing ? "x" : false}
               dragConstraints={dragConstraints}
               dragElastic={0.1}
               animate={thumbnailControls}
-              cursor="grab"
-              _active={{ cursor: 'grabbing' }}
+              cursor={isOverflowing ? "grab" : "default"}
+              _active={isOverflowing ? { cursor: 'grabbing' } : undefined}
             >
               {displayImages.map((image, index) => (
                 <Box
