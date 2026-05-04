@@ -2,11 +2,8 @@ import {
   Box,
   Button,
   Center,
-  Field,
   Flex,
   Grid,
-  Menu,
-  Portal,
   Spinner,
   Text,
 } from '@chakra-ui/react';
@@ -17,11 +14,8 @@ import { Link as RouterLink } from 'react-router-dom';
 import { canManageCollection } from '@/services/http';
 import collectionServices from '@/services/content/collectionServices';
 import { ICollectionTypeFilterItem, IReleaseTypeDrawerItem } from '@/libs/collection/collection';
-import useCollectionListFilters, {
-  ALL_COLLECTION_VALUE,
-  LIMIT_OPTIONS,
-  SORT_OPTIONS,
-} from './hooks/useCollectionListFilters';
+import useCollectionListFilters from './hooks/useCollectionListFilters';
+import CollectionFilters from './parts/CollectionFilters';
 
 const CollectionList = () => {
   const { getCollections, collections } = useCollections();
@@ -38,14 +32,10 @@ const CollectionList = () => {
     goNextPage,
     goPrevPage,
     handleCollectionTypeChange,
-    handleLimitChange,
     handleReleaseTypeToggle,
     handleSortChange,
     isResolvingCollectionSlug,
-    limit,
     query,
-    resetFilters,
-    selectedCollectionLabel,
     selectedReleaseTypeIds,
     selectedReleaseTypeLabel,
     selectedSortLabel,
@@ -107,220 +97,18 @@ const CollectionList = () => {
             </Button>
           )}
         </Flex>
-        <Flex gap={3} mt={3} flexWrap="wrap" align="end">
-          <Field.Root flex="1" minW="220px" maxW="360px">
-            <Field.Label>Collection</Field.Label>
-            <Menu.Root positioning={{ placement: 'bottom-start', sameWidth: true }}>
-              <Menu.Trigger asChild>
-                <Button size="sm" variant="outline" justifyContent="space-between" w="full">
-                  <Text
-                    as="span"
-                    flex="1"
-                    minW="0"
-                    whiteSpace="nowrap"
-                    overflow="hidden"
-                    textOverflow="ellipsis"
-                    textAlign="left"
-                  >
-                    {selectedCollectionLabel}
-                  </Text>
-                  <Text as="span" ml={2} flexShrink={0}>
-                    v
-                  </Text>
-                </Button>
-              </Menu.Trigger>
-              <Portal>
-                <Menu.Positioner>
-                  <Menu.Content maxH="220px" overflowY="auto">
-                    <Menu.RadioItemGroup
-                      value={collectionTypeId ? String(collectionTypeId) : ALL_COLLECTION_VALUE}
-                      onValueChange={(details) => {
-                        handleCollectionTypeChange(details.value);
-                      }}
-                    >
-                      <Menu.RadioItem value={ALL_COLLECTION_VALUE}>
-                        <Menu.ItemIndicator />
-                        <Text as="span">All Types</Text>
-                      </Menu.RadioItem>
-                      {filterOptions.map((type) => (
-                        <Menu.RadioItem key={type.id} value={String(type.id)}>
-                          <Menu.ItemIndicator />
-                          <Text
-                            as="span"
-                            display="block"
-                            minW="0"
-                            flex="1"
-                            whiteSpace="nowrap"
-                            overflow="hidden"
-                            textOverflow="ellipsis"
-                          >
-                            {type.name}
-                          </Text>
-                        </Menu.RadioItem>
-                      ))}
-                    </Menu.RadioItemGroup>
-                  </Menu.Content>
-                </Menu.Positioner>
-              </Portal>
-            </Menu.Root>
-          </Field.Root>
-
-          <Field.Root w="240px" minW="240px" maxW="240px" flex="0 0 auto">
-            <Field.Label>Release Types</Field.Label>
-            <Menu.Root
-              closeOnSelect={false}
-              positioning={{ placement: 'bottom-start', sameWidth: true }}
-            >
-              <Menu.Trigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  w="240px"
-                  minW="240px"
-                  maxW="240px"
-                  justifyContent="space-between"
-                >
-                  <Text
-                    as="span"
-                    flex="1"
-                    minW="0"
-                    whiteSpace="nowrap"
-                    overflow="hidden"
-                    textOverflow="ellipsis"
-                    textAlign="left"
-                  >
-                    {selectedReleaseTypeLabel}
-                  </Text>
-                  <Text as="span" ml={2} flexShrink={0}>
-                    v
-                  </Text>
-                </Button>
-              </Menu.Trigger>
-              <Portal>
-                <Menu.Positioner>
-                  <Menu.Content w="240px" minW="240px" maxW="240px" maxH="180px" overflowY="auto">
-                    {releaseTypeOptions.length === 0 && (
-                      <Text fontSize="sm" color="gray.500" px={2} py={1}>
-                        No release types available.
-                      </Text>
-                    )}
-                    <Menu.ItemGroup>
-                      {releaseTypeOptions.map((releaseType) => {
-                        const isChecked = selectedReleaseTypeIds.includes(releaseType.id);
-                        return (
-                          <Menu.CheckboxItem
-                            key={releaseType.id}
-                            value={String(releaseType.id)}
-                            checked={isChecked}
-                            onCheckedChange={() => {
-                              const shouldCheck = !isChecked;
-                              handleReleaseTypeToggle(releaseType.id, shouldCheck);
-                            }}
-                          >
-                            <Menu.ItemIndicator />
-                            <Text
-                              as="span"
-                              display="block"
-                              minW="0"
-                              flex="1"
-                              whiteSpace="nowrap"
-                              overflow="hidden"
-                              textOverflow="ellipsis"
-                            >
-                              {releaseType.name}
-                            </Text>
-                          </Menu.CheckboxItem>
-                        );
-                      })}
-                    </Menu.ItemGroup>
-                  </Menu.Content>
-                </Menu.Positioner>
-              </Portal>
-            </Menu.Root>
-          </Field.Root>
-
-          <Field.Root maxW="120px">
-            <Field.Label>Limit</Field.Label>
-            <Menu.Root positioning={{ placement: 'bottom-start', sameWidth: true }}>
-              <Menu.Trigger asChild>
-                <Button size="sm" variant="outline" justifyContent="space-between" w="full">
-                  <Text as="span" textAlign="left">
-                    {limit}
-                  </Text>
-                  <Text as="span" ml={2} flexShrink={0}>
-                    v
-                  </Text>
-                </Button>
-              </Menu.Trigger>
-              <Portal>
-                <Menu.Positioner>
-                  <Menu.Content>
-                    <Menu.RadioItemGroup
-                      value={String(limit)}
-                      onValueChange={(details) => {
-                        handleLimitChange(Number(details.value));
-                      }}
-                    >
-                      {LIMIT_OPTIONS.map((limitOption) => (
-                        <Menu.RadioItem key={limitOption} value={String(limitOption)}>
-                          <Menu.ItemIndicator />
-                          <Text as="span">{limitOption}</Text>
-                        </Menu.RadioItem>
-                      ))}
-                    </Menu.RadioItemGroup>
-                  </Menu.Content>
-                </Menu.Positioner>
-              </Portal>
-            </Menu.Root>
-          </Field.Root>
-
-          <Field.Root maxW="220px">
-            <Field.Label>Sort By</Field.Label>
-            <Menu.Root positioning={{ placement: 'bottom-start', sameWidth: true }}>
-              <Menu.Trigger asChild>
-                <Button size="sm" variant="outline" justifyContent="space-between" w="full">
-                  <Text
-                    as="span"
-                    flex="1"
-                    minW="0"
-                    whiteSpace="nowrap"
-                    overflow="hidden"
-                    textOverflow="ellipsis"
-                    textAlign="left"
-                  >
-                    {selectedSortLabel}
-                  </Text>
-                  <Text as="span" ml={2} flexShrink={0}>
-                    v
-                  </Text>
-                </Button>
-              </Menu.Trigger>
-              <Portal>
-                <Menu.Positioner>
-                  <Menu.Content>
-                    <Menu.RadioItemGroup
-                      value={sortBy}
-                      onValueChange={(details) => {
-                        handleSortChange(details.value);
-                      }}
-                    >
-                      {SORT_OPTIONS.map((option) => (
-                        <Menu.RadioItem key={option.value} value={option.value}>
-                          <Menu.ItemIndicator />
-                          <Text as="span">{option.label}</Text>
-                        </Menu.RadioItem>
-                      ))}
-                    </Menu.RadioItemGroup>
-                  </Menu.Content>
-                </Menu.Positioner>
-              </Portal>
-            </Menu.Root>
-          </Field.Root>
-
-          <Button size="sm" variant="outline" onClick={resetFilters}>
-            Reset
-          </Button>
-        </Flex>
+        <CollectionFilters
+          collectionTypeId={collectionTypeId}
+          filterOptions={filterOptions}
+          handleCollectionTypeChange={handleCollectionTypeChange}
+          handleReleaseTypeToggle={handleReleaseTypeToggle}
+          handleSortChange={handleSortChange}
+          releaseTypeOptions={releaseTypeOptions}
+          selectedReleaseTypeIds={selectedReleaseTypeIds}
+          selectedReleaseTypeLabel={selectedReleaseTypeLabel}
+          selectedSortLabel={selectedSortLabel}
+          sortBy={sortBy}
+        />
         {errorMessage && (
           <Text mt={2} color="red.500">
             {errorMessage}

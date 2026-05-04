@@ -144,7 +144,7 @@ const useCollectionListFilters = ({
   }, [collectionTypeId, limit, offset, sortBy, selectedReleaseTypeIds]);
 
   const selectedReleaseTypeLabel = useMemo(() => {
-    if (selectedReleaseTypeIds.length === 0) return 'All Release Types';
+    if (selectedReleaseTypeIds.length === 0) return 'All';
     if (selectedReleaseTypeIds.length === 1) {
       const selectedType = releaseTypeOptions.find(
         (option) => option.id === selectedReleaseTypeIds[0],

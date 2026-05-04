@@ -138,6 +138,21 @@ const CollectionDetail = () => {
     animateToThumbnail(nextIndex);
   }, [imageCount, currentIndex, animateToThumbnail]);
 
+  const handleBackToCollection = useCallback(() => {
+    const hasRouterHistory = typeof window.history.state?.idx === 'number' && window.history.state.idx > 0;
+    const hasSameOriginReferrer =
+      typeof document.referrer === 'string' &&
+      document.referrer.length > 0 &&
+      new URL(document.referrer).origin === window.location.origin;
+
+    if (hasRouterHistory || hasSameOriginReferrer) {
+      navigate(-1);
+      return;
+    }
+
+    navigate('/', { replace: true });
+  }, [navigate]);
+
   useEffect(() => {
     if (imageCount > 0 && dragConstraints.left !== 0) {
       animateToThumbnail(currentIndex);
@@ -331,7 +346,7 @@ const CollectionDetail = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate(-1)}
+            onClick={handleBackToCollection}
             display="inline-flex"
             alignItems="center"
             gap={1}
