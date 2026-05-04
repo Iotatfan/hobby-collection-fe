@@ -56,9 +56,21 @@ export interface ICollectionTypeFilterItem {
   name: string;
 }
 
+export interface IGunplaGradeFilterItem {
+  id: number;
+  name: string;
+}
+
+export interface IFiguresScaleFilterItem {
+  id: number;
+  name: string;
+}
+
 export interface ICollectionFilterOptions {
   collection_types: ICollectionTypeFilterItem[];
   release_types: IReleaseTypeDrawerItem[];
+  gunple_grades: IGunplaGradeFilterItem[];
+  figures_scales: IFiguresScaleFilterItem[];
 }
 
 export interface IGradeDrawerItem {
