@@ -16,7 +16,7 @@ import { AnimatePresence, motion, useAnimation } from 'framer-motion';
 import { cloudinarySizes } from '@/utils/cloudinary';
 import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
 import { canManageCollection } from '@/services/http';
-import KitSpecificationsCard from '@/pages/hobby_showcase/parts/KitSpecificationsCard';
+import KitSpecifications from '@/pages/collection_detail/parts/KitSpecifications';
 import ReleaseBadge from '@/pages/hobby_showcase/parts/ReleaseBadge';
 import {
   buildAddonLabels,
@@ -566,38 +566,11 @@ const CollectionDetail = () => {
             {collection?.title}
           </Text>
 
-          <KitSpecificationsCard
-            scale={collection?.type?.scale}
-            manufacturer={collection?.manufacturer?.name}
-            series={collection?.series?.name}
-            status={collection?.status}
-            builtDate={collection?.built_at}
-            acquiredDate={collection?.acquired_at}
-          />
-
-          {addonLabels.length > 0 && (
-            <VStack align="start" gap={1} maxWidth="520px">
-              <Text fontSize={{ base: 'sm', lg: 'md' }} color="gray.500">
-                Addons
-              </Text>
-              {addonLabels.map((addon) => (
-                <Text
-                  key={addon}
-                  fontSize={{ base: 'md', lg: 'lg' }}
-                  color="gray.700"
-                  lineHeight="relaxed"
-                >
-                  {addon}
-                </Text>
-              ))}
-            </VStack>
-          )}
-
           {/* Description */}
           <VStack align="start" gap={2} maxWidth="520px">
-            <Text fontSize={{ base: 'sm', lg: 'md' }} color="gray.500">
+            {/* <Text fontSize={{ base: 'sm', lg: 'md' }} color="gray.500">
               About
-            </Text>
+            </Text> */}
             <Box
               className={isDescriptionExpanded ? 'custom-scrollbar' : undefined}
               maxH={
@@ -636,6 +609,37 @@ const CollectionDetail = () => {
               </Button>
             )}
           </VStack>
+
+          <Box w="full" maxW="520px" h="1px" bg="gray.200" />
+
+          <KitSpecifications
+            scale={collection?.type?.scale}
+            manufacturer={collection?.manufacturer?.name}
+            series={collection?.series?.name}
+            status={collection?.status}
+            builtDate={collection?.built_at}
+            acquiredDate={collection?.acquired_at}
+          />
+
+          {addonLabels.length > 0 && (
+            <VStack align="start" gap={1} maxWidth="520px">
+              <Text fontSize={{ base: 'sm', lg: 'md' }} color="gray.500">
+                Addons
+              </Text>
+              {addonLabels.map((addon) => (
+                <Text
+                  key={addon}
+                  fontSize={{ base: 'md', lg: 'lg' }}
+                  color="gray.700"
+                  lineHeight="relaxed"
+                >
+                  {addon}
+                </Text>
+              ))}
+            </VStack>
+          )}
+
+
 
           {canManage && collection?.id && (
             <Button asChild colorPalette="blue" variant="solid">
