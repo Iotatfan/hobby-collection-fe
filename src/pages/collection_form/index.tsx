@@ -31,7 +31,6 @@ const CollectionForm = () => {
     existingCoverUrl,
     existingPictureUrls,
     existingPicturePreviewUrls,
-    getTypeLabel,
     gradeId,
     handleAddAddon,
     handleAddonNameChange,
@@ -43,6 +42,8 @@ const CollectionForm = () => {
     handleSubmit,
     isEditMode,
     isLoading,
+    isGradeDrawerOpen,
+    isScaleDrawerOpen,
     isManufacturerDrawerOpen,
     isReleaseTypeDrawerOpen,
     isSeriesDrawerOpen,
@@ -54,11 +55,17 @@ const CollectionForm = () => {
     picturesInputRef,
     releaseTypeId,
     releaseTypes,
+    scaleId,
+    scales,
     selectedManufacturer,
     selectedReleaseType,
     selectedSeries,
     selectedStatus,
-    selectedType,
+    selectedGrade,
+    selectedScale,
+    collectionType,
+    collectionTypes,
+    gunplaGrades,
     seriesId,
     seriesOptions,
     setAcquiredAt,
@@ -66,11 +73,14 @@ const CollectionForm = () => {
     setBuiltAt,
     setCoverFile,
     setDescription,
+    setIsGradeDrawerOpen,
+    setIsScaleDrawerOpen,
     setIsManufacturerDrawerOpen,
     setIsReleaseTypeDrawerOpen,
     setIsSeriesDrawerOpen,
     setIsStatusDrawerOpen,
     setIsTypeDrawerOpen,
+    handleSelectCollectionType,
     setManufacturerId,
     setReleaseTypeId,
     setSeriesId,
@@ -78,8 +88,8 @@ const CollectionForm = () => {
     setTitle,
     statusId,
     title,
-    typeOptions,
     setGradeId,
+    setScaleId,
   } = useCollectionForm();
 
   return (
@@ -119,6 +129,18 @@ const CollectionForm = () => {
 
               <Stack direction={{ base: 'column', md: 'row' }} gap={4}>
                 <Field.Root required>
+                  <Field.Label>Type</Field.Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    justifyContent="start"
+                    onClick={() => setIsTypeDrawerOpen(true)}
+                  >
+                    {collectionType ? collectionType : 'Choose collection type'}
+                  </Button>
+                </Field.Root>
+
+                <Field.Root required>
                   <Field.Label>Status</Field.Label>
                   <Button
                     type="button"
@@ -130,15 +152,29 @@ const CollectionForm = () => {
                   </Button>
                 </Field.Root>
 
+                {collectionType === 'Gunpla' && (
+                  <Field.Root required>
+                    <Field.Label>Grade</Field.Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      justifyContent="start"
+                      onClick={() => setIsGradeDrawerOpen(true)}
+                    >
+                      {selectedGrade ? selectedGrade.grade_short_name : 'Choose grade'}
+                    </Button>
+                  </Field.Root>
+                )}
+
                 <Field.Root required>
-                  <Field.Label>Type</Field.Label>
+                  <Field.Label>Scale</Field.Label>
                   <Button
                     type="button"
                     variant="outline"
                     justifyContent="start"
-                    onClick={() => setIsTypeDrawerOpen(true)}
+                    onClick={() => setIsScaleDrawerOpen(true)}
                   >
-                    {selectedType ? getTypeLabel(selectedType) : 'Choose collection type'}
+                    {selectedScale ? selectedScale.name : 'Choose scale'}
                   </Button>
                 </Field.Root>
 
@@ -279,8 +315,12 @@ const CollectionForm = () => {
       <FormSelectDrawers
         activeAddonManufacturerId={activeAddonManufacturer?.id}
         activeAddonManufacturerIndex={activeAddonManufacturerIndex}
-        getTypeLabel={getTypeLabel}
+        collectionType={collectionType}
+        collectionTypes={collectionTypes}
         gradeId={gradeId}
+        gunplaGrades={gunplaGrades}
+        isGradeDrawerOpen={isGradeDrawerOpen}
+        isScaleDrawerOpen={isScaleDrawerOpen}
         isManufacturerDrawerOpen={isManufacturerDrawerOpen}
         isReleaseTypeDrawerOpen={isReleaseTypeDrawerOpen}
         isSeriesDrawerOpen={isSeriesDrawerOpen}
@@ -295,6 +335,9 @@ const CollectionForm = () => {
         seriesOptions={seriesOptions}
         setActiveAddonManufacturerIndex={setActiveAddonManufacturerIndex}
         setGradeId={setGradeId}
+        setScaleId={setScaleId}
+        setIsGradeDrawerOpen={setIsGradeDrawerOpen}
+        setIsScaleDrawerOpen={setIsScaleDrawerOpen}
         setIsManufacturerDrawerOpen={setIsManufacturerDrawerOpen}
         setIsReleaseTypeDrawerOpen={setIsReleaseTypeDrawerOpen}
         setIsSeriesDrawerOpen={setIsSeriesDrawerOpen}
@@ -306,7 +349,9 @@ const CollectionForm = () => {
         setStatusId={setStatusId}
         statusId={statusId}
         statusOptions={STATUS_OPTIONS}
-        typeOptions={typeOptions}
+        handleSelectCollectionType={handleSelectCollectionType}
+        scaleId={scaleId}
+        scales={scales}
       />
     </Flex>
   );

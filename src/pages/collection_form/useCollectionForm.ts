@@ -12,13 +12,11 @@ import { cloudinarySizes } from '@/utils/cloudinary';
 import {
   AddonFormItem,
   createAddonRowFactory,
-  getTypeLabel,
   resolveImageSrc,
   resolveStatusId,
   STATUS_OPTIONS,
   toDateInputValue,
   toIsoDateTime,
-  TypeOption,
 } from './collectionForm.helpers';
 
 const useCollectionForm = () => {
@@ -40,6 +38,7 @@ const useCollectionForm = () => {
   const [acquiredAt, setAcquiredAt] = useState('');
   const [statusId, setStatusId] = useState<0 | 1 | 2 | 3 | null>(null);
   const [gradeId, setGradeId] = useState<number | null>(null);
+  const [scaleId, setScaleId] = useState<number | null>(null);
   const [releaseTypeId, setReleaseTypeId] = useState<number | null>(null);
   const [manufacturerId, setManufacturerId] = useState<number | null>(null);
   const [seriesId, setSeriesId] = useState<number | null>(null);
@@ -50,6 +49,8 @@ const useCollectionForm = () => {
   const [isLoadingDrawer, setIsLoadingDrawer] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTypeDrawerOpen, setIsTypeDrawerOpen] = useState(false);
+  const [isGradeDrawerOpen, setIsGradeDrawerOpen] = useState(false);
+  const [isScaleDrawerOpen, setIsScaleDrawerOpen] = useState(false);
   const [isStatusDrawerOpen, setIsStatusDrawerOpen] = useState(false);
   const [isReleaseTypeDrawerOpen, setIsReleaseTypeDrawerOpen] = useState(false);
   const [isManufacturerDrawerOpen, setIsManufacturerDrawerOpen] = useState(false);
@@ -58,8 +59,10 @@ const useCollectionForm = () => {
     null,
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [collectionType, setCollectionType] = useState<string | null>(null);
 
   const drawerGrades = useMemo(() => drawerContent?.grades ?? [], [drawerContent?.grades]);
+  const scales = useMemo(() => drawerContent?.scales ?? [], [drawerContent?.scales]);
   const releaseTypes = useMemo(
     () => drawerContent?.release_types ?? [],
     [drawerContent?.release_types],
@@ -68,24 +71,21 @@ const useCollectionForm = () => {
     () => drawerContent?.manufacturers ?? [],
     [drawerContent?.manufacturers],
   );
+
   const seriesOptions = useMemo(() => drawerContent?.series ?? [], [drawerContent?.series]);
-  const typeOptions: TypeOption[] = useMemo(() => {
-    return [...drawerGrades]
-      .sort(
-        (a, b) =>
-          a.collection_type_name.localeCompare(b.collection_type_name) ||
-          a.scale.localeCompare(b.scale) ||
-          a.grade_short_name.localeCompare(b.grade_short_name),
-      )
-      .map((grade) => ({
-        grade_id: grade.grade_id,
-        collection_type_name: grade.collection_type_name,
-        scale: grade.scale,
-        grade_short_name: grade.grade_short_name,
-      }));
+
+  const collectionTypes = useMemo(() => {
+    return Array.from(new Set(drawerGrades.map((g) => g.collection_type_name))).sort();
   }, [drawerGrades]);
 
-  const selectedType = typeOptions.find((option) => option.grade_id === gradeId) ?? null;
+  const gunplaGrades = useMemo(() => {
+    return drawerGrades.filter((g) => g.collection_type_name === 'Gunpla');
+  }, [drawerGrades]);
+
+  const selectedGrade = useMemo(() => {
+    return drawerGrades.find((option) => option.grade_id === gradeId) ?? null;
+  }, [drawerGrades, gradeId]);
+  const selectedScale = scales.find((option) => option.id === scaleId);
   const selectedStatus = STATUS_OPTIONS.find((option) => option.id === statusId);
   const selectedReleaseType = releaseTypes.find((option) => option.id === releaseTypeId);
   const selectedManufacturer = manufacturers.find((option) => option.id === manufacturerId);
@@ -94,8 +94,8 @@ const useCollectionForm = () => {
     activeAddonManufacturerIndex === null
       ? undefined
       : manufacturers.find(
-          (option) => option.id === addons[activeAddonManufacturerIndex]?.manufacturerId,
-        );
+        (option) => option.id === addons[activeAddonManufacturerIndex]?.manufacturerId,
+      );
 
   const coverPreviewUrl = useMemo(() => {
     if (coverFile) return URL.createObjectURL(coverFile);
@@ -171,6 +171,11 @@ const useCollectionForm = () => {
         setExistingPictureUrls(normalizedPictureUrls);
         setDeletedPictureUrls([]);
         setGradeId(data.type?.grade?.id ?? null);
+        
+        const scaleOption = drawerContent?.scales?.find(s => s.name === data.type?.scale) || null;
+        setScaleId(scaleOption ? scaleOption.id : null);
+        
+        setCollectionType(data.type?.name ?? null);
         setReleaseTypeId(data.release_type?.id ?? null);
         setManufacturerId(data.manufacturer?.id ?? null);
         setSeriesId(data.series?.id ?? null);
@@ -188,13 +193,28 @@ const useCollectionForm = () => {
 
   useEffect(() => {
     if (drawerGrades.length === 0) return;
-    if (gradeId === null) {
-      setGradeId(drawerGrades[0].grade_id);
+
+    if (collectionType === null && gradeId === null) {
+      const defaultGrade = drawerGrades[0];
+      setCollectionType(defaultGrade.collection_type_name);
+      setGradeId(defaultGrade.grade_id);
       return;
     }
+
+    if (gradeId !== null && collectionType === null) {
+      const grade = drawerGrades.find((g) => g.grade_id === gradeId);
+      if (grade) {
+        setCollectionType(grade.collection_type_name);
+      }
+    }
+
     const stillValid = drawerGrades.some((grade) => grade.grade_id === gradeId);
-    if (!stillValid) setGradeId(drawerGrades[0].grade_id);
-  }, [drawerGrades, gradeId]);
+    if (!stillValid && gradeId !== null) {
+      const defaultGrade = drawerGrades[0];
+      setCollectionType(defaultGrade.collection_type_name);
+      setGradeId(defaultGrade.grade_id);
+    }
+  }, [drawerGrades, gradeId, collectionType]);
 
   useEffect(() => {
     if (statusId !== 3 && builtAt) {
@@ -273,11 +293,12 @@ const useCollectionForm = () => {
     if (
       normalizedStatusId === null ||
       gradeId === null ||
+      scaleId === null ||
       releaseTypeId === null ||
       manufacturerId === null ||
       seriesId === null
     ) {
-      setErrorMessage('Status, type, release type, manufacturer, and series are required.');
+      setErrorMessage('Status, type, scale, release type, manufacturer, and series are required.');
       return;
     }
 
@@ -323,6 +344,7 @@ const useCollectionForm = () => {
       }
       formData.append('description', description.trim());
       formData.append('grade_id', String(gradeId));
+      formData.append('scale_id', String(scaleId));
       formData.append('release_type_id', String(releaseTypeId));
       formData.append('manufacturer_id', String(manufacturerId));
       formData.append('series_id', String(seriesId));
@@ -435,11 +457,26 @@ const useCollectionForm = () => {
     setActiveAddonManufacturerIndex(null);
   };
 
+  const handleSelectCollectionType = (type: string) => {
+    setCollectionType(type);
+    if (type === 'Figures') {
+      setGradeId(5);
+    } else if (type === 'Other Model Kit') {
+      setGradeId(6);
+    } else if (type === 'Gunpla') {
+      const firstGunpla = gunplaGrades[0];
+      setGradeId(firstGunpla ? firstGunpla.grade_id : null);
+    }
+    setIsTypeDrawerOpen(false);
+  };
+
   return {
     activeAddonManufacturer,
     activeAddonManufacturerIndex,
     addons,
     builtAt,
+    collectionType,
+    collectionTypes,
     coverFile,
     coverInputRef,
     coverPreviewUrl,
@@ -448,8 +485,8 @@ const useCollectionForm = () => {
     existingCoverUrl,
     existingPictureUrls,
     existingPicturePreviewUrls,
-    getTypeLabel,
     gradeId,
+    gunplaGrades,
     handleAddAddon,
     handleAddonNameChange,
     handlePicturesChange,
@@ -460,12 +497,15 @@ const useCollectionForm = () => {
     handleSubmit,
     isEditMode,
     isLoading,
+    isGradeDrawerOpen,
+    isScaleDrawerOpen,
     isManufacturerDrawerOpen,
     isReleaseTypeDrawerOpen,
     isSeriesDrawerOpen,
     isStatusDrawerOpen,
     isSubmitting,
     isTypeDrawerOpen,
+    handleSelectCollectionType,
     manufacturers,
     newPicturePreviewUrls,
     pictureFiles,
@@ -473,11 +513,14 @@ const useCollectionForm = () => {
     picturesInputRef,
     releaseTypeId,
     releaseTypes,
+    scaleId,
+    scales,
     selectedManufacturer,
     selectedReleaseType,
     selectedSeries,
     selectedStatus,
-    selectedType,
+    selectedGrade,
+    selectedScale,
     seriesId,
     seriesOptions,
     setAcquiredAt,
@@ -485,6 +528,8 @@ const useCollectionForm = () => {
     setBuiltAt,
     setCoverFile,
     setDescription,
+    setIsGradeDrawerOpen,
+    setIsScaleDrawerOpen,
     setIsManufacturerDrawerOpen,
     setIsReleaseTypeDrawerOpen,
     setIsSeriesDrawerOpen,
@@ -497,9 +542,9 @@ const useCollectionForm = () => {
     setTitle,
     statusId,
     title,
-    typeOptions,
     acquiredAt,
     setGradeId,
+    setScaleId,
   };
 };
 
