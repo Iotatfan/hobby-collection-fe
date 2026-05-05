@@ -13,7 +13,12 @@ import ItemCard from './parts/ItemCard';
 import { Link as RouterLink } from 'react-router-dom';
 import { canManageCollection } from '@/services/http';
 import collectionServices from '@/services/content/collectionServices';
-import { ICollectionTypeFilterItem, IReleaseTypeDrawerItem } from '@/libs/collection/collection';
+import {
+  ICollectionTypeFilterItem,
+  IFiguresScaleFilterItem,
+  IGunplaGradeFilterItem,
+  IReleaseTypeDrawerItem,
+} from '@/libs/collection/collection';
 import useCollectionListFilters from './hooks/useCollectionListFilters';
 import CollectionFilters from './parts/CollectionFilters';
 
@@ -21,7 +26,9 @@ const CollectionList = () => {
   const { getCollections, collections } = useCollections();
   const [isLoadingCollections, setIsLoadingCollections] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [filterOptions, setFilterOptions] = useState<ICollectionTypeFilterItem[]>([]);
+  const [collectionTypeOptions, setCollectionTypeOptions] = useState<ICollectionTypeFilterItem[]>([]);
+  const [figureScaleOptions, setFigureScaleOptions] = useState<IFiguresScaleFilterItem[]>([]);
+  const [gunplaGradeOptions, setGunplaGradeOptions] = useState<IGunplaGradeFilterItem[]>([]);
   const [releaseTypeOptions, setReleaseTypeOptions] = useState<IReleaseTypeDrawerItem[]>([]);
   const canManage = canManageCollection();
   const {
@@ -32,17 +39,23 @@ const CollectionList = () => {
     goNextPage,
     goPrevPage,
     handleCollectionTypeChange,
+    handleGradeChange,
     handleReleaseTypeToggle,
     handleSortChange,
     isResolvingCollectionSlug,
     query,
+    selectedGradeId,
     selectedReleaseTypeIds,
     selectedReleaseTypeLabel,
     selectedSortLabel,
+    showFigureScaleFilter,
+    showGunplaGradeFilter,
     sortBy,
   } = useCollectionListFilters({
     collectionsCount: collections?.length ?? 0,
-    filterOptions,
+    collectionTypeOptions,
+    figureScaleOptions,
+    gunplaGradeOptions,
     releaseTypeOptions,
   });
 
@@ -67,7 +80,9 @@ const CollectionList = () => {
     const loadFilterOptions = async () => {
       try {
         const filterContent = await collectionServices.getCollectionTypeFilters();
-        setFilterOptions(filterContent.collection_types ?? []);
+        setCollectionTypeOptions(filterContent.collection_types ?? []);
+        setFigureScaleOptions(filterContent.figures_scales ?? []);
+        setGunplaGradeOptions(filterContent.gunple_grades ?? []);
         setReleaseTypeOptions(filterContent.release_types ?? []);
       } catch {
         setErrorMessage('Failed to load filter options.');
@@ -99,14 +114,20 @@ const CollectionList = () => {
         </Flex>
         <CollectionFilters
           collectionTypeId={collectionTypeId}
-          filterOptions={filterOptions}
+          collectionTypeOptions={collectionTypeOptions}
+          figureScaleOptions={figureScaleOptions}
+          gunplaGradeOptions={gunplaGradeOptions}
           handleCollectionTypeChange={handleCollectionTypeChange}
+          handleGradeChange={handleGradeChange}
           handleReleaseTypeToggle={handleReleaseTypeToggle}
           handleSortChange={handleSortChange}
           releaseTypeOptions={releaseTypeOptions}
+          selectedGradeId={selectedGradeId}
           selectedReleaseTypeIds={selectedReleaseTypeIds}
           selectedReleaseTypeLabel={selectedReleaseTypeLabel}
           selectedSortLabel={selectedSortLabel}
+          showFigureScaleFilter={showFigureScaleFilter}
+          showGunplaGradeFilter={showGunplaGradeFilter}
           sortBy={sortBy}
         />
         {errorMessage && (

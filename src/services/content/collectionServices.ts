@@ -4,6 +4,8 @@ import {
   ICollectionFilterQuery,
   ICollectionFilterOptions,
   ICollectionTypeFilterItem,
+  IFiguresScaleFilterItem,
+  IGunplaGradeFilterItem,
   IReleaseTypeDrawerItem,
   ICollectionUploadPayload,
   ICollectionUpsertPayload,
@@ -105,9 +107,23 @@ const getCollectionTypeFilters = async () => {
       ? (data.release_types as IReleaseTypeDrawerItem[])
       : ([] as IReleaseTypeDrawerItem[]);
 
+    const gunplaGrades = Array.isArray(data?.gunpla_grades)
+      ? (data.gunpla_grades as IGunplaGradeFilterItem[])
+      : Array.isArray(data?.gunple_grades)
+        ? (data.gunple_grades as IGunplaGradeFilterItem[])
+        : ([] as IGunplaGradeFilterItem[]);
+
+    const figureScales = Array.isArray(data?.figures_scales)
+      ? (data.figures_scales as IFiguresScaleFilterItem[])
+      : Array.isArray(data?.figure_scales)
+        ? (data.figure_scales as IFiguresScaleFilterItem[])
+        : ([] as IFiguresScaleFilterItem[]);
+
     const resolved: ICollectionFilterOptions = {
       collection_types: collectionTypes,
       release_types: releaseTypes,
+      gunple_grades: gunplaGrades,
+      figures_scales: figureScales,
     };
 
     setCachedCollectionTypeFilters(resolved);

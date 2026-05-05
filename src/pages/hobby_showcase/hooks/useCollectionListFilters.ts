@@ -1,6 +1,8 @@
 import {
   ICollectionFilterQuery,
   ICollectionTypeFilterItem,
+  IFiguresScaleFilterItem,
+  IGunplaGradeFilterItem,
   IReleaseTypeDrawerItem,
 } from '@/libs/collection/collection';
 import { useCallback, useEffect, useMemo } from 'react';
@@ -13,6 +15,8 @@ export const SORT_OPTIONS = [
   { value: 'name_desc', label: 'Name (Z-A)' },
 ] as const;
 export const ALL_COLLECTION_VALUE = '__all__';
+export const ALL_GUNPLA_GRADE_VALUE = '__all__';
+export const ALL_FIGURE_SCALE_VALUE = '__all__';
 
 const DEFAULT_LIMIT = 20;
 const DEFAULT_OFFSET = 0;
@@ -60,6 +64,11 @@ const parseReleaseTypeParam = (value: string | null): number[] => {
     .filter((id) => Number.isInteger(id) && id > 0);
 };
 
+const isGunplaCollectionType = (value: string) => normalizeCollectionName(value).includes('gunpla');
+
+const isFigureCollectionType = (value: string) =>
+  normalizeCollectionName(value).includes('figure');
+
 const normalizeSortParam = (value: string | null): string => {
   if (!value) return DEFAULT_SORT;
   if (value === 'latest_built') return 'latest';
@@ -69,13 +78,17 @@ const normalizeSortParam = (value: string | null): string => {
 
 type UseCollectionListFiltersOptions = {
   collectionsCount: number;
-  filterOptions: ICollectionTypeFilterItem[];
+  collectionTypeOptions: ICollectionTypeFilterItem[];
+  gunplaGradeOptions: IGunplaGradeFilterItem[];
+  figureScaleOptions: IFiguresScaleFilterItem[];
   releaseTypeOptions: IReleaseTypeDrawerItem[];
 };
 
 const useCollectionListFilters = ({
   collectionsCount,
-  filterOptions,
+  collectionTypeOptions,
+  gunplaGradeOptions,
+  figureScaleOptions,
   releaseTypeOptions,
 }: UseCollectionListFiltersOptions) => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -87,7 +100,7 @@ const useCollectionListFilters = ({
     if (!collectionValue) return undefined;
 
     const normalizedCollectionValue = normalizeCollectionName(collectionValue);
-    const matchedOption = filterOptions.find((option) => {
+    const matchedOption = collectionTypeOptions.find((option) => {
       const normalizedName = normalizeCollectionName(option.name);
       return (
         normalizedName === normalizedCollectionValue ||
@@ -95,7 +108,7 @@ const useCollectionListFilters = ({
       );
     });
     return matchedOption?.id;
-  }, [collectionValue, filterOptions, searchParams]);
+  }, [collectionValue, collectionTypeOptions, searchParams]);
 
   const limit = useMemo(() => parseLimitParam(searchParams.get('limit')), [searchParams]);
   const offset = useMemo(() => parseOffsetParam(searchParams.get('offset')), [searchParams]);
@@ -111,7 +124,21 @@ const useCollectionListFilters = ({
     if (legacyReleaseTypeParam) return parseReleaseTypeParam(legacyReleaseTypeParam);
     return parseReleaseTypeParam(searchParams.get('groups'));
   }, [searchParams]);
-  const isResolvingCollectionSlug = Boolean(collectionValue) && filterOptions.length === 0;
+  const selectedGradeId = useMemo(
+    () => parsePositiveNumberParam(searchParams.get('grade_id')),
+    [searchParams],
+  );
+  const isResolvingCollectionSlug = Boolean(collectionValue) && collectionTypeOptions.length === 0;
+  const selectedCollectionType = useMemo(
+    () => collectionTypeOptions.find((option) => option.id === collectionTypeId),
+    [collectionTypeId, collectionTypeOptions],
+  );
+  const showGunplaGradeFilter = Boolean(
+    selectedCollectionType && isGunplaCollectionType(selectedCollectionType.name),
+  );
+  const showFigureScaleFilter = Boolean(
+    selectedCollectionType && isFigureCollectionType(selectedCollectionType.name),
+  );
 
   const updateSearchParams = useCallback(
     (updater: (nextParams: URLSearchParams) => void) => {
@@ -124,24 +151,49 @@ const useCollectionListFilters = ({
 
   useEffect(() => {
     const legacyCollectionTypeId = parsePositiveNumberParam(searchParams.get('collection_type_id'));
-    if (!legacyCollectionTypeId || filterOptions.length === 0) return;
+    if (!legacyCollectionTypeId || collectionTypeOptions.length === 0) return;
 
-    const selected = filterOptions.find((option) => option.id === legacyCollectionTypeId);
+    const selected = collectionTypeOptions.find((option) => option.id === legacyCollectionTypeId);
     updateSearchParams((nextParams) => {
       if (selected) nextParams.set('collection', selected.name);
       nextParams.delete('collection_type_id');
     });
-  }, [filterOptions, searchParams, updateSearchParams]);
+  }, [collectionTypeOptions, searchParams, updateSearchParams]);
+
+  useEffect(() => {
+    if (!selectedGradeId) return;
+
+    const validOptionIds = showGunplaGradeFilter
+      ? gunplaGradeOptions.map((option) => option.id)
+      : showFigureScaleFilter
+        ? figureScaleOptions.map((option) => option.id)
+        : [];
+
+    if (validOptionIds.includes(selectedGradeId)) return;
+
+    updateSearchParams((nextParams) => {
+      nextParams.delete('grade_id');
+      nextParams.delete('offset');
+    });
+  }, [
+    figureScaleOptions,
+    gunplaGradeOptions,
+    selectedGradeId,
+    showFigureScaleFilter,
+    showGunplaGradeFilter,
+    updateSearchParams,
+  ]);
 
   const query = useMemo<ICollectionFilterQuery>(() => {
     return {
       collection_type_id: collectionTypeId,
+      grade_id: selectedGradeId,
       limit,
       offset,
       sort: sortBy,
       release_type_id: selectedReleaseTypeIds.length > 0 ? selectedReleaseTypeIds : undefined,
     };
-  }, [collectionTypeId, limit, offset, sortBy, selectedReleaseTypeIds]);
+  }, [collectionTypeId, limit, offset, selectedGradeId, sortBy, selectedReleaseTypeIds]);
 
   const selectedReleaseTypeLabel = useMemo(() => {
     if (selectedReleaseTypeIds.length === 0) return 'All';
@@ -155,10 +207,10 @@ const useCollectionListFilters = ({
   }, [releaseTypeOptions, selectedReleaseTypeIds]);
 
   const selectedCollectionLabel = useMemo(() => {
-    if (!collectionTypeId) return 'All Types';
-    const selectedType = filterOptions.find((option) => option.id === collectionTypeId);
-    return selectedType?.name ?? 'All Types';
-  }, [collectionTypeId, filterOptions]);
+    if (!collectionTypeId) return 'All';
+    const selectedType = collectionTypeOptions.find((option) => option.id === collectionTypeId);
+    return selectedType?.name ?? 'All';
+  }, [collectionTypeId, collectionTypeOptions]);
 
   const selectedSortLabel = useMemo(() => {
     const selectedSortOption = SORT_OPTIONS.find((option) => option.value === sortBy);
@@ -173,16 +225,17 @@ const useCollectionListFilters = ({
     (value: string) => {
       updateSearchParams((nextParams) => {
         if (value !== ALL_COLLECTION_VALUE) {
-          const selected = filterOptions.find((option) => option.id === Number(value));
+          const selected = collectionTypeOptions.find((option) => option.id === Number(value));
           if (selected) nextParams.set('collection', selected.name);
         } else {
           nextParams.delete('collection');
         }
         nextParams.delete('collection_type_id');
+        nextParams.delete('grade_id');
         nextParams.delete('offset');
       });
     },
-    [filterOptions, updateSearchParams],
+    [collectionTypeOptions, updateSearchParams],
   );
 
   const handleReleaseTypeToggle = useCallback(
@@ -202,6 +255,20 @@ const useCollectionListFilters = ({
         nextParams.delete('offset');
         nextParams.delete('groups');
         nextParams.delete('release_type');
+      });
+    },
+    [updateSearchParams],
+  );
+
+  const handleGradeChange = useCallback(
+    (value: string) => {
+      updateSearchParams((nextParams) => {
+        if (value === ALL_GUNPLA_GRADE_VALUE || value === ALL_FIGURE_SCALE_VALUE) {
+          nextParams.delete('grade_id');
+        } else {
+          nextParams.set('grade_id', value);
+        }
+        nextParams.delete('offset');
       });
     },
     [updateSearchParams],
@@ -240,6 +307,7 @@ const useCollectionListFilters = ({
       nextParams.delete('sortby');
       nextParams.delete('group');
       nextParams.delete('groups');
+      nextParams.delete('grade_id');
       nextParams.delete('release_type_id');
       nextParams.delete('release_type');
     });
@@ -274,6 +342,7 @@ const useCollectionListFilters = ({
     collectionTypeId,
     currentPage,
     handleCollectionTypeChange,
+    handleGradeChange,
     handleLimitChange,
     handleReleaseTypeToggle,
     handleSortChange,
@@ -283,9 +352,12 @@ const useCollectionListFilters = ({
     query,
     resetFilters,
     selectedCollectionLabel,
+    selectedGradeId,
     selectedReleaseTypeIds,
     selectedReleaseTypeLabel,
     selectedSortLabel,
+    showFigureScaleFilter,
+    showGunplaGradeFilter,
     sortBy,
     goNextPage,
     goPrevPage,
