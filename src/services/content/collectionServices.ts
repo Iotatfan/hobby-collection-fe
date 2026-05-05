@@ -38,6 +38,7 @@ const getAllCollections = async (query?: ICollectionFilterQuery) => {
       params: {
         collection_type_id: query?.collection_type_id,
         grade_id: query?.grade_id,
+        scale_id: query?.scale_id,
         release_type_id: query?.release_type_id,
         sort: query?.sort,
         limit: query?.limit,

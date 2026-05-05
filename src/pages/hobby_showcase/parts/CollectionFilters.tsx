@@ -31,9 +31,11 @@ type CollectionFiltersProps = {
   gunplaGradeOptions: IGunplaGradeFilterItem[];
   handleCollectionTypeChange: (value: string) => void;
   handleGradeChange: (value: string) => void;
+  handleScaleChange: (value: string) => void;
   handleReleaseTypeToggle: (releaseTypeId: number, shouldCheck: boolean) => void;
   handleSortChange: (selectedSort: string) => void;
   releaseTypeOptions: IReleaseTypeDrawerItem[];
+  selectedFigureScaleId?: number;
   selectedGradeId?: number;
   selectedReleaseTypeIds: number[];
   selectedReleaseTypeLabel: string;
@@ -50,9 +52,11 @@ const CollectionFilters = ({
   gunplaGradeOptions,
   handleCollectionTypeChange,
   handleGradeChange,
+  handleScaleChange,
   handleReleaseTypeToggle,
   handleSortChange,
   releaseTypeOptions,
+  selectedFigureScaleId,
   selectedGradeId,
   selectedReleaseTypeIds,
   selectedReleaseTypeLabel,
@@ -67,8 +71,8 @@ const CollectionFilters = ({
   const selectedGunplaGradeValue = selectedGradeId
     ? String(selectedGradeId)
     : ALL_GUNPLA_GRADE_VALUE;
-  const selectedFigureScaleValue = selectedGradeId
-    ? String(selectedGradeId)
+  const selectedFigureScaleValue = selectedFigureScaleId
+    ? String(selectedFigureScaleId)
     : ALL_FIGURE_SCALE_VALUE;
 
   return (
@@ -292,7 +296,7 @@ const CollectionFilters = ({
                 <Tabs.Root
                   value={selectedFigureScaleValue}
                   onValueChange={(details) => {
-                    handleGradeChange(details.value);
+                    handleScaleChange(details.value);
                   }}
                   variant="subtle"
                   fitted={false}
