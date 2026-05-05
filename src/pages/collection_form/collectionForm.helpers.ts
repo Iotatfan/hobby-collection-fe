@@ -14,13 +14,6 @@ export type AddonFormItem = {
   originalManufacturerId: number | null;
 };
 
-export type TypeOption = {
-  grade_id: number;
-  collection_type_name: string;
-  scale: string;
-  grade_short_name: string;
-};
-
 export const STATUS_OPTIONS: StatusOption[] = [
   { id: 0, name: 'Wishlist' },
   { id: 1, name: 'Backlog' },
@@ -84,12 +77,6 @@ export const normalizeAddonManufacturerId = (value: unknown): number | null => {
     if (Number.isFinite(parsed)) return parsed;
   }
   return null;
-};
-
-export const getTypeLabel = (type: TypeOption) => {
-  const scalePart = type.scale?.trim() ? ` (${type.scale})` : '';
-  const gradePart = type.grade_short_name?.trim() ? ` - ${type.grade_short_name}` : '';
-  return `${type.collection_type_name}${scalePart}${gradePart}`;
 };
 
 export const createAddonRowFactory =

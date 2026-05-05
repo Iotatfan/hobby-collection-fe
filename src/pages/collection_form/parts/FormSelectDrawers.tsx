@@ -1,5 +1,5 @@
-import { IManufacturerDrawerItem } from '@/libs/collection/collection';
-import { StatusOption, TypeOption } from '../collectionForm.helpers';
+import { IFiguresScaleFilterItem, IGradeDrawerItem, IManufacturerDrawerItem } from '@/libs/collection/collection';
+import { StatusOption } from '../collectionForm.helpers';
 import FormSelectDrawer from './FormSelectDrawer';
 
 type FormSelectDrawersProps = {
@@ -18,33 +18,43 @@ type FormSelectDrawersProps = {
   setIsSeriesDrawerOpen: (value: boolean) => void;
   setIsStatusDrawerOpen: (value: boolean) => void;
   setIsTypeDrawerOpen: (value: boolean) => void;
+  setIsGradeDrawerOpen: (value: boolean) => void;
+  setIsScaleDrawerOpen: (value: boolean) => void;
   setManufacturerId: (value: number) => void;
   setReleaseTypeId: (value: number) => void;
   setSeriesId: (value: number) => void;
   setStatusId: (value: 0 | 1 | 2 | 3) => void;
+  setScaleId: (value: number) => void;
   statusId: 0 | 1 | 2 | 3 | null;
-  typeOptions: TypeOption[];
   gradeId: number | null;
+  scaleId: number | null;
   isManufacturerDrawerOpen: boolean;
   isReleaseTypeDrawerOpen: boolean;
   isSeriesDrawerOpen: boolean;
   isStatusDrawerOpen: boolean;
   isTypeDrawerOpen: boolean;
-  getTypeLabel: (type: TypeOption) => string;
+  isGradeDrawerOpen: boolean;
+  isScaleDrawerOpen: boolean;
   statusOptions: StatusOption[];
   onSelectAddonManufacturer: (manufacturer: IManufacturerDrawerItem) => void;
+  collectionType: string | null;
+  collectionTypes: string[];
+  gunplaGrades: IGradeDrawerItem[];
+  scales: IFiguresScaleFilterItem[];
+  handleSelectCollectionType: (type: string) => void;
 };
 
 const FormSelectDrawers = ({
   activeAddonManufacturerId,
   activeAddonManufacturerIndex,
-  getTypeLabel,
   gradeId,
   isManufacturerDrawerOpen,
   isReleaseTypeDrawerOpen,
   isSeriesDrawerOpen,
   isStatusDrawerOpen,
   isTypeDrawerOpen,
+  isGradeDrawerOpen,
+  isScaleDrawerOpen,
   manufacturerId,
   manufacturers,
   onSelectAddonManufacturer,
@@ -59,13 +69,21 @@ const FormSelectDrawers = ({
   setIsSeriesDrawerOpen,
   setIsStatusDrawerOpen,
   setIsTypeDrawerOpen,
+  setIsGradeDrawerOpen,
+  setIsScaleDrawerOpen,
   setManufacturerId,
   setReleaseTypeId,
   setSeriesId,
   setStatusId,
+  setScaleId,
   statusId,
   statusOptions,
-  typeOptions,
+  collectionType,
+  collectionTypes,
+  gunplaGrades,
+  scales,
+  handleSelectCollectionType,
+  scaleId,
 }: FormSelectDrawersProps) => {
   return (
     <>
@@ -73,16 +91,47 @@ const FormSelectDrawers = ({
         open={isTypeDrawerOpen}
         onOpenChange={setIsTypeDrawerOpen}
         title="Select Collection Type"
-        options={typeOptions.map((option) => ({
-          key: `${option.grade_id}-${option.collection_type_name}-${option.scale}`,
-          label: getTypeLabel(option),
-          isSelected: option.grade_id === gradeId,
+        options={collectionTypes.map((type) => ({
+          key: type,
+          label: type,
+          isSelected: type === collectionType,
           onSelect: () => {
-            setGradeId(option.grade_id);
-            setIsTypeDrawerOpen(false);
+            handleSelectCollectionType(type);
           },
         }))}
         emptyText="No collection types available."
+      />
+
+      <FormSelectDrawer
+        open={isGradeDrawerOpen}
+        onOpenChange={setIsGradeDrawerOpen}
+        title="Select Grade"
+        options={gunplaGrades.map((grade) => ({
+          key: grade.grade_id,
+          label: grade.grade_short_name,
+          isSelected: grade.grade_id === gradeId,
+          onSelect: () => {
+            setGradeId(grade.grade_id);
+            setIsGradeDrawerOpen(false);
+          },
+        }))}
+        emptyText="No grades available."
+      />
+
+      <FormSelectDrawer
+        open={isScaleDrawerOpen}
+        onOpenChange={setIsScaleDrawerOpen}
+        title="Select Scale"
+        options={scales.map((scale) => ({
+          key: scale.id,
+          label: scale.name,
+          isSelected: scale.id === scaleId,
+          onSelect: () => {
+            setScaleId(scale.id);
+            setIsScaleDrawerOpen(false);
+          },
+        }))}
+        emptyText="No scales available."
       />
 
       <FormSelectDrawer

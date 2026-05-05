@@ -21,6 +21,7 @@ export interface ICollectionUpsertPayload {
   acquired_at?: string;
   cover: string;
   grade_id: number;
+  scale_id: number;
   release_type_id: number;
   manufacturer_id: number;
   series_id: number;
@@ -36,6 +37,7 @@ export interface ICollectionUploadPayload {
   acquired_at?: string;
   cover: File;
   grade_id: number;
+  scale_id: number;
   release_type_id: number;
   manufacturer_id: number;
   series_id: number;
@@ -45,10 +47,17 @@ export interface ICollectionUploadPayload {
 }
 
 export interface ICollectionDrawerContent {
+  collection_types: ICollectionTypeItem[];
   grades: IGradeDrawerItem[];
+  scales: IFiguresScaleFilterItem[];
   release_types: IReleaseTypeDrawerItem[];
   manufacturers?: IManufacturerDrawerItem[];
   series: ISeriesDrawerItem[];
+}
+
+export interface ICollectionTypeItem {
+  id: number;
+  name: string;
 }
 
 export interface ICollectionTypeFilterItem {
@@ -77,7 +86,6 @@ export interface IGradeDrawerItem {
   grade_id: number;
   collection_type_name: string;
   grade_short_name: string;
-  scale: string;
 }
 
 export interface IReleaseTypeDrawerItem {
