@@ -128,6 +128,12 @@ const useCollectionListFilters = ({
     () => parsePositiveNumberParam(searchParams.get('grade_id')),
     [searchParams],
   );
+  const selectedFigureScaleId = useMemo(
+    () =>
+      parsePositiveNumberParam(searchParams.get('scale_id')) ??
+      parsePositiveNumberParam(searchParams.get('grade_id')),
+    [searchParams],
+  );
   const isResolvingCollectionSlug = Boolean(collectionValue) && collectionTypeOptions.length === 0;
   const selectedCollectionType = useMemo(
     () => collectionTypeOptions.find((option) => option.id === collectionTypeId),
@@ -165,9 +171,7 @@ const useCollectionListFilters = ({
 
     const validOptionIds = showGunplaGradeFilter
       ? gunplaGradeOptions.map((option) => option.id)
-      : showFigureScaleFilter
-        ? figureScaleOptions.map((option) => option.id)
-        : [];
+      : [];
 
     if (validOptionIds.includes(selectedGradeId)) return;
 
@@ -176,24 +180,46 @@ const useCollectionListFilters = ({
       nextParams.delete('offset');
     });
   }, [
-    figureScaleOptions,
     gunplaGradeOptions,
     selectedGradeId,
-    showFigureScaleFilter,
     showGunplaGradeFilter,
     updateSearchParams,
   ]);
 
+  useEffect(() => {
+    if (!selectedFigureScaleId) return;
+
+    const validOptionIds = showFigureScaleFilter ? figureScaleOptions.map((option) => option.id) : [];
+
+    if (validOptionIds.includes(selectedFigureScaleId)) return;
+
+    updateSearchParams((nextParams) => {
+      nextParams.delete('scale_id');
+      nextParams.delete('offset');
+    });
+  }, [figureScaleOptions, selectedFigureScaleId, showFigureScaleFilter, updateSearchParams]);
+
   const query = useMemo<ICollectionFilterQuery>(() => {
     return {
       collection_type_id: collectionTypeId,
-      grade_id: selectedGradeId,
+      grade_id: showGunplaGradeFilter ? selectedGradeId : undefined,
+      scale_id: showFigureScaleFilter ? selectedFigureScaleId : undefined,
       limit,
       offset,
       sort: sortBy,
       release_type_id: selectedReleaseTypeIds.length > 0 ? selectedReleaseTypeIds : undefined,
     };
-  }, [collectionTypeId, limit, offset, selectedGradeId, sortBy, selectedReleaseTypeIds]);
+  }, [
+    collectionTypeId,
+    limit,
+    offset,
+    selectedFigureScaleId,
+    selectedGradeId,
+    showFigureScaleFilter,
+    showGunplaGradeFilter,
+    sortBy,
+    selectedReleaseTypeIds,
+  ]);
 
   const selectedReleaseTypeLabel = useMemo(() => {
     if (selectedReleaseTypeIds.length === 0) return 'All';
@@ -232,6 +258,7 @@ const useCollectionListFilters = ({
         }
         nextParams.delete('collection_type_id');
         nextParams.delete('grade_id');
+        nextParams.delete('scale_id');
         nextParams.delete('offset');
       });
     },
@@ -263,10 +290,24 @@ const useCollectionListFilters = ({
   const handleGradeChange = useCallback(
     (value: string) => {
       updateSearchParams((nextParams) => {
-        if (value === ALL_GUNPLA_GRADE_VALUE || value === ALL_FIGURE_SCALE_VALUE) {
+        if (value === ALL_GUNPLA_GRADE_VALUE) {
           nextParams.delete('grade_id');
         } else {
           nextParams.set('grade_id', value);
+        }
+        nextParams.delete('offset');
+      });
+    },
+    [updateSearchParams],
+  );
+
+  const handleScaleChange = useCallback(
+    (value: string) => {
+      updateSearchParams((nextParams) => {
+        if (value === ALL_FIGURE_SCALE_VALUE) {
+          nextParams.delete('scale_id');
+        } else {
+          nextParams.set('scale_id', value);
         }
         nextParams.delete('offset');
       });
@@ -308,6 +349,7 @@ const useCollectionListFilters = ({
       nextParams.delete('group');
       nextParams.delete('groups');
       nextParams.delete('grade_id');
+      nextParams.delete('scale_id');
       nextParams.delete('release_type_id');
       nextParams.delete('release_type');
     });
@@ -343,6 +385,7 @@ const useCollectionListFilters = ({
     currentPage,
     handleCollectionTypeChange,
     handleGradeChange,
+    handleScaleChange,
     handleLimitChange,
     handleReleaseTypeToggle,
     handleSortChange,
@@ -352,6 +395,7 @@ const useCollectionListFilters = ({
     query,
     resetFilters,
     selectedCollectionLabel,
+    selectedFigureScaleId,
     selectedGradeId,
     selectedReleaseTypeIds,
     selectedReleaseTypeLabel,

@@ -40,10 +40,12 @@ const CollectionList = () => {
     goPrevPage,
     handleCollectionTypeChange,
     handleGradeChange,
+    handleScaleChange,
     handleReleaseTypeToggle,
     handleSortChange,
     isResolvingCollectionSlug,
     query,
+    selectedFigureScaleId,
     selectedGradeId,
     selectedReleaseTypeIds,
     selectedReleaseTypeLabel,
@@ -119,9 +121,11 @@ const CollectionList = () => {
           gunplaGradeOptions={gunplaGradeOptions}
           handleCollectionTypeChange={handleCollectionTypeChange}
           handleGradeChange={handleGradeChange}
+          handleScaleChange={handleScaleChange}
           handleReleaseTypeToggle={handleReleaseTypeToggle}
           handleSortChange={handleSortChange}
           releaseTypeOptions={releaseTypeOptions}
+          selectedFigureScaleId={selectedFigureScaleId}
           selectedGradeId={selectedGradeId}
           selectedReleaseTypeIds={selectedReleaseTypeIds}
           selectedReleaseTypeLabel={selectedReleaseTypeLabel}
