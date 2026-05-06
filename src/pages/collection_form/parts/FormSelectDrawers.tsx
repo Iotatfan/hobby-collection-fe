@@ -1,5 +1,5 @@
 import { IFiguresScaleFilterItem, IGradeDrawerItem, IManufacturerDrawerItem } from '@/libs/collection/collection';
-import { StatusOption } from '../collectionForm.helpers';
+import { StatusOption } from '../helpers/collectionForm.helpers';
 import FormSelectDrawer from './FormSelectDrawer';
 
 type FormSelectDrawersProps = {

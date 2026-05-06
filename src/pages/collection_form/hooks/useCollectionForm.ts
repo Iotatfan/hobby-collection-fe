@@ -17,7 +17,7 @@ import {
   STATUS_OPTIONS,
   toDateInputValue,
   toIsoDateTime,
-} from './collectionForm.helpers';
+} from '../helpers/collectionForm.helpers';
 
 const useCollectionForm = () => {
   const { id } = useParams();
@@ -171,10 +171,10 @@ const useCollectionForm = () => {
         setExistingPictureUrls(normalizedPictureUrls);
         setDeletedPictureUrls([]);
         setGradeId(data.type?.grade?.id ?? null);
-        
+
         const scaleOption = drawerContent?.scales?.find(s => s.name === data.type?.scale) || null;
         setScaleId(scaleOption ? scaleOption.id : null);
-        
+
         setCollectionType(data.type?.name ?? null);
         setReleaseTypeId(data.release_type?.id ?? null);
         setManufacturerId(data.manufacturer?.id ?? null);
