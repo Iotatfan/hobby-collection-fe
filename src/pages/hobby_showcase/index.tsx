@@ -21,6 +21,7 @@ import {
 } from '@/libs/collection/collection';
 import useCollectionListFilters from './hooks/useCollectionListFilters';
 import CollectionFilters from './parts/CollectionFilters';
+import StatisticsSection from './parts/StatisticsSection';
 
 const CollectionList = () => {
   const { getCollections, collections } = useCollections();
@@ -114,6 +115,12 @@ const CollectionList = () => {
             </Button>
           )}
         </Flex>
+        <StatisticsSection
+          itemsCount={10}
+          completedCount={10}
+          backlogCount={10}
+          limitedItemCount={10}
+        />
         <CollectionFilters
           collectionTypeId={collectionTypeId}
           collectionTypeOptions={collectionTypeOptions}

@@ -13,8 +13,8 @@ import { Link as RouterLink } from 'react-router-dom';
 import CoverImageField from './parts/CoverImageField';
 import FormSelectDrawers from './parts/FormSelectDrawers';
 import PicturesField from './parts/PicturesField';
-import { STATUS_OPTIONS } from './collectionForm.helpers';
-import useCollectionForm from './useCollectionForm';
+import { STATUS_OPTIONS } from './helpers/collectionForm.helpers';
+import useCollectionForm from './hooks/useCollectionForm';
 
 const CollectionForm = () => {
   const {

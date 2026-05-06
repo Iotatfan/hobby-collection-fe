@@ -9,6 +9,7 @@ import {
   IReleaseTypeDrawerItem,
   ICollectionUploadPayload,
   ICollectionUpsertPayload,
+  ICollectionStatistics,
 } from '@/libs/collection/collection';
 import http, { getAuthToken, isValidJwtToken } from '@/services/http';
 import {
@@ -135,6 +136,11 @@ const getCollectionTypeFilters = async () => {
   }
 };
 
+const getCollectionStatistics = async (): Promise<ICollectionStatistics> => {
+  const response = await http.get('/collection/statistics');
+  return response.data.data as ICollectionStatistics;
+};
+
 type CollectionMutationPayload = ICollectionUpsertPayload | ICollectionUploadPayload | FormData;
 
 const createCollection = async (payload: CollectionMutationPayload) => {
@@ -178,6 +184,7 @@ const collectionServices = {
   getCollection,
   getDrawerContent,
   getCollectionTypeFilters,
+  getCollectionStatistics,
   createCollection,
   updateCollection,
 };

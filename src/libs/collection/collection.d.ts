@@ -152,4 +152,11 @@ export interface ICollectionFilterQuery {
   offset?: number;
 }
 
+export interface ICollectionStatistics {
+  total_count: number;
+  completed_count: number;
+  backlog_count: number;
+  limited_count: number;
+}
+
 export type ICollectionStatus = 0 | 1 | 2 | 3;
