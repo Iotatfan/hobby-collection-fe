@@ -37,8 +37,8 @@ const KitSpecifications: React.FC<IKitSpecifications> = ({
       // borderRadius="lg"
       // borderWidth="1px"
       // borderColor="whiteAlpha.200"
-        // px={{ base: 4, lg: 5 }}
-        // py={{ base: 3, lg: 4 }}
+      // px={{ base: 4, lg: 5 }}
+      // py={{ base: 3, lg: 4 }}
     >
       {/* <Text fontSize={{ base: 'sm', lg: 'md' }} color="gray.700" mb={2}>
         Kit Specifications
@@ -56,7 +56,7 @@ const KitSpecifications: React.FC<IKitSpecifications> = ({
           {scaleLabel}
         </Text>
         <Text fontSize={{ base: 'sm', lg: 'md' }} color="specificationLabel">
-            Brand
+          Brand
         </Text>
         <Text fontSize={{ base: 'sm', lg: 'md' }} color="specificationValue">
           {manufacturerLabel}

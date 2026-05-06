@@ -96,8 +96,7 @@ const CollectionDetail = () => {
 
           if (thumbRect.left < containerRect.left + padding) {
             targetX = currentX + (containerRect.left + padding - thumbRect.left);
-          }
-          else if (thumbRect.right > containerRect.right - padding) {
+          } else if (thumbRect.right > containerRect.right - padding) {
             targetX = currentX - (thumbRect.right - (containerRect.right - padding));
           }
 
@@ -139,7 +138,8 @@ const CollectionDetail = () => {
   }, [imageCount, currentIndex, animateToThumbnail]);
 
   const handleBackToCollection = useCallback(() => {
-    const hasRouterHistory = typeof window.history.state?.idx === 'number' && window.history.state.idx > 0;
+    const hasRouterHistory =
+      typeof window.history.state?.idx === 'number' && window.history.state.idx > 0;
     const hasSameOriginReferrer =
       typeof document.referrer === 'string' &&
       document.referrer.length > 0 &&
@@ -187,7 +187,7 @@ const CollectionDetail = () => {
           const containerW = thumbnailContainerRef.current.offsetWidth;
           const contentW = thumbnailContentRef.current.scrollWidth;
           const overflow = contentW > containerW;
-          
+
           setIsOverflowing(overflow);
           setDragConstraints({
             left: overflow ? containerW - contentW - 16 : 0, // 16 for padding
@@ -488,11 +488,11 @@ const CollectionDetail = () => {
               dragTransition={{ power: 0.2, restDelta: 0.001 }}
               onDragStart={() => setIsDragging(true)}
               onDragEnd={() => setIsDragging(false)}
-              drag={isOverflowing ? "x" : false}
+              drag={isOverflowing ? 'x' : false}
               dragConstraints={dragConstraints}
               dragElastic={0.1}
               animate={thumbnailControls}
-              cursor={isOverflowing ? "grab" : "default"}
+              cursor={isOverflowing ? 'grab' : 'default'}
               _active={isOverflowing ? { cursor: 'grabbing' } : undefined}
             >
               {displayImages.map((image, index) => (
@@ -653,8 +653,6 @@ const CollectionDetail = () => {
               ))}
             </VStack>
           )}
-
-
 
           {canManage && collection?.id && (
             <Button asChild colorPalette="blue" variant="solid">

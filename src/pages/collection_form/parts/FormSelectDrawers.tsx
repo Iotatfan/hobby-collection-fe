@@ -1,4 +1,8 @@
-import { IFiguresScaleFilterItem, IGradeDrawerItem, IManufacturerDrawerItem } from '@/libs/collection/collection';
+import {
+  IFiguresScaleFilterItem,
+  IGradeDrawerItem,
+  IManufacturerDrawerItem,
+} from '@/libs/collection/collection';
 import { StatusOption } from '../helpers/collectionForm.helpers';
 import FormSelectDrawer from './FormSelectDrawer';
 

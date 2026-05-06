@@ -1,13 +1,4 @@
-import {
-  Box,
-  Button,
-  Field,
-  Flex,
-  Menu,
-  Portal,
-  Tabs,
-  Text,
-} from '@chakra-ui/react';
+import { Box, Button, Field, Flex, Menu, Portal, Tabs, Text } from '@chakra-ui/react';
 import {
   ICollectionTypeFilterItem,
   IFiguresScaleFilterItem,
@@ -196,9 +187,7 @@ const CollectionFilters = ({
 
         <Box w="full" h="1px" bg="gray.200" />
 
-
         <Flex gap={3} flexWrap="wrap" align="stretch">
-
           {showGunplaGradeFilter && (
             <Field.Root flex={{ base: '1 1 100%', sm: '1 1 0' }} minW="0">
               <Flex
