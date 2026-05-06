@@ -1,6 +1,7 @@
 # Hobby Collection - Frontend
 
 ## Stack
+
 - Language: TypeScript
 - Framework: React 19 + Vite 7
 - UI Library: Chakra UI v3 (`@chakra-ui/react`)
@@ -12,6 +13,7 @@
 - Linting: ESLint + Prettier
 
 ## Project Structure
+
 ```
 src/
 ├── App.tsx              — Root component, renders route tree
@@ -63,24 +65,27 @@ src/
 ```
 
 ## Routes
-| Name                 | Path                    | Guard      | Page Component    |
-|----------------------|-------------------------|------------|-------------------|
-| `collection-list`    | `/`                     | Public     | `hobby_showcase`  |
-| `collection-detail`  | `/collection/:id`       | Public     | `collection_detail` |
-| `collection-create`  | `/collection/new`       | Protected  | `collection_form` |
-| `collection-edit`    | `/collection/:id/edit`  | Protected  | `collection_form` |
+
+| Name                | Path                   | Guard     | Page Component      |
+| ------------------- | ---------------------- | --------- | ------------------- |
+| `collection-list`   | `/`                    | Public    | `hobby_showcase`    |
+| `collection-detail` | `/collection/:id`      | Public    | `collection_detail` |
+| `collection-create` | `/collection/new`      | Protected | `collection_form`   |
+| `collection-edit`   | `/collection/:id/edit` | Protected | `collection_form`   |
 
 - Routes are defined in `src/router/index.ts` as a typed `IRoute[]` array.
 - `App.tsx` renders the tree recursively — do NOT hardcode `<Route>` outside of `renderRoutes`.
 - `ProtectedRoute` uses `canManageCollection()` (JWT validity check) to guard write routes.
 
 ## Auth / JWT
+
 - JWT is stored in `localStorage` under the key `jwt`.
 - Use `getAuthToken()` to read it; use `isValidJwtToken()` to check expiry.
 - `canManageCollection()` is the single source of truth for whether a user can create/edit.
 - Protected API calls (create, update) attach `Authorization: Bearer <token>` automatically in the service layer — do not add auth headers manually in components.
 
 ## API Service Layer (`src/services/`)
+
 - `src/services/http.ts` exports a single Axios instance (`http`) pointed at `env.apiBaseUrl`.
 - All API functions live in `src/services/content/collectionServices.ts` and are exported as the default `collectionServices` object.
 - Available methods:
@@ -95,6 +100,7 @@ src/
 - Errors are logged (dev only) and re-thrown — handle them in the calling hook/component.
 
 ## Caching (`src/utils/collectionCaches.ts`)
+
 - All API responses are cached in `localStorage` with a **24-hour TTL**.
 - Cache keys:
   - `collection_<id>` — single collection detail
@@ -105,6 +111,7 @@ src/
 - Do NOT bypass the cache layer by calling `http` directly; go through `collectionServices`.
 
 ## Type Definitions (`src/libs/collection/collection.d.ts`)
+
 - All shared types are declared here as ambient `.d.ts` — do not import them with a path alias, use `@/libs/collection/collection`.
 - Key types:
   - `ICollection` — full collection entity (read)
@@ -116,6 +123,7 @@ src/
   - `ICollectionFilterOptions` — filter panel options
 
 ## Conventions
+
 - **Path alias**: Use `@/` for all `src/` imports (configured in `vite.config.js` and `tsconfig`).
 - **Lazy loading**: All page components are `React.lazy()`-loaded in `router/index.ts`. Keep page-level imports lazy.
 - **Co-location**: Page-specific hooks, helpers, and sub-components live inside their page folder under `hooks/`, `helpers/`, and `parts/` respectively.
@@ -126,15 +134,17 @@ src/
 - **Icons**: Use `lucide-react` exclusively. Do not add another icon library.
 
 ## Environment Variables
-| Variable                   | Source                              | Purpose                  |
-|----------------------------|-------------------------------------|--------------------------|
-| `VITE_API_BASE_URL`        | `.env` or `window.__APP_CONFIG__`   | Backend API base URL     |
-| `VITE_CLOUDINARY_CLOUD_NAME` | `.env` or `window.__APP_CONFIG__` | Cloudinary cloud name    |
+
+| Variable                     | Source                            | Purpose               |
+| ---------------------------- | --------------------------------- | --------------------- |
+| `VITE_API_BASE_URL`          | `.env` or `window.__APP_CONFIG__` | Backend API base URL  |
+| `VITE_CLOUDINARY_CLOUD_NAME` | `.env` or `window.__APP_CONFIG__` | Cloudinary cloud name |
 
 - Always read env values through `src/config/env.ts`, never from `import.meta.env` directly.
 - Runtime injection via `window.__APP_CONFIG__` takes priority over `.env` values.
 
 ## Dev Commands
+
 ```bash
 npm run dev          # Start Vite dev server
 npm run build        # Type-check + production build

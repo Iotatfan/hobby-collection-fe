@@ -94,8 +94,8 @@ const useCollectionForm = () => {
     activeAddonManufacturerIndex === null
       ? undefined
       : manufacturers.find(
-        (option) => option.id === addons[activeAddonManufacturerIndex]?.manufacturerId,
-      );
+          (option) => option.id === addons[activeAddonManufacturerIndex]?.manufacturerId,
+        );
 
   const coverPreviewUrl = useMemo(() => {
     if (coverFile) return URL.createObjectURL(coverFile);
@@ -172,7 +172,7 @@ const useCollectionForm = () => {
         setDeletedPictureUrls([]);
         setGradeId(data.type?.grade?.id ?? null);
 
-        const scaleOption = drawerContent?.scales?.find(s => s.name === data.type?.scale) || null;
+        const scaleOption = drawerContent?.scales?.find((s) => s.name === data.type?.scale) || null;
         setScaleId(scaleOption ? scaleOption.id : null);
 
         setCollectionType(data.type?.name ?? null);

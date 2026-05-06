@@ -1,12 +1,4 @@
-import {
-  Box,
-  Button,
-  Center,
-  Flex,
-  Grid,
-  Spinner,
-  Text,
-} from '@chakra-ui/react';
+import { Box, Button, Center, Flex, Grid, Spinner, Text } from '@chakra-ui/react';
 import useCollections from '@/hooks/collections/useCollections';
 import { useEffect, useState, useCallback } from 'react';
 import ItemCard from './parts/ItemCard';
@@ -27,7 +19,9 @@ const CollectionList = () => {
   const { getCollections, collections } = useCollections();
   const [isLoadingCollections, setIsLoadingCollections] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [collectionTypeOptions, setCollectionTypeOptions] = useState<ICollectionTypeFilterItem[]>([]);
+  const [collectionTypeOptions, setCollectionTypeOptions] = useState<ICollectionTypeFilterItem[]>(
+    [],
+  );
   const [figureScaleOptions, setFigureScaleOptions] = useState<IFiguresScaleFilterItem[]>([]);
   const [gunplaGradeOptions, setGunplaGradeOptions] = useState<IGunplaGradeFilterItem[]>([]);
   const [releaseTypeOptions, setReleaseTypeOptions] = useState<IReleaseTypeDrawerItem[]>([]);
@@ -115,12 +109,7 @@ const CollectionList = () => {
             </Button>
           )}
         </Flex>
-        <StatisticsSection
-          itemsCount={10}
-          completedCount={10}
-          backlogCount={10}
-          limitedItemCount={10}
-        />
+        <StatisticsSection />
         <CollectionFilters
           collectionTypeId={collectionTypeId}
           collectionTypeOptions={collectionTypeOptions}

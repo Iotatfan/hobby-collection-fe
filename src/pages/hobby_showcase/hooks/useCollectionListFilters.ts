@@ -66,8 +66,7 @@ const parseReleaseTypeParam = (value: string | null): number[] => {
 
 const isGunplaCollectionType = (value: string) => normalizeCollectionName(value).includes('gunpla');
 
-const isFigureCollectionType = (value: string) =>
-  normalizeCollectionName(value).includes('figure');
+const isFigureCollectionType = (value: string) => normalizeCollectionName(value).includes('figure');
 
 const normalizeSortParam = (value: string | null): string => {
   if (!value) return DEFAULT_SORT;
@@ -179,17 +178,14 @@ const useCollectionListFilters = ({
       nextParams.delete('grade_id');
       nextParams.delete('offset');
     });
-  }, [
-    gunplaGradeOptions,
-    selectedGradeId,
-    showGunplaGradeFilter,
-    updateSearchParams,
-  ]);
+  }, [gunplaGradeOptions, selectedGradeId, showGunplaGradeFilter, updateSearchParams]);
 
   useEffect(() => {
     if (!selectedFigureScaleId) return;
 
-    const validOptionIds = showFigureScaleFilter ? figureScaleOptions.map((option) => option.id) : [];
+    const validOptionIds = showFigureScaleFilter
+      ? figureScaleOptions.map((option) => option.id)
+      : [];
 
     if (validOptionIds.includes(selectedFigureScaleId)) return;
 
