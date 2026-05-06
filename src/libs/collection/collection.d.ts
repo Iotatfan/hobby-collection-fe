@@ -78,7 +78,7 @@ export interface IFiguresScaleFilterItem {
 export interface ICollectionFilterOptions {
   collection_types: ICollectionTypeFilterItem[];
   release_types: IReleaseTypeDrawerItem[];
-  gunple_grades: IGunplaGradeFilterItem[];
+  gunpla_grades: IGunplaGradeFilterItem[];
   figures_scales: IFiguresScaleFilterItem[];
 }
 

@@ -23,7 +23,7 @@ import {
   FALLBACK_DESCRIPTION,
   resolveGradeBadge,
   buildDisplayImages,
-} from '@/pages/hobby_showcase/helpers/itemModal.helpers';
+} from '@/pages/collection_detail/helpers/collectionDetail.helpers';
 import useCollectionDetail from '@/hooks/collections/useCollectionDetail';
 
 const MotionBox = motion(Box);
@@ -583,9 +583,6 @@ const CollectionDetail = () => {
 
           {/* Description */}
           <VStack align="start" gap={2} maxWidth="520px">
-            {/* <Text fontSize={{ base: 'sm', lg: 'md' }} color="gray.500">
-              About
-            </Text> */}
             <Box
               className={isDescriptionExpanded ? 'custom-scrollbar' : undefined}
               maxH={
