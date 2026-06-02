@@ -79,7 +79,7 @@ const CollectionList = () => {
         const filterContent = await collectionServices.getCollectionTypeFilters();
         setCollectionTypeOptions(filterContent.collection_types ?? []);
         setFigureScaleOptions(filterContent.figures_scales ?? []);
-        setGunplaGradeOptions(filterContent.gunple_grades ?? []);
+        setGunplaGradeOptions(filterContent.gunpla_grades ?? []);
         setReleaseTypeOptions(filterContent.release_types ?? []);
       } catch {
         setErrorMessage('Failed to load filter options.');

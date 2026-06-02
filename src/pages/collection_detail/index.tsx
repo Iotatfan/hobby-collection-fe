@@ -23,7 +23,7 @@ import {
   FALLBACK_DESCRIPTION,
   resolveGradeBadge,
   buildDisplayImages,
-} from '@/pages/hobby_showcase/helpers/itemModal.helpers';
+} from '@/pages/collection_detail/helpers/collectionDetail.helpers';
 import useCollectionDetail from '@/hooks/collections/useCollectionDetail';
 
 const MotionBox = motion(Box);
@@ -583,9 +583,6 @@ const CollectionDetail = () => {
 
           {/* Description */}
           <VStack align="start" gap={2} maxWidth="520px">
-            {/* <Text fontSize={{ base: 'sm', lg: 'md' }} color="gray.500">
-              About
-            </Text> */}
             <Box
               className={isDescriptionExpanded ? 'custom-scrollbar' : undefined}
               maxH={
@@ -651,6 +648,62 @@ const CollectionDetail = () => {
                   {addon}
                 </Text>
               ))}
+            </VStack>
+          )}
+
+          {collection?.features && collection.features.length > 0 && (
+            <VStack align="start" gap={2} maxWidth="520px" w="full" mt={1}>
+              <Text
+                fontSize={{ base: 'sm', lg: 'md' }}
+                color="gray.500"
+              >
+                Features
+              </Text>
+              <Flex wrap="wrap" gap={2}>
+                {collection.features.map((feature) => (
+                  <Box
+                    key={feature.id}
+                    px={3}
+                    py={1}
+                    border="1px solid"
+                    borderColor="gray.200"
+                    rounded="full"
+                    fontSize="sm"
+                    color="gray.700"
+                    bg="transparent"
+                  >
+                    {feature.name}
+                  </Box>
+                ))}
+              </Flex>
+            </VStack>
+          )}
+
+          {collection?.modifications && collection.modifications.length > 0 && (
+            <VStack align="start" gap={2} maxWidth="520px" w="full" mt={1}>
+              <Text
+                fontSize={{ base: 'sm', lg: 'md' }}
+                color="gray.500"
+              >
+                Modifications
+              </Text>
+              <Flex wrap="wrap" gap={2}>
+                {collection.modifications.map((mod) => (
+                  <Box
+                    key={mod.id}
+                    px={3}
+                    py={1}
+                    border="1px solid"
+                    borderColor="gray.200"
+                    rounded="full"
+                    fontSize="sm"
+                    color="gray.700"
+                    bg="transparent"
+                  >
+                    {mod.name}
+                  </Box>
+                ))}
+              </Flex>
             </VStack>
           )}
 

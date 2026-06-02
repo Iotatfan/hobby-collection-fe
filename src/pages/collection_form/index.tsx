@@ -12,6 +12,7 @@ import {
 import { Link as RouterLink } from 'react-router-dom';
 import CoverImageField from './parts/CoverImageField';
 import FormSelectDrawers from './parts/FormSelectDrawers';
+import MetadataTagGroup from './parts/MetadataTagGroup';
 import PicturesField from './parts/PicturesField';
 import { STATUS_OPTIONS } from './helpers/collectionForm.helpers';
 import useCollectionForm from './hooks/useCollectionForm';
@@ -68,6 +69,12 @@ const CollectionForm = () => {
     gunplaGrades,
     seriesId,
     seriesOptions,
+    featureIds,
+    setFeatureIds,
+    modificationIds,
+    setModificationIds,
+    drawerFeatures,
+    drawerModifications,
     setAcquiredAt,
     setActiveAddonManufacturerIndex,
     setBuiltAt,
@@ -201,18 +208,24 @@ const CollectionForm = () => {
                     {selectedSeries ? selectedSeries.name : 'Choose series'}
                   </Button>
                 </Field.Root>
+              </Stack>
 
-                <Field.Root required>
-                  <Field.Label>Manufacturer</Field.Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    justifyContent="start"
-                    onClick={() => setIsManufacturerDrawerOpen(true)}
-                  >
-                    {selectedManufacturer ? selectedManufacturer.name : 'Choose manufacturer'}
-                  </Button>
-                </Field.Root>
+              <Stack gap={4}>
+                <MetadataTagGroup
+                  label="Features"
+                  options={drawerFeatures}
+                  selectedIds={featureIds}
+                  onChange={setFeatureIds}
+                  emptyText="No features available."
+                />
+
+                <MetadataTagGroup
+                  label="Modifications"
+                  options={drawerModifications}
+                  selectedIds={modificationIds}
+                  onChange={setModificationIds}
+                  emptyText="No modifications available."
+                />
               </Stack>
 
               {statusId === 3 && (
