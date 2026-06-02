@@ -44,6 +44,8 @@ const useCollectionForm = () => {
   const [seriesId, setSeriesId] = useState<number | null>(null);
   const [addons, setAddons] = useState<AddonFormItem[]>([]);
   const [deletedAddonIds, setDeletedAddonIds] = useState<number[]>([]);
+  const [featureIds, setFeatureIds] = useState<number[]>([]);
+  const [modificationIds, setModificationIds] = useState<number[]>([]);
   const [drawerContent, setDrawerContent] = useState<ICollectionDrawerContent>();
   const [isLoadingCollection, setIsLoadingCollection] = useState(false);
   const [isLoadingDrawer, setIsLoadingDrawer] = useState(false);
@@ -60,6 +62,7 @@ const useCollectionForm = () => {
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [collectionType, setCollectionType] = useState<string | null>(null);
+  const [initialScaleName, setInitialScaleName] = useState<string | null>(null);
 
   const drawerGrades = useMemo(() => drawerContent?.grades ?? [], [drawerContent?.grades]);
   const scales = useMemo(() => drawerContent?.scales ?? [], [drawerContent?.scales]);
@@ -73,6 +76,13 @@ const useCollectionForm = () => {
   );
 
   const seriesOptions = useMemo(() => drawerContent?.series ?? [], [drawerContent?.series]);
+
+  const drawerFeatures = useMemo(() => drawerContent?.features ?? [], [drawerContent?.features]);
+
+  const drawerModifications = useMemo(
+    () => drawerContent?.modifications ?? [],
+    [drawerContent?.modifications],
+  );
 
   const collectionTypes = useMemo(() => {
     return Array.from(new Set(drawerGrades.map((g) => g.collection_type_name))).sort();
@@ -172,8 +182,7 @@ const useCollectionForm = () => {
         setDeletedPictureUrls([]);
         setGradeId(data.type?.grade?.id ?? null);
 
-        const scaleOption = drawerContent?.scales?.find((s) => s.name === data.type?.scale) || null;
-        setScaleId(scaleOption ? scaleOption.id : null);
+        setInitialScaleName(data.type?.scale ?? null);
 
         setCollectionType(data.type?.name ?? null);
         setReleaseTypeId(data.release_type?.id ?? null);
@@ -181,6 +190,8 @@ const useCollectionForm = () => {
         setSeriesId(data.series?.id ?? null);
         setAddons((data.addons ?? []).map((addon) => createAddonRow(addon)));
         setDeletedAddonIds([]);
+        setFeatureIds((data.features ?? []).map((f) => f.id));
+        setModificationIds((data.modifications ?? []).map((m) => m.id));
       } catch {
         setErrorMessage('Failed to load collection data.');
       } finally {
@@ -215,6 +226,16 @@ const useCollectionForm = () => {
       setGradeId(defaultGrade.grade_id);
     }
   }, [drawerGrades, gradeId, collectionType]);
+
+  useEffect(() => {
+    if (initialScaleName && drawerContent?.scales && drawerContent.scales.length > 0) {
+      const scaleOption = drawerContent.scales.find((s) => s.name === initialScaleName);
+      if (scaleOption) {
+        setScaleId(scaleOption.id);
+        setInitialScaleName(null);
+      }
+    }
+  }, [initialScaleName, drawerContent?.scales]);
 
   useEffect(() => {
     if (statusId !== 3 && builtAt) {
@@ -389,6 +410,9 @@ const useCollectionForm = () => {
           formData.append('new_addons_manufacturer_id', String(addon.manufacturerId));
         });
 
+        featureIds.forEach((id) => formData.append('features', String(id)));
+        modificationIds.forEach((id) => formData.append('modifications', String(id)));
+
         await collectionServices.updateCollection(Number(id), formData);
       } else {
         if (coverFile) {
@@ -403,6 +427,9 @@ const useCollectionForm = () => {
           formData.append('addon_names', addon.name);
           formData.append('addons_manufacturer_id', String(addon.manufacturerId));
         });
+
+        featureIds.forEach((id) => formData.append('features', String(id)));
+        modificationIds.forEach((id) => formData.append('modifications', String(id)));
 
         await collectionServices.createCollection(formData);
       }
@@ -545,6 +572,12 @@ const useCollectionForm = () => {
     acquiredAt,
     setGradeId,
     setScaleId,
+    featureIds,
+    setFeatureIds,
+    modificationIds,
+    setModificationIds,
+    drawerFeatures,
+    drawerModifications,
   };
 };
 

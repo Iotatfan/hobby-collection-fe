@@ -12,6 +12,8 @@ export interface ICollection {
   pictures?: string[];
   addons?: ICollectionAddon[];
   description?: string;
+  features?: IMetadataTag[];
+  modifications?: IMetadataTag[];
 }
 
 export interface ICollectionUpsertPayload {
@@ -28,6 +30,8 @@ export interface ICollectionUpsertPayload {
   pictures?: string[];
   addons?: ICollectionAddonPayload[];
   description?: string;
+  features?: number[];
+  modifications?: number[];
 }
 
 export interface ICollectionUploadPayload {
@@ -44,6 +48,8 @@ export interface ICollectionUploadPayload {
   pictures?: File[];
   addons?: ICollectionAddonPayload[];
   description?: string;
+  features?: number[];
+  modifications?: number[];
 }
 
 export interface ICollectionDrawerContent {
@@ -53,6 +59,15 @@ export interface ICollectionDrawerContent {
   release_types: IReleaseTypeDrawerItem[];
   manufacturers?: IManufacturerDrawerItem[];
   series: ISeriesDrawerItem[];
+  features?: IMetadataTag[];
+  modifications?: IMetadataTag[];
+}
+
+export interface IMetadataTag {
+  id: number;
+  slug: string;
+  name: string;
+  type: number;
 }
 
 export interface ICollectionTypeItem {
