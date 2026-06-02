@@ -633,6 +633,12 @@ const CollectionDetail = () => {
             acquiredDate={collection?.acquired_at}
           />
 
+          {(addonLabels.length > 0 ||
+            (collection?.features && collection.features.length > 0) ||
+            (collection?.modifications && collection.modifications.length > 0)) && (
+            <Box w="full" maxW="520px" h="1px" bg="gray.200" />
+          )}
+
           {addonLabels.length > 0 && (
             <VStack align="start" gap={1} maxWidth="520px">
               <Text fontSize={{ base: 'sm', lg: 'md' }} color="gray.500">
@@ -653,10 +659,7 @@ const CollectionDetail = () => {
 
           {collection?.features && collection.features.length > 0 && (
             <VStack align="start" gap={2} maxWidth="520px" w="full" mt={1}>
-              <Text
-                fontSize={{ base: 'sm', lg: 'md' }}
-                color="gray.500"
-              >
+              <Text fontSize={{ base: 'sm', lg: 'md' }} color="gray.500">
                 Features
               </Text>
               <Flex wrap="wrap" gap={2}>
@@ -681,10 +684,7 @@ const CollectionDetail = () => {
 
           {collection?.modifications && collection.modifications.length > 0 && (
             <VStack align="start" gap={2} maxWidth="520px" w="full" mt={1}>
-              <Text
-                fontSize={{ base: 'sm', lg: 'md' }}
-                color="gray.500"
-              >
+              <Text fontSize={{ base: 'sm', lg: 'md' }} color="gray.500">
                 Modifications
               </Text>
               <Flex wrap="wrap" gap={2}>
