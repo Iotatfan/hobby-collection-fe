@@ -1,36 +1,33 @@
 import { Suspense } from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { routes, type IRoute } from '@/router/index';
 import { Box, Flex, Spinner } from '@chakra-ui/react';
 
-const renderRoutes = (routeItems: IRoute[]) => {
-  return routeItems.map(({ name, path, component: Component, children }) => (
-    <Route key={`${name}-${path}`} path={path} element={<Component />}>
-      {children ? renderRoutes(children) : null}
-    </Route>
-  ));
+const toRouteObjects = (routeItems: IRoute[]): Parameters<typeof createBrowserRouter>[0] => {
+  return routeItems.map(({ name, path, component: Component, handle, children }) => ({
+    id: name,
+    path,
+    element: <Component />,
+    handle,
+    children: children ? toRouteObjects(children) : undefined,
+  }));
 };
+
+const router = createBrowserRouter(toRouteObjects(routes), {
+  basename: import.meta.env.BASE_URL,
+});
+
+const fallback = (
+  <Flex w="100%" h="100vh" bg="background.bg" opacity={0.6} justifyContent="center" alignItems="center">
+    <Spinner size="xl" />
+  </Flex>
+);
 
 function App() {
   return (
-    <Suspense
-      fallback={
-        <Flex
-          w="100%"
-          h="100vh"
-          bg="background.bg"
-          opacity={0.6}
-          justifyContent="center"
-          alignItems="center"
-        >
-          <Spinner size="xl" />
-        </Flex>
-      }
-    >
+    <Suspense fallback={fallback}>
       <Box minH="100dvh" bg="background.bg">
-        <BrowserRouter basename={import.meta.env.BASE_URL}>
-          <Routes>{renderRoutes(routes)}</Routes>
-        </BrowserRouter>
+        <RouterProvider router={router} fallbackElement={fallback} />
       </Box>
     </Suspense>
   );
