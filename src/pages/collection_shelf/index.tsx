@@ -18,7 +18,7 @@ const CollectionShelf = () => {
   return (
     <Box
       minH="100vh"
-      bg="radial-gradient(circle at 15% 20%, rgba(30, 64, 175, 0.24), transparent 28%), radial-gradient(circle at 88% 12%, rgba(124, 58, 237, 0.18), transparent 25%), linear-gradient(180deg, #020617 0%, #020617 45%, #07111f 100%)"
+      bg="radial-gradient(circle at 15% 20%, rgba(30, 64, 175, 0.24), transparent 28%), radial-gradient(circle at 88% 12%, rgba(124, 58, 237, 0.18), transparent 25%), linear-gradient(180deg, #0a192f 0%, #0a192f 45%, #020c1b 100%)"
     >
       <Flex
         w="full"
@@ -53,13 +53,7 @@ const CollectionShelf = () => {
         {!isLoading &&
           !isError &&
           shelfRows.map(({ shelf, icon, accent, variant }) => (
-            <Shelf
-              key={shelf.name}
-              shelf={shelf}
-              icon={icon}
-              accent={accent}
-              variant={variant}
-            />
+            <Shelf key={shelf.name} shelf={shelf} icon={icon} accent={accent} variant={variant} />
           ))}
 
         {!isLoading && !isError && shelfRows.length === 0 && (

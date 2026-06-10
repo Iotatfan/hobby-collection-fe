@@ -31,7 +31,7 @@ const StatisticsSection: React.FC<StatisticsSectionProps> = ({ variant = 'light'
       borderWidth="1px"
       borderColor={borderColor}
       borderRadius="xl"
-      bg={isDark ? 'rgba(15, 23, 42, 0.62)' : 'transparent'}
+      bg={isDark ? 'rgba(17, 34, 64, 0.62)' : 'transparent'}
       color={isDark ? 'white' : undefined}
       py={{ base: 3, md: 6 }}
       boxShadow={isDark ? '0 18px 40px rgba(0, 0, 0, 0.28)' : 'sm'}

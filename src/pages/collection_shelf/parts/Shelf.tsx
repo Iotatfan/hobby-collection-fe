@@ -58,6 +58,7 @@ const Shelf = ({ shelf, icon, accent, variant = 'standard' }: ShelfProps) => {
 
       <Box position="relative" pb={{ base: '24px', md: '28px' }}>
         <Flex
+          minH="200px"
           align="end"
           gap={{ base: 4, md: 7 }}
           overflowX="auto"
@@ -66,6 +67,10 @@ const Shelf = ({ shelf, icon, accent, variant = 'standard' }: ShelfProps) => {
           pt={4}
           pb={0}
           className="custom-scrollbar"
+          style={{
+            perspective: '1200px',
+            transformStyle: 'preserve-3d',
+          }}
         >
           {shelf.items.map((item, index) => (
             <ShelfItem key={item.id} item={item} index={index} variant={variant} />
@@ -86,8 +91,13 @@ const Shelf = ({ shelf, icon, accent, variant = 'standard' }: ShelfProps) => {
             content: '""',
             position: 'absolute',
             inset: '3px 0 auto 0',
+            left: '10%',
+            right: '10%',
+            top: '-12px',
+            height: '24px',
             h: '2px',
             bg: 'rgba(255,255,255,0.28)',
+            filter: 'blur(18px)',
           }}
           _after={{
             content: '""',

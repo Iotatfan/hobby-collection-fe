@@ -1,8 +1,17 @@
-import { Badge, Box, Image, Link, Text } from '@chakra-ui/react';
+import { Box, Image, Link } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import { Link as RouterLink } from 'react-router-dom';
-import { IShelfItem as ShelfItemData } from '@/libs/collection/collection';
+import { IDisplaySize, IShelfItem as ShelfItemData } from '@/libs/collection/collection';
 import { cloudinarySizes } from '@/utils/cloudinary';
+
+const HEIGHT_MAP: Record<IDisplaySize, { base: string; md: string }> = {
+  small_wide: { base: '100px', md: '120px' },
+  small_tall: { base: '120px', md: '150px' },
+  medium_wide: { base: '140px', md: '180px' },
+  medium_tall: { base: '160px', md: '210px' },
+  large_wide: { base: '180px', md: '240px' },
+  large_tall: { base: '210px', md: '280px' },
+};
 
 interface ShelfItemProps {
   item: ShelfItemData;
@@ -12,12 +21,7 @@ interface ShelfItemProps {
 
 const MotionBox = motion.create(Box);
 
-const ShelfItem = ({ item, index = 0, variant = 'standard' }: ShelfItemProps) => {
-  const grade = item.type?.grade?.short_name;
-  const scale = item.type?.scale;
-  const badgeLabel = grade && grade !== 'NG' && scale ? `${grade}` : (scale ?? grade);
-  const isWide = variant === 'wide';
-
+const ShelfItem = ({ item, index = 0 }: ShelfItemProps) => {
   return (
     <Link asChild textDecoration="none" flex="0 0 auto" _hover={{ textDecoration: 'none' }}>
       <RouterLink to={`/collection/${item.id}`}>
@@ -46,12 +50,14 @@ const ShelfItem = ({ item, index = 0, variant = 'standard' }: ShelfItemProps) =>
           _after={{
             content: '""',
             position: 'absolute',
-            inset: 0,
-            zIndex: 2,
             bg: 'linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(0,0,0,0.78) 100%)',
+            filter: 'blur(8px)',
             pointerEvents: 'none',
           }}
-          whileHover={{ y: -12, scale: 1.03 }}
+          whileHover={{
+            y: -12,
+            scale: 1.05,
+          }}
         >
           <Image
             src={cloudinarySizes(item.cover).cover}
@@ -59,43 +65,10 @@ const ShelfItem = ({ item, index = 0, variant = 'standard' }: ShelfItemProps) =>
             display="block"
             w="auto"
             h="auto"
-            maxH="150px"
+            maxH={HEIGHT_MAP[item.display_size] || { base: '120px', md: '150px' }}
             transition="filter 0.2s ease"
             _groupHover={{ filter: 'saturate(1.12) brightness(1.08)' }}
           />
-
-          {badgeLabel && (
-            <Badge
-              position="absolute"
-              top="8px"
-              left="8px"
-              zIndex={3}
-              bg="blackAlpha.800"
-              color="white"
-              borderWidth="1px"
-              borderColor="whiteAlpha.300"
-              borderRadius="sm"
-              fontSize="xs"
-            >
-              {badgeLabel}
-            </Badge>
-          )}
-
-          <Text
-            position="absolute"
-            left="10px"
-            right="10px"
-            bottom="10px"
-            zIndex={3}
-            color="white"
-            fontSize={isWide ? 'sm' : { base: 'sm', md: 'md' }}
-            fontWeight="bold"
-            lineHeight="1.05"
-            lineClamp={2}
-            textShadow="0 2px 10px rgba(0,0,0,0.85)"
-          >
-            {item.title}
-          </Text>
         </MotionBox>
       </RouterLink>
     </Link>

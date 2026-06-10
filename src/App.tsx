@@ -18,7 +18,14 @@ const router = createBrowserRouter(toRouteObjects(routes), {
 });
 
 const fallback = (
-  <Flex w="100%" h="100vh" bg="background.bg" opacity={0.6} justifyContent="center" alignItems="center">
+  <Flex
+    w="100%"
+    h="100vh"
+    bg="background.bg"
+    opacity={0.6}
+    justifyContent="center"
+    alignItems="center"
+  >
     <Spinner size="xl" />
   </Flex>
 );
