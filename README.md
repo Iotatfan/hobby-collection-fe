@@ -1,10 +1,5 @@
 # React + TypeScript + Vite
 
-## TODO
-
-- [ ] Receive signed upload from BE
-- [ ] Upload flow on FE
-
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 ## Getting started
@@ -12,29 +7,6 @@ This template provides a minimal setup to get React working in Vite with HMR and
 ```bash
 npm install
 npm run dev
-```
-
-## E2E Testing (Playwright)
-
-This repo includes a Playwright E2E architecture with:
-
-- `e2e/specs`: user journey tests (route protection, list, create flow)
-- `e2e/fixtures`: reusable auth + API mocking helpers
-- `e2e/data`: fixture builders and seeded test data
-
-Useful commands:
-
-```bash
-npm run test:e2e
-npm run test:e2e:ui
-npm run test:e2e:debug
-npm run test:e2e:report
-```
-
-Run only smoke tests:
-
-```bash
-npm run test:e2e -- --grep @smoke
 ```
 
 ## Configuration
