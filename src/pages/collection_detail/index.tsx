@@ -17,7 +17,7 @@ import { cloudinarySizes } from '@/utils/cloudinary';
 import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
 import { canManageCollection } from '@/services/http';
 import KitSpecifications from '@/pages/collection_detail/parts/KitSpecifications';
-import ReleaseBadge from '@/pages/hobby_showcase/parts/ReleaseBadge';
+import ReleaseBadge from '@/pages/collection_list/parts/ReleaseBadge';
 import {
   buildAddonLabels,
   FALLBACK_DESCRIPTION,
@@ -26,8 +26,8 @@ import {
 } from '@/pages/collection_detail/helpers/collectionDetail.helpers';
 import useCollectionDetail from '@/hooks/collections/useCollectionDetail';
 
-const MotionBox = motion(Box);
-const MotionHStack = motion(HStack);
+const MotionBox = motion.create(Box);
+const MotionHStack = motion.create(HStack);
 
 const CollectionDetail = () => {
   const { id } = useParams<{ id: string }>();

@@ -10,6 +10,7 @@ import {
   ICollectionUploadPayload,
   ICollectionUpsertPayload,
   ICollectionStatistics,
+  ICollectionShelf,
 } from '@/libs/collection/collection';
 import http, { getAuthToken, isValidJwtToken } from '@/services/http';
 import {
@@ -22,6 +23,8 @@ import {
   setCachedCollectionDrawer,
   getCachedCollectionTypeFilters,
   setCachedCollectionTypeFilters,
+  getCachedCollectionShelves,
+  setCachedCollectionShelves,
 } from '@/utils/collectionCaches';
 
 const logError = (...args: unknown[]) => {
@@ -137,6 +140,21 @@ const getCollectionStatistics = async (): Promise<ICollectionStatistics> => {
   return response.data.data as ICollectionStatistics;
 };
 
+const getCollectionShelves = async (): Promise<ICollectionShelf> => {
+  const cached = getCachedCollectionShelves();
+  if (cached) return cached;
+
+  try {
+    const response = await http.get('/collection/shelves');
+    const data = response.data.data as ICollectionShelf;
+    setCachedCollectionShelves(data);
+    return data;
+  } catch (error) {
+    logError('Error fetching collection shelves:', error);
+    throw error;
+  }
+};
+
 type CollectionMutationPayload = ICollectionUpsertPayload | ICollectionUploadPayload | FormData;
 
 const createCollection = async (payload: CollectionMutationPayload) => {
@@ -181,6 +199,7 @@ const collectionServices = {
   getDrawerContent,
   getCollectionTypeFilters,
   getCollectionStatistics,
+  getCollectionShelves,
   createCollection,
   updateCollection,
 };

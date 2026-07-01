@@ -3,6 +3,7 @@ import {
   ICollectionDrawerContent,
   ICollectionFilterQuery,
   ICollectionFilterOptions,
+  ICollectionShelf,
 } from '@/libs/collection/collection';
 
 type CollectionDetailCache = {
@@ -22,6 +23,11 @@ type CollectionDrawerCache = {
 
 type CollectionFilterCache = {
   data: ICollectionFilterOptions;
+  timestamp: number;
+};
+
+type CollectionShelfCache = {
+  data: ICollectionShelf;
   timestamp: number;
 };
 
@@ -162,6 +168,31 @@ export function setCachedCollectionTypeFilters(data: ICollectionFilterOptions) {
   localStorage.setItem(`collection_filters`, JSON.stringify(entry));
 }
 
+export function getCachedCollectionShelves(): ICollectionShelf | null {
+  const key = `collection_shelves`;
+  const raw = localStorage.getItem(key);
+  if (!raw) return null;
+
+  const parsed = parseCachedJson<CollectionShelfCache>(raw, key);
+  if (!parsed) return null;
+
+  if (Date.now() - parsed.timestamp > CACHE_DURATION) {
+    localStorage.removeItem(key);
+    return null;
+  }
+
+  return parsed.data;
+}
+
+export function setCachedCollectionShelves(data: ICollectionShelf) {
+  const entry: CollectionShelfCache = {
+    data,
+    timestamp: Date.now(),
+  };
+
+  localStorage.setItem(`collection_shelves`, JSON.stringify(entry));
+}
+
 export function invalidateCollectionCache(id?: number) {
   const listCacheKeys: string[] = [];
   for (let index = 0; index < localStorage.length; index += 1) {
@@ -173,6 +204,7 @@ export function invalidateCollectionCache(id?: number) {
   listCacheKeys.forEach((key) => localStorage.removeItem(key));
   localStorage.removeItem(`collection_drawer`);
   localStorage.removeItem(`collection_filters`);
+  localStorage.removeItem(`collection_shelves`);
   if (typeof id === 'number') {
     localStorage.removeItem(`collection_${id}`);
   }

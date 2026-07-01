@@ -4,12 +4,13 @@ import Header from './header';
 
 interface IHobbyShowcaseLayout {
   children: React.ReactNode;
+  showHeader?: boolean;
 }
 
-const HobbyShowcaseLayout: React.FC<IHobbyShowcaseLayout> = ({ children }) => {
+const HobbyShowcaseLayout: React.FC<IHobbyShowcaseLayout> = ({ children, showHeader = true }) => {
   return (
     <Box>
-      <Header></Header>
+      {showHeader && <Header />}
       {children}
     </Box>
   );

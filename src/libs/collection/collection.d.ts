@@ -175,3 +175,33 @@ export interface ICollectionStatistics {
 }
 
 export type ICollectionStatus = 0 | 1 | 2 | 3;
+
+export type IDisplaySize =
+  | 'small_wide'
+  | 'small_tall'
+  | 'medium_wide'
+  | 'medium_tall'
+  | 'large_wide'
+  | 'large_tall';
+
+export interface IShelfItem {
+  id: number;
+  title: string;
+  type: IType;
+  status: ICollectionStatus;
+  cover: string;
+  display_size: IDisplaySize;
+}
+
+export interface IShelf {
+  id: number;
+  name: string;
+  items: IShelfItem[];
+}
+
+export interface ICollectionShelf {
+  gunpla_shelf: IShelf;
+  figure_shelf: IShelf;
+  other_model_kit_shelf: IShelf;
+  backlog_shelf: IShelf;
+}

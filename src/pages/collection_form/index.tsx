@@ -186,6 +186,18 @@ const CollectionForm = () => {
                 </Field.Root>
 
                 <Field.Root required>
+                  <Field.Label>Manufacturer</Field.Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    justifyContent="start"
+                    onClick={() => setIsManufacturerDrawerOpen(true)}
+                  >
+                    {selectedManufacturer ? selectedManufacturer.name : 'Choose manufacturer'}
+                  </Button>
+                </Field.Root>
+
+                <Field.Root required>
                   <Field.Label>Release Type</Field.Label>
                   <Button
                     type="button"

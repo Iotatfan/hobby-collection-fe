@@ -22,7 +22,7 @@ interface IItemCard {
   canManage?: boolean;
 }
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 const ItemCard: React.FC<IItemCard> = ({
   id,
