@@ -24,14 +24,17 @@ type FormSelectDrawersProps = {
   setIsTypeDrawerOpen: (value: boolean) => void;
   setIsGradeDrawerOpen: (value: boolean) => void;
   setIsScaleDrawerOpen: (value: boolean) => void;
+  setIsDisplaySizeDrawerOpen: (value: boolean) => void;
   setManufacturerId: (value: number) => void;
   setReleaseTypeId: (value: number) => void;
   setSeriesId: (value: number) => void;
   setStatusId: (value: 0 | 1 | 2 | 3) => void;
   setScaleId: (value: number) => void;
+  setDisplaySize: (value: string) => void;
   statusId: 0 | 1 | 2 | 3 | null;
   gradeId: number | null;
   scaleId: number | null;
+  displaySize: string | null;
   isManufacturerDrawerOpen: boolean;
   isReleaseTypeDrawerOpen: boolean;
   isSeriesDrawerOpen: boolean;
@@ -39,6 +42,7 @@ type FormSelectDrawersProps = {
   isTypeDrawerOpen: boolean;
   isGradeDrawerOpen: boolean;
   isScaleDrawerOpen: boolean;
+  isDisplaySizeDrawerOpen: boolean
   statusOptions: StatusOption[];
   onSelectAddonManufacturer: (manufacturer: IManufacturerDrawerItem) => void;
   collectionType: string | null;
@@ -46,6 +50,7 @@ type FormSelectDrawersProps = {
   gunplaGrades: IGradeDrawerItem[];
   scales: IFiguresScaleFilterItem[];
   handleSelectCollectionType: (type: string) => void;
+  drawerDisplaySizes: string[];
 };
 
 const FormSelectDrawers = ({
@@ -59,12 +64,14 @@ const FormSelectDrawers = ({
   isTypeDrawerOpen,
   isGradeDrawerOpen,
   isScaleDrawerOpen,
+  isDisplaySizeDrawerOpen,
   manufacturerId,
   manufacturers,
   onSelectAddonManufacturer,
   releaseTypeId,
   releaseTypes,
   seriesId,
+  displaySize,
   seriesOptions,
   setActiveAddonManufacturerIndex,
   setGradeId,
@@ -75,11 +82,13 @@ const FormSelectDrawers = ({
   setIsTypeDrawerOpen,
   setIsGradeDrawerOpen,
   setIsScaleDrawerOpen,
+  setIsDisplaySizeDrawerOpen,
   setManufacturerId,
   setReleaseTypeId,
   setSeriesId,
   setStatusId,
   setScaleId,
+  setDisplaySize,
   statusId,
   statusOptions,
   collectionType,
@@ -88,6 +97,7 @@ const FormSelectDrawers = ({
   scales,
   handleSelectCollectionType,
   scaleId,
+  drawerDisplaySizes,
 }: FormSelectDrawersProps) => {
   return (
     <>
@@ -199,6 +209,22 @@ const FormSelectDrawers = ({
           },
         }))}
         emptyText="No manufacturers available."
+      />
+
+      <FormSelectDrawer
+        open={isDisplaySizeDrawerOpen}
+        onOpenChange={setIsDisplaySizeDrawerOpen}
+        title="Select Display Size"
+        options={drawerDisplaySizes.map((size) => ({
+          key: size,
+          label: size,
+          isSelected: size === displaySize,
+          onSelect: () => {
+            setDisplaySize(size);
+            setIsDisplaySizeDrawerOpen(false);
+          },
+        }))}
+        emptyText="No display sizes available."
       />
 
       <FormSelectDrawer

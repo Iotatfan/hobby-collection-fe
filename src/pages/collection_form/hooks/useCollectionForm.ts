@@ -46,6 +46,7 @@ const useCollectionForm = () => {
   const [deletedAddonIds, setDeletedAddonIds] = useState<number[]>([]);
   const [featureIds, setFeatureIds] = useState<number[]>([]);
   const [modificationIds, setModificationIds] = useState<number[]>([]);
+  const [displaySize, setDisplaySize] = useState<string | null>(null)
   const [drawerContent, setDrawerContent] = useState<ICollectionDrawerContent>();
   const [isLoadingCollection, setIsLoadingCollection] = useState(false);
   const [isLoadingDrawer, setIsLoadingDrawer] = useState(false);
@@ -57,6 +58,7 @@ const useCollectionForm = () => {
   const [isReleaseTypeDrawerOpen, setIsReleaseTypeDrawerOpen] = useState(false);
   const [isManufacturerDrawerOpen, setIsManufacturerDrawerOpen] = useState(false);
   const [isSeriesDrawerOpen, setIsSeriesDrawerOpen] = useState(false);
+  const [isDisplaySizeDrawerOpen, setIsDisplaySizeDrawerOpen] = useState(false);
   const [activeAddonManufacturerIndex, setActiveAddonManufacturerIndex] = useState<number | null>(
     null,
   );
@@ -79,6 +81,8 @@ const useCollectionForm = () => {
 
   const drawerFeatures = useMemo(() => drawerContent?.features ?? [], [drawerContent?.features]);
 
+  const drawerDisplaySizes = ['small_wide', 'small_tall', 'medium_wide', 'medium_tall', 'large_wide', 'large_tall'];
+
   const drawerModifications = useMemo(
     () => drawerContent?.modifications ?? [],
     [drawerContent?.modifications],
@@ -100,12 +104,13 @@ const useCollectionForm = () => {
   const selectedReleaseType = releaseTypes.find((option) => option.id === releaseTypeId);
   const selectedManufacturer = manufacturers.find((option) => option.id === manufacturerId);
   const selectedSeries = seriesOptions.find((option) => option.id === seriesId);
+  const selectedDisplaySize = displaySize ? drawerDisplaySizes.find((option) => option === displaySize) : null;
   const activeAddonManufacturer =
     activeAddonManufacturerIndex === null
       ? undefined
       : manufacturers.find(
-          (option) => option.id === addons[activeAddonManufacturerIndex]?.manufacturerId,
-        );
+        (option) => option.id === addons[activeAddonManufacturerIndex]?.manufacturerId,
+      );
 
   const coverPreviewUrl = useMemo(() => {
     if (coverFile) return URL.createObjectURL(coverFile);
@@ -192,6 +197,7 @@ const useCollectionForm = () => {
         setDeletedAddonIds([]);
         setFeatureIds((data.features ?? []).map((f) => f.id));
         setModificationIds((data.modifications ?? []).map((m) => m.id));
+        setDisplaySize(data.display_size ?? null);
       } catch {
         setErrorMessage('Failed to load collection data.');
       } finally {
@@ -369,6 +375,7 @@ const useCollectionForm = () => {
       formData.append('release_type_id', String(releaseTypeId));
       formData.append('manufacturer_id', String(manufacturerId));
       formData.append('series_id', String(seriesId));
+      formData.append('display_size', displaySize!);
 
       if (isEditMode && id) {
         if (coverFile) {
@@ -530,6 +537,7 @@ const useCollectionForm = () => {
     isReleaseTypeDrawerOpen,
     isSeriesDrawerOpen,
     isStatusDrawerOpen,
+    isDisplaySizeDrawerOpen,
     isSubmitting,
     isTypeDrawerOpen,
     handleSelectCollectionType,
@@ -542,12 +550,14 @@ const useCollectionForm = () => {
     releaseTypes,
     scaleId,
     scales,
+    displaySize,
     selectedManufacturer,
     selectedReleaseType,
     selectedSeries,
     selectedStatus,
     selectedGrade,
     selectedScale,
+    selectedDisplaySize,
     seriesId,
     seriesOptions,
     setAcquiredAt,
@@ -562,6 +572,7 @@ const useCollectionForm = () => {
     setIsSeriesDrawerOpen,
     setIsStatusDrawerOpen,
     setIsTypeDrawerOpen,
+    setIsDisplaySizeDrawerOpen,
     setManufacturerId,
     setReleaseTypeId,
     setSeriesId,
@@ -578,6 +589,8 @@ const useCollectionForm = () => {
     setModificationIds,
     drawerFeatures,
     drawerModifications,
+    drawerDisplaySizes,
+    setDisplaySize,
   };
 };
 

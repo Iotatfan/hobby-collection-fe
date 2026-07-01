@@ -49,6 +49,7 @@ const CollectionForm = () => {
     isReleaseTypeDrawerOpen,
     isSeriesDrawerOpen,
     isStatusDrawerOpen,
+    isDisplaySizeDrawerOpen,
     isSubmitting,
     isTypeDrawerOpen,
     manufacturers,
@@ -66,6 +67,9 @@ const CollectionForm = () => {
     selectedScale,
     collectionType,
     collectionTypes,
+    setDisplaySize,
+    selectedDisplaySize,
+    displaySize,
     gunplaGrades,
     seriesId,
     seriesOptions,
@@ -75,6 +79,7 @@ const CollectionForm = () => {
     setModificationIds,
     drawerFeatures,
     drawerModifications,
+    drawerDisplaySizes,
     setAcquiredAt,
     setActiveAddonManufacturerIndex,
     setBuiltAt,
@@ -87,6 +92,7 @@ const CollectionForm = () => {
     setIsSeriesDrawerOpen,
     setIsStatusDrawerOpen,
     setIsTypeDrawerOpen,
+    setIsDisplaySizeDrawerOpen,
     handleSelectCollectionType,
     setManufacturerId,
     setReleaseTypeId,
@@ -220,6 +226,19 @@ const CollectionForm = () => {
                     {selectedSeries ? selectedSeries.name : 'Choose series'}
                   </Button>
                 </Field.Root>
+
+                <Field.Root required>
+                  <Field.Label>Display Size</Field.Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    justifyContent="start"
+                    onClick={() => setIsDisplaySizeDrawerOpen(true)}
+                  >
+                    {selectedDisplaySize ? selectedDisplaySize : 'Choose display size'}
+                  </Button>
+                </Field.Root>
+
               </Stack>
 
               <Stack gap={4}>
@@ -377,6 +396,11 @@ const CollectionForm = () => {
         handleSelectCollectionType={handleSelectCollectionType}
         scaleId={scaleId}
         scales={scales}
+        isDisplaySizeDrawerOpen={isDisplaySizeDrawerOpen}
+        setIsDisplaySizeDrawerOpen={setIsDisplaySizeDrawerOpen}
+        displaySize={displaySize}
+        setDisplaySize={setDisplaySize}
+        drawerDisplaySizes={drawerDisplaySizes}
       />
     </Flex>
   );
