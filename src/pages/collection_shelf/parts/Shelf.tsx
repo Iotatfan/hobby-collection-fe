@@ -11,7 +11,10 @@ interface ShelfProps {
   variant?: 'standard' | 'wide';
 }
 
+
 const Shelf = ({ shelf, icon, accent, variant = 'standard' }: ShelfProps) => {
+  const hasViewAllLink = shelf.count > 6 && shelf.name !== 'Backlog';
+
   return (
     <Box>
       <Flex align="center" justify="space-between" mb={4} gap={4}>
@@ -35,25 +38,30 @@ const Shelf = ({ shelf, icon, accent, variant = 'standard' }: ShelfProps) => {
             fontSize="sm"
             flexShrink={0}
           >
-            {shelf.items.length}
+            {shelf.count}
           </Badge>
         </Flex>
 
-        <Link
-          asChild
-          color="whiteAlpha.900"
-          fontWeight="semibold"
-          display="inline-flex"
-          alignItems="center"
-          gap={2}
-          flexShrink={0}
-          _hover={{ color: 'white', textDecoration: 'none' }}
-        >
-          <RouterLink to="/">
-            View All
-            <ChevronRight size={18} />
-          </RouterLink>
-        </Link>
+        {
+          hasViewAllLink && (
+          <Link
+            asChild
+            color="whiteAlpha.900"
+            fontWeight="semibold"
+            display="inline-flex"
+            alignItems="center"
+            gap={2}
+            flexShrink={0}
+            _hover={{ color: 'white', textDecoration: 'none' }}
+          >
+            <RouterLink to={'/?collection=' + shelf.name.toLowerCase().replace(/\s+/g, '+')}>
+              View All
+              <ChevronRight size={18} />
+            </RouterLink>
+          </Link>
+
+          )
+        }
       </Flex>
 
       <Box position="relative" pb={{ base: '24px', md: '28px' }}>

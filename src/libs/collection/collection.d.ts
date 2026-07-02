@@ -200,6 +200,7 @@ export interface IShelf {
   id: number;
   name: string;
   items: IShelfItem[];
+  count: number;
 }
 
 export interface ICollectionShelf {
