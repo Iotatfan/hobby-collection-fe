@@ -17,59 +17,73 @@ interface ShelfItemProps {
   item: ShelfItemData;
   index?: number;
   variant?: 'standard' | 'wide';
+  clickable?: boolean;
 }
 
 const MotionBox = motion.create(Box);
 
-const ShelfItem = ({ item, index = 0 }: ShelfItemProps) => {
+const ShelfItem = ({ item, index = 0, clickable = true }: ShelfItemProps) => {
+  const card = (
+    <MotionBox
+      role="group"
+      position="relative"
+      zIndex={1}
+      w="max-content"
+      borderRadius="sm"
+      overflow="hidden"
+      borderWidth="1px"
+      borderColor="whiteAlpha.400"
+      bg="gray.900"
+      boxShadow="0 16px 30px rgba(0, 0, 0, 0.5)"
+      initial={{ opacity: 0, y: 28 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.04, duration: 0.35 }}
+      cursor={clickable ? 'pointer' : 'not-allowed'}
+      opacity={clickable ? 1 : 0.65}
+      _before={{
+        content: '""',
+        position: 'absolute',
+        inset: 0,
+        zIndex: 1,
+        boxShadow: 'inset 14px 0 20px rgba(255,255,255,0.16)',
+        pointerEvents: 'none',
+      }}
+      _after={{
+        content: '""',
+        position: 'absolute',
+        bg: 'linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(0,0,0,0.78) 100%)',
+        filter: 'blur(8px)',
+        pointerEvents: 'none',
+      }}
+      {...(clickable && {
+        whileHover: { y: -12, scale: 1.05 },
+      })}
+    >
+      <Image
+        src={cloudinarySizes(item.cover).cover}
+        alt={item.title}
+        display="block"
+        w="auto"
+        h="auto"
+        maxH={HEIGHT_MAP[item.display_size] || { base: '120px', md: '150px' }}
+        transition="filter 0.2s ease"
+        _groupHover={clickable ? { filter: 'saturate(1.12) brightness(1.08)' } : undefined}
+      />
+    </MotionBox>
+  );
+
+  if (!clickable) {
+    return (
+      <Box flex="0 0 auto">
+        {card}
+      </Box>
+    );
+  }
+
   return (
     <Link asChild textDecoration="none" flex="0 0 auto" _hover={{ textDecoration: 'none' }}>
       <RouterLink to={`/collection/${item.id}`}>
-        <MotionBox
-          role="group"
-          position="relative"
-          zIndex={1}
-          w="max-content"
-          borderRadius="sm"
-          overflow="hidden"
-          borderWidth="1px"
-          borderColor="whiteAlpha.400"
-          bg="gray.900"
-          boxShadow="0 16px 30px rgba(0, 0, 0, 0.5)"
-          initial={{ opacity: 0, y: 28 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.04, duration: 0.35 }}
-          _before={{
-            content: '""',
-            position: 'absolute',
-            inset: 0,
-            zIndex: 1,
-            boxShadow: 'inset 14px 0 20px rgba(255,255,255,0.16)',
-            pointerEvents: 'none',
-          }}
-          _after={{
-            content: '""',
-            position: 'absolute',
-            bg: 'linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(0,0,0,0.78) 100%)',
-            filter: 'blur(8px)',
-            pointerEvents: 'none',
-          }}
-          whileHover={{
-            y: -12,
-            scale: 1.05,
-          }}
-        >
-          <Image
-            src={cloudinarySizes(item.cover).cover}
-            alt={item.title}
-            display="block"
-            w="auto"
-            h="auto"
-            maxH={HEIGHT_MAP[item.display_size] || { base: '120px', md: '150px' }}
-            transition="filter 0.2s ease"
-            _groupHover={{ filter: 'saturate(1.12) brightness(1.08)' }}
-          />
-        </MotionBox>
+        {card}
       </RouterLink>
     </Link>
   );

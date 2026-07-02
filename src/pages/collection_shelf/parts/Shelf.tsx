@@ -81,7 +81,7 @@ const Shelf = ({ shelf, icon, accent, variant = 'standard' }: ShelfProps) => {
           }}
         >
           {shelf.items.map((item, index) => (
-            <ShelfItem key={item.id} item={item} index={index} variant={variant} />
+            <ShelfItem key={item.id} item={item} index={index} variant={variant} clickable={shelf.name !== 'Backlog'} />
           ))}
         </Flex>
 
