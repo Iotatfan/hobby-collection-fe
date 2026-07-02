@@ -1,4 +1,6 @@
 import { Box, Button, Center, Flex, Grid, Spinner, Text } from '@chakra-ui/react';
+import { FlaskConical } from 'lucide-react';
+import ViewToggleButton from '@/layouts/hobby_showcase/ViewToggleButton';
 import useCollections from '@/hooks/collections/useCollections';
 import { useEffect, useState, useCallback } from 'react';
 import ItemCard from './parts/ItemCard';
@@ -90,107 +92,111 @@ const CollectionList = () => {
   }, []);
 
   return (
-    <Flex
-      w="full"
-      mt="6"
-      pb="10"
-      minH="80vh"
-      alignItems="flex-start"
-      gap="4"
-      mx="auto"
-      maxW="78rem"
-      px={{ base: 4, md: 6, lg: 8 }}
-    >
-      <Box flexGrow="1" maxW="100%">
-        <Flex justify="space-between" align="center" gap={3} wrap="wrap">
-          {canManage && (
-            <Button asChild size="sm" colorPalette="blue">
-              <RouterLink to="/collection/new">Add New</RouterLink>
-            </Button>
-          )}
-        </Flex>
-        <StatisticsSection />
-        <CollectionFilters
-          collectionTypeId={collectionTypeId}
-          collectionTypeOptions={collectionTypeOptions}
-          figureScaleOptions={figureScaleOptions}
-          gunplaGradeOptions={gunplaGradeOptions}
-          handleCollectionTypeChange={handleCollectionTypeChange}
-          handleGradeChange={handleGradeChange}
-          handleScaleChange={handleScaleChange}
-          handleReleaseTypeToggle={handleReleaseTypeToggle}
-          handleSortChange={handleSortChange}
-          releaseTypeOptions={releaseTypeOptions}
-          selectedFigureScaleId={selectedFigureScaleId}
-          selectedGradeId={selectedGradeId}
-          selectedReleaseTypeIds={selectedReleaseTypeIds}
-          selectedReleaseTypeLabel={selectedReleaseTypeLabel}
-          selectedSortLabel={selectedSortLabel}
-          showFigureScaleFilter={showFigureScaleFilter}
-          showGunplaGradeFilter={showGunplaGradeFilter}
-          sortBy={sortBy}
-        />
-        {errorMessage && (
-          <Text mt={2} color="red.500">
-            {errorMessage}
-          </Text>
-        )}
-        {isLoadingCollections ? (
-          <Box display="flex" alignItems="center" justifyContent="center" h="50vh">
-            <Spinner borderWidth="4px" animationDuration="0.65s" color="blackAlpha.800" size="xl" />
-          </Box>
-        ) : (
-          <>
-            <Grid
-              marginTop={4}
-              templateColumns={[
-                'repeat(2, 1fr)',
-                'repeat(3, 1fr)',
-                'repeat(4, 1fr)',
-                'repeat(4, 1fr)',
-                'repeat(5, 1fr)',
-              ]}
-              gap="6px"
-            >
-              {collections?.map((collection, index) => (
-                <Center key={collection.id}>
-                  <ItemCard
-                    id={collection.id}
-                    index={index}
-                    title={collection.title}
-                    grade={collection.type?.grade?.short_name}
-                    scale={collection.type?.scale}
-                    typeName={collection.type?.name}
-                    cover={collection.cover}
-                    releaseType={collection.release_type?.name}
-                    status={collection.status}
-                    builtAt={collection.built_at}
-                    acquiredAt={collection.acquired_at}
-                    canManage={canManage}
-                  />
-                </Center>
-              ))}
-            </Grid>
-
-            {collections?.length === 0 && (
-              <Text mt={4} color="gray.500">
-                No collection items found for this filter.
-              </Text>
+    <>
+      <Flex
+        w="full"
+        mt="6"
+        pb={{ base: 24, lg: 10 }}
+        minH="80vh"
+        alignItems="flex-start"
+        gap="4"
+        mx="auto"
+        maxW="78rem"
+        px={{ base: 4, md: 6, lg: 8 }}
+      >
+        <Box flexGrow="1" maxW="100%">
+          <Flex justify="space-between" align="center" gap={3} wrap="wrap">
+            {canManage && (
+              <Button asChild size="sm" colorPalette="blue">
+                <RouterLink to="/collection/new">Add New</RouterLink>
+              </Button>
             )}
+          </Flex>
+          <StatisticsSection />
+          <CollectionFilters
+            collectionTypeId={collectionTypeId}
+            collectionTypeOptions={collectionTypeOptions}
+            figureScaleOptions={figureScaleOptions}
+            gunplaGradeOptions={gunplaGradeOptions}
+            handleCollectionTypeChange={handleCollectionTypeChange}
+            handleGradeChange={handleGradeChange}
+            handleScaleChange={handleScaleChange}
+            handleReleaseTypeToggle={handleReleaseTypeToggle}
+            handleSortChange={handleSortChange}
+            releaseTypeOptions={releaseTypeOptions}
+            selectedFigureScaleId={selectedFigureScaleId}
+            selectedGradeId={selectedGradeId}
+            selectedReleaseTypeIds={selectedReleaseTypeIds}
+            selectedReleaseTypeLabel={selectedReleaseTypeLabel}
+            selectedSortLabel={selectedSortLabel}
+            showFigureScaleFilter={showFigureScaleFilter}
+            showGunplaGradeFilter={showGunplaGradeFilter}
+            sortBy={sortBy}
+          />
+          {errorMessage && (
+            <Text mt={2} color="red.500">
+              {errorMessage}
+            </Text>
+          )}
+          {isLoadingCollections ? (
+            <Box display="flex" alignItems="center" justifyContent="center" h="50vh">
+              <Spinner borderWidth="4px" animationDuration="0.65s" color="blackAlpha.800" size="xl" />
+            </Box>
+          ) : (
+            <>
+              <Grid
+                marginTop={4}
+                templateColumns={[
+                  'repeat(2, 1fr)',
+                  'repeat(3, 1fr)',
+                  'repeat(4, 1fr)',
+                  'repeat(4, 1fr)',
+                  'repeat(5, 1fr)',
+                ]}
+                gap="6px"
+              >
+                {collections?.map((collection, index) => (
+                  <Center key={collection.id}>
+                    <ItemCard
+                      id={collection.id}
+                      index={index}
+                      title={collection.title}
+                      grade={collection.type?.grade?.short_name}
+                      scale={collection.type?.scale}
+                      typeName={collection.type?.name}
+                      cover={collection.cover}
+                      releaseType={collection.release_type?.name}
+                      status={collection.status}
+                      builtAt={collection.built_at}
+                      acquiredAt={collection.acquired_at}
+                      canManage={canManage}
+                    />
+                  </Center>
+                ))}
+              </Grid>
 
-            <Flex justify="space-between" align="center" mt={4}>
-              <Button size="sm" variant="outline" disabled={!canGoPrev} onClick={goPrevPage}>
-                Previous
-              </Button>
-              <Text fontSize="sm">Page {currentPage}</Text>
-              <Button size="sm" variant="outline" disabled={!canGoNext} onClick={goNextPage}>
-                Next
-              </Button>
-            </Flex>
-          </>
-        )}
-      </Box>
-    </Flex>
+              {collections?.length === 0 && (
+                <Text mt={4} color="gray.500">
+                  No collection items found for this filter.
+                </Text>
+              )}
+
+              <Flex justify="space-between" align="center" mt={4}>
+                <Button size="sm" variant="outline" disabled={!canGoPrev} onClick={goPrevPage}>
+                  Previous
+                </Button>
+                <Text fontSize="sm">Page {currentPage}</Text>
+                <Button size="sm" variant="outline" disabled={!canGoNext} onClick={goNextPage}>
+                  Next
+                </Button>
+              </Flex>
+            </>
+          )}
+        </Box>
+      </Flex>
+
+      <ViewToggleButton to="/shelves" label="Switch to Shelves View" icon={FlaskConical} />
+    </>
   );
 };
 

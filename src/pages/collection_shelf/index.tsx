@@ -1,5 +1,6 @@
 import { Box, Flex, Spinner, Text } from '@chakra-ui/react';
-import { BoxIcon, Clock, Package, Star } from 'lucide-react';
+import { BoxIcon, Clock, LayoutGrid, Package, Star } from 'lucide-react';
+import ViewToggleButton from '@/layouts/hobby_showcase/ViewToggleButton';
 import StatisticsSection from '../collection_list/parts/StatisticsSection';
 import Shelf from './parts/Shelf';
 import useCollectionShelves from './hooks/useCollectionShelves';
@@ -16,7 +17,8 @@ const CollectionShelf = () => {
     : [];
 
   return (
-    <Box
+    <>
+      <Box
       minH="100vh"
       bg="radial-gradient(circle at 15% 20%, rgba(30, 64, 175, 0.24), transparent 28%), radial-gradient(circle at 88% 12%, rgba(124, 58, 237, 0.18), transparent 25%), linear-gradient(180deg, #0a192f 0%, #0a192f 45%, #020c1b 100%)"
     >
@@ -61,6 +63,9 @@ const CollectionShelf = () => {
         )}
       </Flex>
     </Box>
+
+    <ViewToggleButton to="/" label="Switch to Classic View" icon={LayoutGrid} />
+    </>
   );
 };
 
