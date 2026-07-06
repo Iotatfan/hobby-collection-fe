@@ -31,7 +31,8 @@ type CollectionShelfCache = {
   timestamp: number;
 };
 
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // one day
+const CACHE_DURATION_ONE_DAY = 24 * 60 * 60 * 1000; // one day
+const CACHE_DURATION_FIVE_MINUTES = 5 * 60 * 1000; // five minutes
 
 function parseCachedJson<T>(raw: string, key: string): T | null {
   try {
@@ -69,7 +70,7 @@ export function getCachedCollection(id: number): ICollection | null {
   const parsed = parseCachedJson<CollectionDetailCache>(raw, key);
   if (!parsed) return null;
 
-  if (Date.now() - parsed.timestamp > CACHE_DURATION) {
+  if (Date.now() - parsed.timestamp > CACHE_DURATION_FIVE_MINUTES) {
     localStorage.removeItem(key);
     return null;
   }
@@ -94,7 +95,7 @@ export function getCachedCollectionList(query?: ICollectionFilterQuery): ICollec
   const parsed = parseCachedJson<CollectionListCache>(raw, key);
   if (!parsed) return null;
 
-  if (Date.now() - parsed.timestamp > CACHE_DURATION) {
+  if (Date.now() - parsed.timestamp > CACHE_DURATION_FIVE_MINUTES) {
     localStorage.removeItem(key);
     return null;
   }
@@ -119,7 +120,7 @@ export function getCachedCollectionDrawer(): ICollectionDrawerContent | null {
   const parsed = parseCachedJson<CollectionDrawerCache>(raw, key);
   if (!parsed) return null;
 
-  if (Date.now() - parsed.timestamp > CACHE_DURATION) {
+  if (Date.now() - parsed.timestamp > CACHE_DURATION_ONE_DAY) {
     localStorage.removeItem(key);
     return null;
   }
@@ -144,7 +145,7 @@ export function getCachedCollectionTypeFilters(): ICollectionFilterOptions | nul
   const parsed = parseCachedJson<CollectionFilterCache>(raw, key);
   if (!parsed) return null;
 
-  if (Date.now() - parsed.timestamp > CACHE_DURATION) {
+  if (Date.now() - parsed.timestamp > CACHE_DURATION_ONE_DAY) {
     localStorage.removeItem(key);
     return null;
   }
@@ -176,7 +177,7 @@ export function getCachedCollectionShelves(): ICollectionShelf | null {
   const parsed = parseCachedJson<CollectionShelfCache>(raw, key);
   if (!parsed) return null;
 
-  if (Date.now() - parsed.timestamp > CACHE_DURATION) {
+  if (Date.now() - parsed.timestamp > CACHE_DURATION_FIVE_MINUTES) {
     localStorage.removeItem(key);
     return null;
   }
