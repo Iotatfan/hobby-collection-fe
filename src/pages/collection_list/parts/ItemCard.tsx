@@ -73,7 +73,7 @@ const ItemCard: React.FC<IItemCard> = ({
         _hover={
           isClickable
             ? { borderColor: 'gray.400', cursor: 'pointer', transform: 'translateY(-10px)' }
-            : { borderColor: 'gray.200', cursor: 'default' }
+            : { borderColor: 'gray.200', cursor: 'disabled' }
         }
       >
         <Box position="relative" overflow="hidden">
