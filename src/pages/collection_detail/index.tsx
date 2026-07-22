@@ -26,6 +26,7 @@ import {
   slugify,
 } from '@/pages/collection_detail/helpers/collectionDetail.helpers';
 import useCollectionDetail from '@/hooks/collections/useCollectionDetail';
+import { Helmet } from 'react-helmet-async';
 
 const MotionBox = motion.create(Box);
 const MotionHStack = motion.create(HStack);
@@ -318,6 +319,13 @@ const CollectionDetail = () => {
     );
   }
 
+  // Fallbacks in case optional fields are missing
+  const pageTitle = `${collection?.title} | Hobby Collection`;
+  const pageDescription =
+    collection?.description || `Check out ${collection?.title} on my hobby collection showcase!`;
+  const pageImage = collection?.cover || 'https://hobby.iotatfan.com/default-og-cover.png';
+  const pageUrl = `https://hobby.iotatfan.com/collection/${id}`;
+
   return (
     <Flex
       w="full"
@@ -330,6 +338,26 @@ const CollectionDetail = () => {
       maxW="78rem"
       px={{ base: 4, md: 6, lg: 8 }}
     >
+      <Helmet>
+        {/* Standard Page Info */}
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+
+        {/* Open Graph / Facebook / Discord / WhatsApp */}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:image" content={pageImage} />
+        <meta property="og:url" content={pageUrl} />
+        <meta property="og:site_name" content="Hobby Collection" />
+
+        {/* Twitter / X Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        <meta name="twitter:image" content={pageImage} />
+      </Helmet>
+
       {/* Main content */}
       <Box
         display="flex"

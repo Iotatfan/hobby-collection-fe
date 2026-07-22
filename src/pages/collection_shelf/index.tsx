@@ -4,6 +4,7 @@ import ViewToggleButton from '@/layouts/hobby_showcase/ViewToggleButton';
 import StatisticsSection from '../collection_list/parts/StatisticsSection';
 import Shelf from './parts/Shelf';
 import useCollectionShelves from './hooks/useCollectionShelves';
+import { Helmet } from 'react-helmet-async';
 
 const CollectionShelf = () => {
   const { shelves, isLoading, isError } = useCollectionShelves();
@@ -16,8 +17,34 @@ const CollectionShelf = () => {
       ].filter(({ shelf }) => shelf?.items?.length)
     : [];
 
+  const pageTitle = 'Hobby Collection Showcase';
+  const pageDescription =
+    'Explore my personal collection of model kits, custom builds, and hobby projects.';
+  const pageUrl = 'https://hobby.iotatfan.com/shelves';
+  // const pageImage = "https://hobby.iotatfan.com/default-og-cover.png";
+
   return (
     <>
+      <Helmet>
+        {/* Standard Page Info */}
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+
+        {/* Open Graph / Facebook / Discord */}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        {/* <meta property="og:image" content={pageImage} /> */}
+        <meta property="og:url" content={pageUrl} />
+        <meta property="og:site_name" content="Hobby Showcase" />
+
+        {/* Twitter / X Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        {/* <meta name="twitter:image" content={pageImage} /> */}
+      </Helmet>
+
       <Box
         minH="100vh"
         bg="radial-gradient(circle at 15% 20%, rgba(30, 64, 175, 0.24), transparent 28%), radial-gradient(circle at 88% 12%, rgba(124, 58, 237, 0.18), transparent 25%), linear-gradient(180deg, #0a192f 0%, #0a192f 45%, #020c1b 100%)"

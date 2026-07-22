@@ -16,6 +16,7 @@ import {
 import useCollectionListFilters from './hooks/useCollectionListFilters';
 import CollectionFilters from './parts/CollectionFilters';
 import StatisticsSection from './parts/StatisticsSection';
+import { Helmet } from 'react-helmet-async';
 
 const CollectionList = () => {
   const { getCollections, collections } = useCollections();
@@ -91,8 +92,34 @@ const CollectionList = () => {
     void loadFilterOptions();
   }, []);
 
+  const pageTitle = 'Hobby Collection Showcase';
+  const pageDescription =
+    'Explore my personal collection of model kits, custom builds, and hobby projects.';
+  const pageUrl = 'https://hobby.iotatfan.com/';
+  // const pageImage = "https://hobby.iotatfan.com/default-og-cover.png";
+
   return (
     <>
+      <Helmet>
+        {/* Standard Page Info */}
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+
+        {/* Open Graph / Facebook / Discord */}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        {/* <meta property="og:image" content={pageImage} /> */}
+        <meta property="og:url" content={pageUrl} />
+        <meta property="og:site_name" content="Hobby Showcase" />
+
+        {/* Twitter / X Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        {/* <meta name="twitter:image" content={pageImage} /> */}
+      </Helmet>
+
       <Flex
         w="full"
         mt="6"
