@@ -46,7 +46,7 @@ const useCollectionForm = () => {
   const [deletedAddonIds, setDeletedAddonIds] = useState<number[]>([]);
   const [featureIds, setFeatureIds] = useState<number[]>([]);
   const [modificationIds, setModificationIds] = useState<number[]>([]);
-  const [displaySize, setDisplaySize] = useState<string | null>(null)
+  const [displaySize, setDisplaySize] = useState<string | null>(null);
   const [drawerContent, setDrawerContent] = useState<ICollectionDrawerContent>();
   const [isLoadingCollection, setIsLoadingCollection] = useState(false);
   const [isLoadingDrawer, setIsLoadingDrawer] = useState(false);
@@ -81,7 +81,14 @@ const useCollectionForm = () => {
 
   const drawerFeatures = useMemo(() => drawerContent?.features ?? [], [drawerContent?.features]);
 
-  const drawerDisplaySizes = ['small_wide', 'small_tall', 'medium_wide', 'medium_tall', 'large_wide', 'large_tall'];
+  const drawerDisplaySizes = [
+    'small_wide',
+    'small_tall',
+    'medium_wide',
+    'medium_tall',
+    'large_wide',
+    'large_tall',
+  ];
 
   const drawerModifications = useMemo(
     () => drawerContent?.modifications ?? [],
@@ -104,13 +111,15 @@ const useCollectionForm = () => {
   const selectedReleaseType = releaseTypes.find((option) => option.id === releaseTypeId);
   const selectedManufacturer = manufacturers.find((option) => option.id === manufacturerId);
   const selectedSeries = seriesOptions.find((option) => option.id === seriesId);
-  const selectedDisplaySize = displaySize ? drawerDisplaySizes.find((option) => option === displaySize) : null;
+  const selectedDisplaySize = displaySize
+    ? drawerDisplaySizes.find((option) => option === displaySize)
+    : null;
   const activeAddonManufacturer =
     activeAddonManufacturerIndex === null
       ? undefined
       : manufacturers.find(
-        (option) => option.id === addons[activeAddonManufacturerIndex]?.manufacturerId,
-      );
+          (option) => option.id === addons[activeAddonManufacturerIndex]?.manufacturerId,
+        );
 
   const coverPreviewUrl = useMemo(() => {
     if (coverFile) return URL.createObjectURL(coverFile);

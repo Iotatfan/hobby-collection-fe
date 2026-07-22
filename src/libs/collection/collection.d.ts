@@ -14,7 +14,7 @@ export interface ICollection {
   description?: string;
   features?: IMetadataTag[];
   modifications?: IMetadataTag[];
-  display_size?: IDisplaySize
+  display_size?: IDisplaySize;
 }
 
 export interface ICollectionUpsertPayload {
@@ -33,7 +33,7 @@ export interface ICollectionUpsertPayload {
   description?: string;
   features?: number[];
   modifications?: number[];
-  display_size?: IDisplaySize
+  display_size?: IDisplaySize;
 }
 
 export interface ICollectionUploadPayload {
@@ -52,7 +52,7 @@ export interface ICollectionUploadPayload {
   description?: string;
   features?: number[];
   modifications?: number[];
-  display_size?: IDisplaySize
+  display_size?: IDisplaySize;
 }
 
 export interface ICollectionDrawerContent {

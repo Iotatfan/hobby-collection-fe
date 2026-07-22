@@ -19,52 +19,57 @@ const CollectionShelf = () => {
   return (
     <>
       <Box
-      minH="100vh"
-      bg="radial-gradient(circle at 15% 20%, rgba(30, 64, 175, 0.24), transparent 28%), radial-gradient(circle at 88% 12%, rgba(124, 58, 237, 0.18), transparent 25%), linear-gradient(180deg, #0a192f 0%, #0a192f 45%, #020c1b 100%)"
-    >
-      <Flex
-        w="full"
-        direction="column"
-        pt="6"
-        pb="12"
-        minH="80vh"
-        gap={{ base: 7, md: 8 }}
-        mx="auto"
-        maxW="92rem"
-        px={{ base: 4, md: 6, lg: 8 }}
+        minH="100vh"
+        bg="radial-gradient(circle at 15% 20%, rgba(30, 64, 175, 0.24), transparent 28%), radial-gradient(circle at 88% 12%, rgba(124, 58, 237, 0.18), transparent 25%), linear-gradient(180deg, #0a192f 0%, #0a192f 45%, #020c1b 100%)"
       >
-        <Box>
-          <Text as="h1" color="white" fontSize={{ base: '3xl', md: '4xl' }} fontWeight="bold">
-            My Collection
-          </Text>
-          <StatisticsSection variant="dark" />
-        </Box>
+        <Flex
+          w="full"
+          direction="column"
+          pt="6"
+          pb="12"
+          minH="80vh"
+          gap={{ base: 7, md: 8 }}
+          mx="auto"
+          maxW="92rem"
+          px={{ base: 4, md: 6, lg: 8 }}
+        >
+          <Box>
+            <Text as="h1" color="white" fontSize={{ base: '3xl', md: '4xl' }} fontWeight="bold">
+              My Collection
+            </Text>
+            <StatisticsSection variant="dark" />
+          </Box>
 
-        {isLoading && (
-          <Flex align="center" justify="center" minH="40vh">
-            <Spinner borderWidth="4px" animationDuration="0.65s" color="whiteAlpha.900" size="xl" />
-          </Flex>
-        )}
+          {isLoading && (
+            <Flex align="center" justify="center" minH="40vh">
+              <Spinner
+                borderWidth="4px"
+                animationDuration="0.65s"
+                color="whiteAlpha.900"
+                size="xl"
+              />
+            </Flex>
+          )}
 
-        {isError && (
-          <Text color="red.300" fontWeight="medium">
-            Failed to load collection shelves.
-          </Text>
-        )}
+          {isError && (
+            <Text color="red.300" fontWeight="medium">
+              Failed to load collection shelves.
+            </Text>
+          )}
 
-        {!isLoading &&
-          !isError &&
-          shelfRows.map(({ shelf, icon, accent, variant }) => (
-            <Shelf key={shelf.name} shelf={shelf} icon={icon} accent={accent} variant={variant} />
-          ))}
+          {!isLoading &&
+            !isError &&
+            shelfRows.map(({ shelf, icon, accent, variant }) => (
+              <Shelf key={shelf.name} shelf={shelf} icon={icon} accent={accent} variant={variant} />
+            ))}
 
-        {!isLoading && !isError && shelfRows.length === 0 && (
-          <Text color="whiteAlpha.800">No shelf items found.</Text>
-        )}
-      </Flex>
-    </Box>
+          {!isLoading && !isError && shelfRows.length === 0 && (
+            <Text color="whiteAlpha.800">No shelf items found.</Text>
+          )}
+        </Flex>
+      </Box>
 
-    <ViewToggleButton to="/" label="Switch to Classic View" icon={LayoutGrid} />
+      <ViewToggleButton to="/" label="Switch to Classic View" icon={LayoutGrid} />
     </>
   );
 };

@@ -238,7 +238,6 @@ const CollectionForm = () => {
                     {selectedDisplaySize ? selectedDisplaySize : 'Choose display size'}
                   </Button>
                 </Field.Root>
-
               </Stack>
 
               <Stack gap={4}>

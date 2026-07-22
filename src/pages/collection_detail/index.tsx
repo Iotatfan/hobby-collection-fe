@@ -23,6 +23,7 @@ import {
   FALLBACK_DESCRIPTION,
   resolveGradeBadge,
   buildDisplayImages,
+  slugify,
 } from '@/pages/collection_detail/helpers/collectionDetail.helpers';
 import useCollectionDetail from '@/hooks/collections/useCollectionDetail';
 
@@ -30,7 +31,7 @@ const MotionBox = motion.create(Box);
 const MotionHStack = motion.create(HStack);
 
 const CollectionDetail = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id, title } = useParams<{ id: string; title: string }>();
   const navigate = useNavigate();
   const { getCollectionDetail, collection } = useCollectionDetail();
   const [isLoading, setIsLoading] = useState(false);
@@ -244,6 +245,16 @@ const CollectionDetail = () => {
       window.removeEventListener('resize', checkOverflow);
     };
   }, [descriptionText, isDescriptionExpanded, isLoading]);
+
+  useEffect(() => {
+    if (collection && title) {
+      const currentSlug = slugify(collection.title);
+
+      if (title !== currentSlug) {
+        navigate(`/collection/${id}/${currentSlug}`, { replace: true });
+      }
+    }
+  }, [collection, id, title, navigate]);
 
   // --- Fetch ---
   useEffect(() => {

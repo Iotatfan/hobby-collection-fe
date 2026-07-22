@@ -6,6 +6,7 @@ import { formatBuiltDateLabel } from '@/utils/date';
 import { ICollectionStatus } from '@/libs/collection/collection';
 import ReleaseBadge from './ReleaseBadge';
 import { Link as RouterLink } from 'react-router-dom';
+import { slugify } from '@/pages/collection_detail/helpers/collectionDetail.helpers';
 
 interface IItemCard {
   id: number;
@@ -150,7 +151,10 @@ const ItemCard: React.FC<IItemCard> = ({
 
   if (isClickable) {
     return (
-      <RouterLink to={`/collection/${id}`} style={{ display: 'block', width: '100%' }}>
+      <RouterLink
+        to={`/collection/${id}/${slugify(title)}`}
+        style={{ display: 'block', width: '100%' }}
+      >
         {cardContent}
       </RouterLink>
     );

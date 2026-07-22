@@ -73,18 +73,12 @@ const ShelfItem = ({ item, index = 0, clickable = true }: ShelfItemProps) => {
   );
 
   if (!clickable) {
-    return (
-      <Box flex="0 0 auto">
-        {card}
-      </Box>
-    );
+    return <Box flex="0 0 auto">{card}</Box>;
   }
 
   return (
     <Link asChild textDecoration="none" flex="0 0 auto" _hover={{ textDecoration: 'none' }}>
-      <RouterLink to={`/collection/${item.id}`}>
-        {card}
-      </RouterLink>
+      <RouterLink to={`/collection/${item.id}`}>{card}</RouterLink>
     </Link>
   );
 };

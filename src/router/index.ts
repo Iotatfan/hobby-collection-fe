@@ -38,7 +38,7 @@ export const routes: IRoute[] = [
       },
       {
         name: 'collection-detail',
-        path: '/collection/:id',
+        path: '/collection/:id/:title?',
         component: CollectionDetail,
         handle: {
           showHeader: true,

@@ -42,7 +42,7 @@ type FormSelectDrawersProps = {
   isTypeDrawerOpen: boolean;
   isGradeDrawerOpen: boolean;
   isScaleDrawerOpen: boolean;
-  isDisplaySizeDrawerOpen: boolean
+  isDisplaySizeDrawerOpen: boolean;
   statusOptions: StatusOption[];
   onSelectAddonManufacturer: (manufacturer: IManufacturerDrawerItem) => void;
   collectionType: string | null;

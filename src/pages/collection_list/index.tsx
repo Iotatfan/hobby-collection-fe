@@ -140,7 +140,12 @@ const CollectionList = () => {
           )}
           {isLoadingCollections ? (
             <Box display="flex" alignItems="center" justifyContent="center" h="50vh">
-              <Spinner borderWidth="4px" animationDuration="0.65s" color="blackAlpha.800" size="xl" />
+              <Spinner
+                borderWidth="4px"
+                animationDuration="0.65s"
+                color="blackAlpha.800"
+                size="xl"
+              />
             </Box>
           ) : (
             <>

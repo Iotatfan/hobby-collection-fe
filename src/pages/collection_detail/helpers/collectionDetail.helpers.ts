@@ -33,3 +33,15 @@ export const resolveGradeBadge = (grade?: string, scale?: string, type?: string)
     shouldShow: Boolean(label) && normalizedType !== 'figure',
   };
 };
+
+export const slugify = (text: string) => {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[\s_]+/g, '-') // Spaces and underscores -> hyphen
+    .replace(/[^\w-]+/g, '') // Drop non-word chars (no escape needed inside [])
+    .replace(/--+/g, '-') // Collapse multiple hyphens into one
+    .replace(/^-+/, '') // Trim leading hyphens
+    .replace(/-+$/, ''); // Trim trailing hyphens
+};

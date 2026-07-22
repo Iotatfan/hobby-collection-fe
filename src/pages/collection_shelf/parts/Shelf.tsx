@@ -11,7 +11,6 @@ interface ShelfProps {
   variant?: 'standard' | 'wide';
 }
 
-
 const Shelf = ({ shelf, icon, accent, variant = 'standard' }: ShelfProps) => {
   const hasViewAllLink = shelf.count > 6 && shelf.name !== 'Backlog';
 
@@ -42,8 +41,7 @@ const Shelf = ({ shelf, icon, accent, variant = 'standard' }: ShelfProps) => {
           </Badge>
         </Flex>
 
-        {
-          hasViewAllLink && (
+        {hasViewAllLink && (
           <Link
             asChild
             color="whiteAlpha.900"
@@ -59,9 +57,7 @@ const Shelf = ({ shelf, icon, accent, variant = 'standard' }: ShelfProps) => {
               <ChevronRight size={18} />
             </RouterLink>
           </Link>
-
-          )
-        }
+        )}
       </Flex>
 
       <Box position="relative" pb={{ base: '24px', md: '28px' }}>
@@ -81,7 +77,13 @@ const Shelf = ({ shelf, icon, accent, variant = 'standard' }: ShelfProps) => {
           }}
         >
           {shelf.items.map((item, index) => (
-            <ShelfItem key={item.id} item={item} index={index} variant={variant} clickable={shelf.name !== 'Backlog'} />
+            <ShelfItem
+              key={item.id}
+              item={item}
+              index={index}
+              variant={variant}
+              clickable={shelf.name !== 'Backlog'}
+            />
           ))}
         </Flex>
 
