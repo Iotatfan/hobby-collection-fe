@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import * as path from 'path';
 import { visualizer } from 'rollup-plugin-visualizer';
 
-import { cloudflare } from "@cloudflare/vite-plugin";
+import { cloudflare } from '@cloudflare/vite-plugin';
 
 const base = process.env.DEPLOY_TARGET === 'github-pages' ? '/hobby-collection/' : '/';
 const isAnalyze = process.env.ANALYZE === 'true';
@@ -14,9 +14,5 @@ export default defineConfig({
   resolve: {
     alias: [{ find: '@', replacement: path.resolve(__dirname, './src') }],
   },
-  plugins: [
-    react(),
-    ...(isAnalyze ? [visualizer() as PluginOption] : []),
-    cloudflare()
-  ],
+  plugins: [react(), ...(isAnalyze ? [visualizer() as PluginOption] : []), cloudflare()],
 });
