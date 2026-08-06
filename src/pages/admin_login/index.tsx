@@ -13,7 +13,7 @@ const AdminLogin = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (canManageCollection()) navigate('/', { replace: true });
+    if (canManageCollection()) navigate('/admin/collections', { replace: true });
   }, [navigate]);
 
   const handleSubmit = async (event: FormEvent<HTMLDivElement>) => {
@@ -24,7 +24,7 @@ const AdminLogin = () => {
     try {
       const { token, expiresAt } = await authServices.login(password);
       setAuthToken(token, expiresAt);
-      navigate('/', { replace: true });
+      navigate('/admin/collections', { replace: true });
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Unable to sign in.');
     } finally {

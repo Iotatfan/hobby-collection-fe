@@ -4,8 +4,6 @@ import ViewToggleButton from '@/layouts/hobby_showcase/ViewToggleButton';
 import useCollections from '@/hooks/collections/useCollections';
 import { useEffect, useState, useCallback } from 'react';
 import ItemCard from './parts/ItemCard';
-import { Link as RouterLink } from 'react-router-dom';
-import { canManageCollection } from '@/services/http';
 import collectionServices from '@/services/content/collectionServices';
 import {
   ICollectionTypeFilterItem,
@@ -28,7 +26,6 @@ const CollectionList = () => {
   const [figureScaleOptions, setFigureScaleOptions] = useState<IFiguresScaleFilterItem[]>([]);
   const [gunplaGradeOptions, setGunplaGradeOptions] = useState<IGunplaGradeFilterItem[]>([]);
   const [releaseTypeOptions, setReleaseTypeOptions] = useState<IReleaseTypeDrawerItem[]>([]);
-  const canManage = canManageCollection();
   const {
     canGoNext,
     canGoPrev,
@@ -132,13 +129,6 @@ const CollectionList = () => {
         px={{ base: 4, md: 6, lg: 8 }}
       >
         <Box flexGrow="1" maxW="100%">
-          <Flex justify="space-between" align="center" gap={3} wrap="wrap">
-            {canManage && (
-              <Button asChild size="sm" colorPalette="blue">
-                <RouterLink to="/collection/new">Add New</RouterLink>
-              </Button>
-            )}
-          </Flex>
           <StatisticsSection />
           <CollectionFilters
             collectionTypeId={collectionTypeId}
@@ -201,7 +191,6 @@ const CollectionList = () => {
                       status={collection.status}
                       builtAt={collection.built_at}
                       acquiredAt={collection.acquired_at}
-                      canManage={canManage}
                     />
                   </Center>
                 ))}

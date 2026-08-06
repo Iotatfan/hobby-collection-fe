@@ -15,7 +15,6 @@ import { ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import { AnimatePresence, motion, useAnimation } from 'framer-motion';
 import { cloudinarySizes } from '@/utils/cloudinary';
 import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
-import { canManageCollection } from '@/services/http';
 import KitSpecifications from '@/pages/collection_detail/parts/KitSpecifications';
 import ReleaseBadge from '@/pages/collection_list/parts/ReleaseBadge';
 import {
@@ -44,7 +43,6 @@ const CollectionDetail = () => {
   const [dragConstraints, setDragConstraints] = useState({ left: 0, right: 0 });
   const [isOverflowing, setIsOverflowing] = useState(false);
   const thumbnailControls = useAnimation();
-  const canManage = canManageCollection();
 
   // --- Carousel state (adapted from useItemModalCarousel) ---
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -744,12 +742,6 @@ const CollectionDetail = () => {
                 ))}
               </Flex>
             </VStack>
-          )}
-
-          {canManage && collection?.id && (
-            <Button asChild colorPalette="blue" variant="solid">
-              <RouterLink to={`/collection/${collection.id}/edit`}>Edit Collection</RouterLink>
-            </Button>
           )}
         </VStack>
       </Box>
