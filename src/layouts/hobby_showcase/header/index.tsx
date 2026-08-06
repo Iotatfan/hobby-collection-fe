@@ -1,4 +1,5 @@
-import { Box, Container, Flex, VStack, Text } from '@chakra-ui/react';
+import { Box, Container, Flex, VStack, Text, Link } from '@chakra-ui/react';
+import { Link as RouterLink } from 'react-router-dom';
 
 const Header = () => {
   return (
@@ -6,9 +7,13 @@ const Header = () => {
       <Container>
         <Flex alignItems="center" padding={4} justifyContent="space-between" gap={4}>
           <VStack align={'start'}>
-            <Text fontWeight="bold" fontSize={24} color="white">
-              Hobby Collection
-            </Text>
+            <Link asChild color="white" _hover={{ textDecoration: 'none' }}>
+              <RouterLink to="/" aria-label="Go to Hobby Collection home page">
+                <Text fontWeight="bold" fontSize={24}>
+                  Hobby Collection
+                </Text>
+              </RouterLink>
+            </Link>
           </VStack>
         </Flex>
       </Container>
