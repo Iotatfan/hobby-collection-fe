@@ -6,6 +6,7 @@ const CollectionList = lazy(() => import('@/pages/collection_list'));
 const CollectionDetail = lazy(() => import('@/pages/collection_detail'));
 const CollectionForm = lazy(() => import('@/pages/collection_form'));
 const CollectionShelf = lazy(() => import('@/pages/collection_shelf'));
+const AdminLogin = lazy(() => import('@/pages/admin_login'));
 
 export interface IRoute {
   name: string;
@@ -23,6 +24,14 @@ export const routes: IRoute[] = [
     path: '/',
     component: PublicRouter,
     children: [
+      {
+        name: 'admin-login',
+        path: '/admin/login',
+        component: AdminLogin,
+        handle: {
+          showHeader: false,
+        },
+      },
       {
         name: 'collection-list',
         path: '/',

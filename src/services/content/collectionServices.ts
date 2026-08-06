@@ -160,7 +160,7 @@ type CollectionMutationPayload = ICollectionUpsertPayload | ICollectionUploadPay
 const createCollection = async (payload: CollectionMutationPayload) => {
   const token = getAuthToken();
   if (!isValidJwtToken(token)) {
-    throw new Error('Missing or invalid JWT token. Set localStorage jwt.');
+    throw new Error('Missing or invalid JWT token. Sign in as an admin first.');
   }
 
   const response = await http.post('/create_collection', payload, {
@@ -178,7 +178,7 @@ const createCollection = async (payload: CollectionMutationPayload) => {
 const updateCollection = async (id: number, payload: CollectionMutationPayload) => {
   const token = getAuthToken();
   if (!isValidJwtToken(token)) {
-    throw new Error('Missing or invalid JWT token. Set localStorage jwt.');
+    throw new Error('Missing or invalid JWT token. Sign in as an admin first.');
   }
 
   const response = await http.patch(`/collection/${id}`, payload, {
