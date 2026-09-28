@@ -3,11 +3,13 @@ import http from '@/services/http';
 type AdminTokenResponse = {
   token?: unknown;
   access_token?: unknown;
-  data?: {
-    token?: unknown;
-    access_token?: unknown;
-    expires_at?: unknown;
-  } | string;
+  data?:
+    | {
+        token?: unknown;
+        access_token?: unknown;
+        expires_at?: unknown;
+      }
+    | string;
 };
 
 const getTokenFromResponse = (response: { data?: AdminTokenResponse }) => {
@@ -23,9 +25,10 @@ const getTokenFromResponse = (response: { data?: AdminTokenResponse }) => {
     throw new Error('The admin login response did not contain a JWT token.');
   }
 
-  const expiresAt = typeof nestedData === 'object' && typeof nestedData.expires_at === 'string'
-    ? nestedData.expires_at
-    : undefined;
+  const expiresAt =
+    typeof nestedData === 'object' && typeof nestedData.expires_at === 'string'
+      ? nestedData.expires_at
+      : undefined;
 
   return { token, expiresAt };
 };

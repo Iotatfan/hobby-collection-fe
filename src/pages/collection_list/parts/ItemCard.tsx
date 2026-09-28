@@ -118,12 +118,15 @@ const ItemCard: React.FC<IItemCard> = ({
           <Image
             boxSize="full"
             maxBlockSize="12rem"
-            alt="cover image"
+            alt={`${title} cover`}
             objectFit="cover"
             css={{
               aspectRatio: '4/3',
             }}
             src={cloudinarySizes(cover).cover}
+            onError={(event) => {
+              event.currentTarget.src = '/favicon.png';
+            }}
           />
         </Box>
 

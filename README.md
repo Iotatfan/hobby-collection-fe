@@ -25,7 +25,7 @@ Priority order:
 ```js
 window.__APP_CONFIG__ = {
   API_BASE_URL: '',
-  API_JWT: '',
+  CLOUDINARY_CLOUD_NAME: '',
 };
 ```
 
@@ -37,7 +37,7 @@ Example (Linux shell):
 cat > dist/app-config.js <<EOF
 window.__APP_CONFIG__ = {
   API_BASE_URL: "${API_BASE_URL}",
-  API_JWT: "${API_JWT}",
+  CLOUDINARY_CLOUD_NAME: "${CLOUDINARY_CLOUD_NAME}",
 }
 EOF
 ```
@@ -48,11 +48,14 @@ Create a `.env` file in project root (you can copy from `.env.example`):
 
 ```env
 VITE_API_BASE_URL=http://localhost:8080
-VITE_API_JWT=
+VITE_CLOUDINARY_CLOUD_NAME=
 ```
 
 - `VITE_API_BASE_URL` is required if runtime `API_BASE_URL` is not set.
-- `VITE_API_JWT` is optional. If empty, the app will try `localStorage.getItem("jwt")`.
+- Authentication tokens are stored in the `jwt` cookie after admin login.
+
+For Cloudflare Worker deployments, configure `API_BASE_URL` and
+`CLOUDINARY_CLOUD_NAME` as Worker variables or environment-specific bindings.
 
 Currently, two official plugins are available:
 

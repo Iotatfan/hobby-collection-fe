@@ -9,6 +9,7 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import collectionServices from '@/services/content/collectionServices';
 import { cloudinarySizes } from '@/utils/cloudinary';
+import { MAX_GALLERY_IMAGES, validateImageFile } from '@/utils/imageValidation';
 import {
   AddonFormItem,
   createAddonRowFactory,
@@ -65,6 +66,20 @@ const useCollectionForm = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [collectionType, setCollectionType] = useState<string | null>(null);
   const [initialScaleName, setInitialScaleName] = useState<string | null>(null);
+
+  const handleCoverFileChange = (file: File | null) => {
+    if (!file) {
+      setCoverFile(null);
+      return;
+    }
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      setErrorMessage(validationError);
+      return;
+    }
+    setErrorMessage(null);
+    setCoverFile(file);
+  };
 
   const drawerGrades = useMemo(() => drawerContent?.grades ?? [], [drawerContent?.grades]);
   const scales = useMemo(() => drawerContent?.scales ?? [], [drawerContent?.scales]);
@@ -285,7 +300,17 @@ const useCollectionForm = () => {
   const handlePicturesChange = (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files ? Array.from(event.target.files) : [];
     if (!files.length) return;
-    setPictureFiles((prev) => [...prev, ...files]);
+    const validFiles = files.filter((file) => !validateImageFile(file));
+    const firstError = files.map(validateImageFile).find(Boolean);
+    if (firstError) setErrorMessage(firstError);
+    const remainingSlots = Math.max(
+      0,
+      MAX_GALLERY_IMAGES - existingPictureUrls.length - pictureFiles.length,
+    );
+    setPictureFiles((prev) => [...prev, ...validFiles.slice(0, remainingSlots)]);
+    if (validFiles.length > remainingSlots) {
+      setErrorMessage(`You can upload at most ${MAX_GALLERY_IMAGES} gallery images.`);
+    }
     event.target.value = '';
   };
 
@@ -319,6 +344,11 @@ const useCollectionForm = () => {
 
     if (!coverFile && !existingCoverUrl) {
       setErrorMessage('Cover image is required.');
+      return;
+    }
+
+    if (!displaySize || !drawerDisplaySizes.includes(displaySize)) {
+      setErrorMessage('Display size is required.');
       return;
     }
 
@@ -384,7 +414,7 @@ const useCollectionForm = () => {
       formData.append('release_type_id', String(releaseTypeId));
       formData.append('manufacturer_id', String(manufacturerId));
       formData.append('series_id', String(seriesId));
-      formData.append('display_size', displaySize!);
+      formData.append('display_size', displaySize);
 
       if (isEditMode && id) {
         if (coverFile) {
@@ -573,6 +603,7 @@ const useCollectionForm = () => {
     setActiveAddonManufacturerIndex,
     setBuiltAt,
     setCoverFile,
+    handleCoverFileChange,
     setDescription,
     setIsGradeDrawerOpen,
     setIsScaleDrawerOpen,

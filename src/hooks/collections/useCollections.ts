@@ -1,17 +1,23 @@
-import { ICollection, ICollectionFilterQuery } from '@/libs/collection/collection';
+import { ICollectionFilterQuery, ICollectionListResponse } from '@/libs/collection/collection';
 import collectionServices from '@/services/content/collectionServices';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 const useCollections = () => {
-  const [collections, setCollections] = useState<ICollection[]>();
+  const [result, setResult] = useState<ICollectionListResponse>();
+  const requestIdRef = useRef(0);
 
-  const getCollections = useCallback(async (query?: ICollectionFilterQuery) => {
-    const response = await collectionServices.getAllCollections(query);
-    setCollections(response);
-  }, []);
+  const getCollections = useCallback(
+    async (query?: ICollectionFilterQuery, signal?: AbortSignal) => {
+      const requestId = ++requestIdRef.current;
+      const response = await collectionServices.getAllCollections(query, signal);
+      if (requestId === requestIdRef.current && !signal?.aborted) setResult(response);
+    },
+    [],
+  );
 
   return {
-    collections,
+    collections: result?.collections,
+    totalCount: result?.total_count,
     getCollections,
   };
 };

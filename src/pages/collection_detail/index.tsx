@@ -321,7 +321,7 @@ const CollectionDetail = () => {
   const pageTitle = `${collection?.title} | Hobby Collection`;
   const pageDescription =
     collection?.description || `Check out ${collection?.title} on my hobby collection showcase!`;
-  const pageImage = collection?.cover || 'https://hobby.iotatfan.com/default-og-cover.png';
+  const pageImage = collection?.cover || `${window.location.origin}/favicon.png`;
   const pageUrl = `https://hobby.iotatfan.com/collection/${id}`;
 
   return (
@@ -425,6 +425,9 @@ const CollectionDetail = () => {
                   <Image
                     src={cloudinarySizes(currentImage).preview}
                     alt={`${collection?.title ?? 'Image'} ${currentIndex + 1}`}
+                    onError={(event) => {
+                      event.currentTarget.src = '/favicon.png';
+                    }}
                     w="full"
                     h="full"
                     objectFit="contain"
@@ -552,6 +555,10 @@ const CollectionDetail = () => {
                 >
                   <Image
                     src={cloudinarySizes(image).thumb}
+                    alt={`${collection?.title ?? 'Image'} thumbnail ${index + 1}`}
+                    onError={(event) => {
+                      event.currentTarget.src = '/favicon.png';
+                    }}
                     style={{
                       width: '100%',
                       height: '100%',

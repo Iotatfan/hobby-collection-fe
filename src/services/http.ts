@@ -71,4 +71,16 @@ const http = axios.create({
   baseURL: env.apiBaseUrl,
 });
 
+http.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && window.location.pathname !== '/admin/login') {
+      clearAuthToken();
+      const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      window.location.assign(`/admin/login?returnTo=${encodeURIComponent(returnTo)}`);
+    }
+    return Promise.reject(error);
+  },
+);
+
 export default http;

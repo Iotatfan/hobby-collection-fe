@@ -21,7 +21,6 @@ const CollectionShelf = () => {
   const pageDescription =
     'Explore my personal collection of model kits, custom builds, and hobby projects.';
   const pageUrl = 'https://hobby.iotatfan.com/shelves';
-  // const pageImage = "https://hobby.iotatfan.com/default-og-cover.png";
 
   return (
     <>

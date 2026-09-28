@@ -4,6 +4,7 @@ import {
   ICollectionFilterQuery,
   ICollectionFilterOptions,
   ICollectionShelf,
+  ICollectionListResponse,
 } from '@/libs/collection/collection';
 
 type CollectionDetailCache = {
@@ -12,7 +13,7 @@ type CollectionDetailCache = {
 };
 
 type CollectionListCache = {
-  data: ICollection[];
+  data: ICollectionListResponse;
   timestamp: number;
 };
 
@@ -33,12 +34,36 @@ type CollectionShelfCache = {
 
 const CACHE_DURATION_ONE_DAY = 24 * 60 * 60 * 1000; // one day
 const CACHE_DURATION_FIVE_MINUTES = 5 * 60 * 1000; // five minutes
+const CACHE_VERSION = 'v2';
+
+const cacheKey = (key: string) => `${CACHE_VERSION}:${key}`;
+const safeGet = (key: string) => {
+  try {
+    return localStorage.getItem(cacheKey(key));
+  } catch {
+    return null;
+  }
+};
+const safeRemove = (key: string) => {
+  try {
+    localStorage.removeItem(cacheKey(key));
+  } catch {
+    // Storage may be unavailable or full; cache failures must not break the app.
+  }
+};
+const safeSet = (key: string, value: string) => {
+  try {
+    localStorage.setItem(cacheKey(key), value);
+  } catch {
+    // Storage may be unavailable or full; cache failures must not break the app.
+  }
+};
 
 function parseCachedJson<T>(raw: string, key: string): T | null {
   try {
     return JSON.parse(raw) as T;
   } catch {
-    localStorage.removeItem(key);
+    safeRemove(key.replace(`${CACHE_VERSION}:`, ''));
     return null;
   }
 }
@@ -64,14 +89,14 @@ function getCollectionListCacheKey(query?: ICollectionFilterQuery) {
 
 export function getCachedCollection(id: number): ICollection | null {
   const key = `collection_${id}`;
-  const raw = localStorage.getItem(key);
+  const raw = safeGet(key);
   if (!raw) return null;
 
   const parsed = parseCachedJson<CollectionDetailCache>(raw, key);
   if (!parsed) return null;
 
   if (Date.now() - parsed.timestamp > CACHE_DURATION_FIVE_MINUTES) {
-    localStorage.removeItem(key);
+    safeRemove(key);
     return null;
   }
 
@@ -84,44 +109,53 @@ export function setCachedCollection(data: ICollection) {
     timestamp: Date.now(),
   };
 
-  localStorage.setItem(`collection_${data.id}`, JSON.stringify(entry));
+  safeSet(`collection_${data.id}`, JSON.stringify(entry));
 }
 
-export function getCachedCollectionList(query?: ICollectionFilterQuery): ICollection[] | null {
+export function getCachedCollectionList(
+  query?: ICollectionFilterQuery,
+): ICollectionListResponse | null {
   const key = getCollectionListCacheKey(query);
-  const raw = localStorage.getItem(key);
+  const raw = safeGet(key);
   if (!raw) return null;
 
   const parsed = parseCachedJson<CollectionListCache>(raw, key);
   if (!parsed) return null;
 
   if (Date.now() - parsed.timestamp > CACHE_DURATION_FIVE_MINUTES) {
-    localStorage.removeItem(key);
+    safeRemove(key);
     return null;
+  }
+
+  if (Array.isArray(parsed.data)) {
+    return { collections: parsed.data } as unknown as ICollectionListResponse;
   }
 
   return parsed.data;
 }
 
-export function setCachedCollectionList(data: ICollection[], query?: ICollectionFilterQuery) {
+export function setCachedCollectionList(
+  data: ICollectionListResponse,
+  query?: ICollectionFilterQuery,
+) {
   const entry: CollectionListCache = {
     data,
     timestamp: Date.now(),
   };
 
-  localStorage.setItem(getCollectionListCacheKey(query), JSON.stringify(entry));
+  safeSet(getCollectionListCacheKey(query), JSON.stringify(entry));
 }
 
 export function getCachedCollectionDrawer(): ICollectionDrawerContent | null {
   const key = `collection_drawer`;
-  const raw = localStorage.getItem(key);
+  const raw = safeGet(key);
   if (!raw) return null;
 
   const parsed = parseCachedJson<CollectionDrawerCache>(raw, key);
   if (!parsed) return null;
 
   if (Date.now() - parsed.timestamp > CACHE_DURATION_ONE_DAY) {
-    localStorage.removeItem(key);
+    safeRemove(key);
     return null;
   }
 
@@ -134,26 +168,26 @@ export function setCachedCollectionDrawer(data: ICollectionDrawerContent) {
     timestamp: Date.now(),
   };
 
-  localStorage.setItem(`collection_drawer`, JSON.stringify(entry));
+  safeSet(`collection_drawer`, JSON.stringify(entry));
 }
 
 export function getCachedCollectionTypeFilters(): ICollectionFilterOptions | null {
   const key = `collection_filters`;
-  const raw = localStorage.getItem(key);
+  const raw = safeGet(key);
   if (!raw) return null;
 
   const parsed = parseCachedJson<CollectionFilterCache>(raw, key);
   if (!parsed) return null;
 
   if (Date.now() - parsed.timestamp > CACHE_DURATION_ONE_DAY) {
-    localStorage.removeItem(key);
+    safeRemove(key);
     return null;
   }
 
   const data = parsed.data;
 
   if (Array.isArray(data)) {
-    localStorage.removeItem(key);
+    safeRemove(key);
     return null;
   }
 
@@ -166,19 +200,19 @@ export function setCachedCollectionTypeFilters(data: ICollectionFilterOptions) {
     timestamp: Date.now(),
   };
 
-  localStorage.setItem(`collection_filters`, JSON.stringify(entry));
+  safeSet(`collection_filters`, JSON.stringify(entry));
 }
 
 export function getCachedCollectionShelves(): ICollectionShelf | null {
   const key = `collection_shelves`;
-  const raw = localStorage.getItem(key);
+  const raw = safeGet(key);
   if (!raw) return null;
 
   const parsed = parseCachedJson<CollectionShelfCache>(raw, key);
   if (!parsed) return null;
 
   if (Date.now() - parsed.timestamp > CACHE_DURATION_FIVE_MINUTES) {
-    localStorage.removeItem(key);
+    safeRemove(key);
     return null;
   }
 
@@ -191,22 +225,26 @@ export function setCachedCollectionShelves(data: ICollectionShelf) {
     timestamp: Date.now(),
   };
 
-  localStorage.setItem(`collection_shelves`, JSON.stringify(entry));
+  safeSet(`collection_shelves`, JSON.stringify(entry));
 }
 
 export function invalidateCollectionCache(id?: number) {
   const listCacheKeys: string[] = [];
-  for (let index = 0; index < localStorage.length; index += 1) {
-    const key = localStorage.key(index);
-    if (key?.startsWith('collection_list')) {
-      listCacheKeys.push(key);
+  try {
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (key?.startsWith(`${CACHE_VERSION}:collection_list`)) {
+        listCacheKeys.push(key.slice(`${CACHE_VERSION}:`.length));
+      }
     }
+  } catch {
+    return;
   }
-  listCacheKeys.forEach((key) => localStorage.removeItem(key));
-  localStorage.removeItem(`collection_drawer`);
-  localStorage.removeItem(`collection_filters`);
-  localStorage.removeItem(`collection_shelves`);
+  listCacheKeys.forEach(safeRemove);
+  safeRemove(`collection_drawer`);
+  safeRemove(`collection_filters`);
+  safeRemove(`collection_shelves`);
   if (typeof id === 'number') {
-    localStorage.removeItem(`collection_${id}`);
+    safeRemove(`collection_${id}`);
   }
 }

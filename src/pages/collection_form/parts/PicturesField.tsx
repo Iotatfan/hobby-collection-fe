@@ -75,6 +75,7 @@ const PicturesField = ({
               borderRadius="full"
               lineHeight="1"
               onClick={() => onRemoveExistingPicture(index)}
+              aria-label={`Remove existing picture ${index + 1}`}
             >
               X
             </Button>
@@ -113,12 +114,16 @@ const PicturesField = ({
               borderRadius="full"
               lineHeight="1"
               onClick={() => onRemoveNewPicture(index)}
+              aria-label={`Remove new picture ${index + 1}`}
             >
               X
             </Button>
           </Box>
         ))}
         <Box
+          role="button"
+          tabIndex={0}
+          aria-label="Add gallery image"
           borderWidth="1px"
           borderStyle="dashed"
           borderRadius="md"
@@ -130,6 +135,9 @@ const PicturesField = ({
           cursor="pointer"
           _hover={{ borderColor: 'blue.400', color: 'blue.500' }}
           onClick={() => picturesInputRef.current?.click()}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') picturesInputRef.current?.click();
+          }}
         >
           Add image
         </Box>

@@ -62,6 +62,9 @@ const ShelfItem = ({ item, index = 0, clickable = true }: ShelfItemProps) => {
       <Image
         src={cloudinarySizes(item.cover).cover}
         alt={item.title}
+        onError={(event) => {
+          event.currentTarget.src = '/favicon.png';
+        }}
         display="block"
         w="auto"
         h="auto"

@@ -1,13 +1,14 @@
 import { Box, Button, Field, Flex, Heading, Input, Stack, Text, VStack } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import authServices from '@/services/authServices';
 import { canManageCollection, setAuthToken } from '@/services/http';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,7 +25,8 @@ const AdminLogin = () => {
     try {
       const { token, expiresAt } = await authServices.login(password);
       setAuthToken(token, expiresAt);
-      navigate('/admin/collections', { replace: true });
+      const returnTo = new URLSearchParams(location.search).get('returnTo');
+      navigate(returnTo?.startsWith('/') ? returnTo : '/admin/collections', { replace: true });
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Unable to sign in.');
     } finally {

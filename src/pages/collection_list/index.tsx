@@ -2,7 +2,7 @@ import { Box, Button, Center, Flex, Grid, Spinner, Text } from '@chakra-ui/react
 import { FlaskConical } from 'lucide-react';
 import ViewToggleButton from '@/layouts/hobby_showcase/ViewToggleButton';
 import useCollections from '@/hooks/collections/useCollections';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import ItemCard from './parts/ItemCard';
 import collectionServices from '@/services/content/collectionServices';
 import {
@@ -17,7 +17,8 @@ import StatisticsSection from './parts/StatisticsSection';
 import { Helmet } from 'react-helmet-async';
 
 const CollectionList = () => {
-  const { getCollections, collections } = useCollections();
+  const { getCollections, collections, totalCount } = useCollections();
+  const requestControllerRef = useRef<AbortController | null>(null);
   const [isLoadingCollections, setIsLoadingCollections] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [collectionTypeOptions, setCollectionTypeOptions] = useState<ICollectionTypeFilterItem[]>(
@@ -39,6 +40,7 @@ const CollectionList = () => {
     handleReleaseTypeToggle,
     handleSortChange,
     isResolvingCollectionSlug,
+    offset,
     query,
     selectedFigureScaleId,
     selectedGradeId,
@@ -50,6 +52,7 @@ const CollectionList = () => {
     sortBy,
   } = useCollectionListFilters({
     collectionsCount: collections?.length ?? 0,
+    totalCount,
     collectionTypeOptions,
     figureScaleOptions,
     gunplaGradeOptions,
@@ -58,20 +61,28 @@ const CollectionList = () => {
 
   const handleFetchCollections = useCallback(async () => {
     if (isResolvingCollectionSlug) return;
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
     setIsLoadingCollections(true);
     setErrorMessage(null);
     try {
-      await getCollections(query);
+      await getCollections(query, controller.signal);
     } catch {
-      setErrorMessage('Failed to load collections.');
+      if (!controller.signal.aborted) setErrorMessage('Failed to load collections.');
     } finally {
-      setIsLoadingCollections(false);
+      if (!controller.signal.aborted) setIsLoadingCollections(false);
     }
   }, [getCollections, isResolvingCollectionSlug, query]);
 
   useEffect(() => {
     void handleFetchCollections();
+    return () => requestControllerRef.current?.abort();
   }, [handleFetchCollections]);
+
+  useEffect(() => {
+    if (!isLoadingCollections && offset > 0 && collections?.length === 0) goPrevPage();
+  }, [collections, goPrevPage, isLoadingCollections, offset]);
 
   useEffect(() => {
     const loadFilterOptions = async () => {
@@ -93,7 +104,6 @@ const CollectionList = () => {
   const pageDescription =
     'Explore my personal collection of model kits, custom builds, and hobby projects.';
   const pageUrl = 'https://hobby.iotatfan.com/';
-  // const pageImage = "https://hobby.iotatfan.com/default-og-cover.png";
 
   return (
     <>

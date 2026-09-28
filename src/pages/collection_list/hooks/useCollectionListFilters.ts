@@ -77,6 +77,7 @@ const normalizeSortParam = (value: string | null): string => {
 
 type UseCollectionListFiltersOptions = {
   collectionsCount: number;
+  totalCount?: number;
   collectionTypeOptions: ICollectionTypeFilterItem[];
   gunplaGradeOptions: IGunplaGradeFilterItem[];
   figureScaleOptions: IFiguresScaleFilterItem[];
@@ -85,6 +86,7 @@ type UseCollectionListFiltersOptions = {
 
 const useCollectionListFilters = ({
   collectionsCount,
+  totalCount,
   collectionTypeOptions,
   gunplaGradeOptions,
   figureScaleOptions,
@@ -240,7 +242,8 @@ const useCollectionListFilters = ({
   }, [sortBy]);
 
   const canGoPrev = offset > 0;
-  const canGoNext = collectionsCount >= limit;
+  const canGoNext =
+    typeof totalCount === 'number' ? offset + limit < totalCount : collectionsCount === limit;
   const currentPage = Math.floor(offset / limit) + 1;
 
   const handleCollectionTypeChange = useCallback(

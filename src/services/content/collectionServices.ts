@@ -11,6 +11,7 @@ import {
   ICollectionUpsertPayload,
   ICollectionStatistics,
   ICollectionShelf,
+  ICollectionListResponse,
 } from '@/libs/collection/collection';
 import http, { getAuthToken, isValidJwtToken } from '@/services/http';
 import {
@@ -33,9 +34,9 @@ const logError = (...args: unknown[]) => {
   }
 };
 
-const getAllCollections = async (query?: ICollectionFilterQuery) => {
+const getAllCollections = async (query?: ICollectionFilterQuery, signal?: AbortSignal) => {
   const cached = getCachedCollectionList(query);
-  if (cached) return cached as ICollection[];
+  if (cached) return cached;
 
   try {
     const response = await http.get('/collection', {
@@ -51,10 +52,16 @@ const getAllCollections = async (query?: ICollectionFilterQuery) => {
       paramsSerializer: {
         indexes: null,
       },
+      signal,
     });
-    setCachedCollectionList(response.data.data.collections as ICollection[], query);
+    const data = response.data.data as ICollectionListResponse;
+    const result: ICollectionListResponse = {
+      collections: Array.isArray(data?.collections) ? data.collections : [],
+      ...(typeof data?.total_count === 'number' ? { total_count: data.total_count } : {}),
+    };
+    setCachedCollectionList(result, query);
 
-    return response.data.data.collections as ICollection[];
+    return result;
   } catch (error) {
     logError('Error fetching collections:', error);
     throw error;

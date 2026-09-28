@@ -41,6 +41,7 @@ const CollectionForm = () => {
     handleRemoveNewPicture,
     handleSelectAddonManufacturer,
     handleSubmit,
+    handleCoverFileChange,
     isEditMode,
     isLoading,
     isGradeDrawerOpen,
@@ -83,7 +84,6 @@ const CollectionForm = () => {
     setAcquiredAt,
     setActiveAddonManufacturerIndex,
     setBuiltAt,
-    setCoverFile,
     setDescription,
     setIsGradeDrawerOpen,
     setIsScaleDrawerOpen,
@@ -117,7 +117,11 @@ const CollectionForm = () => {
           </Text>
         </Stack>
 
-        {errorMessage && <Text color="red.500">{errorMessage}</Text>}
+        {errorMessage && (
+          <Text role="alert" tabIndex={-1} color="red.500">
+            {errorMessage}
+          </Text>
+        )}
         {isLoading ? (
           <Text>Loading collection...</Text>
         ) : (
@@ -137,7 +141,7 @@ const CollectionForm = () => {
                 coverInputRef={coverInputRef}
                 coverPreviewUrl={coverPreviewUrl}
                 existingCoverUrl={existingCoverUrl}
-                onCoverFileChange={setCoverFile}
+                onCoverFileChange={handleCoverFileChange}
               />
 
               <Stack direction={{ base: 'column', md: 'row' }} gap={4}>

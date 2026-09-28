@@ -40,6 +40,9 @@ const CoverImageField = ({
       <Box mt={2}>
         {coverPreviewUrl ? (
           <Box
+            role="button"
+            tabIndex={0}
+            aria-label="Change cover image"
             borderWidth="1px"
             borderRadius="md"
             overflow="hidden"
@@ -47,6 +50,9 @@ const CoverImageField = ({
             h="160px"
             cursor="pointer"
             onClick={() => coverInputRef.current?.click()}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') coverInputRef.current?.click();
+            }}
           >
             <Image
               src={coverPreviewUrl}
@@ -62,6 +68,9 @@ const CoverImageField = ({
           </Box>
         ) : (
           <Box
+            role="button"
+            tabIndex={0}
+            aria-label="Add cover image"
             borderWidth="1px"
             borderStyle="dashed"
             borderRadius="md"
@@ -74,6 +83,9 @@ const CoverImageField = ({
             cursor="pointer"
             _hover={{ borderColor: 'blue.400', color: 'blue.500' }}
             onClick={() => coverInputRef.current?.click()}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') coverInputRef.current?.click();
+            }}
           >
             Add image
           </Box>

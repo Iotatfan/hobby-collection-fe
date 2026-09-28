@@ -4,7 +4,7 @@ interface Env {
   ASSETS: Fetcher;
   VITE_API_BASE_URL?: string;
   API_BASE_URL?: string;
-  GO_API_HOST?: string;
+  CLOUDINARY_CLOUD_NAME?: string;
 }
 
 interface ApiResponse<T> {
@@ -35,11 +35,8 @@ export default {
     }
 
     // Safely get API host with fallback
-    const rawApiHost =
-      import.meta.env?.VITE_API_BASE_URL ??
-      env.VITE_API_BASE_URL
-    
-    const cloudinary = import.meta.env?.VITE_CLOUDINARY_CLOUD_NAME
+    const rawApiHost = env.API_BASE_URL || env.VITE_API_BASE_URL;
+    const cloudinary = env.CLOUDINARY_CLOUD_NAME;
 
     if (!rawApiHost) {
       console.error('[Worker] Missing API host configuration.');
@@ -51,8 +48,9 @@ export default {
 
     const meta = {
       title: 'Hobby Collection Showcase',
-      description: 'Showcasing built model kits, custom paintwork, and third-party detail-up builds.',
-      image: `${url.origin}/default-og-cover.png`,
+      description:
+        'Showcasing built model kits, custom paintwork, and third-party detail-up builds.',
+      image: `${url.origin}/favicon.png`,
       url: request.url,
     };
 
@@ -69,7 +67,7 @@ export default {
         const item = response.data;
 
         meta.title = `${item.title ?? 'Collection Item'} | Hobby Showcase`;
-        
+
         // Clean up multiline breaks that confuse parsers
         if (item.description) {
           meta.description = item.description.replace(/\s+/g, ' ').trim();
@@ -84,7 +82,9 @@ export default {
             // Check if it's a relative Cloudinary path vs local static asset path
             const isCloudinaryPath = image.startsWith('v') || image.includes('Hobby/');
             if (isCloudinaryPath) {
-              meta.image = `https://res.cloudinary.com/${cloudinary}/image/upload/${image.replace(/^\//, '')}`;
+              meta.image = cloudinary
+                ? `https://res.cloudinary.com/${cloudinary}/image/upload/${image.replace(/^\//, '')}`
+                : `${url.origin}/favicon.png`;
             } else {
               meta.image = `${url.origin}${image.startsWith('/') ? '' : '/'}${image}`;
             }
@@ -108,28 +108,44 @@ export default {
     // Overwrite existing meta tags in-place rather than appending new ones
     return new HTMLRewriter()
       .on('title', {
-        element(el) { el.setInnerContent(meta.title); }
+        element(el) {
+          el.setInnerContent(meta.title);
+        },
       })
       .on('meta[property="og:title"]', {
-        element(el) { el.setAttribute('content', meta.title); }
+        element(el) {
+          el.setAttribute('content', meta.title);
+        },
       })
       .on('meta[property="og:description"]', {
-        element(el) { el.setAttribute('content', meta.description); }
+        element(el) {
+          el.setAttribute('content', meta.description);
+        },
       })
       .on('meta[property="og:image"]', {
-        element(el) { el.setAttribute('content', meta.image); }
+        element(el) {
+          el.setAttribute('content', meta.image);
+        },
       })
       .on('meta[property="og:url"]', {
-        element(el) { el.setAttribute('content', meta.url); }
+        element(el) {
+          el.setAttribute('content', meta.url);
+        },
       })
       .on('meta[name="twitter:title"]', {
-        element(el) { el.setAttribute('content', meta.title); }
+        element(el) {
+          el.setAttribute('content', meta.title);
+        },
       })
       .on('meta[name="twitter:description"]', {
-        element(el) { el.setAttribute('content', meta.description); }
+        element(el) {
+          el.setAttribute('content', meta.description);
+        },
       })
       .on('meta[name="twitter:image"]', {
-        element(el) { el.setAttribute('content', meta.image); }
+        element(el) {
+          el.setAttribute('content', meta.image);
+        },
       })
       .transform(response);
   },

@@ -1,8 +1,9 @@
 import { Badge, Box, Button, Flex, Heading, Image, Spinner, Text } from '@chakra-ui/react';
-import { useCallback, useEffect, useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Pencil, Plus } from 'lucide-react';
+import { LogOut, Pencil, Plus } from 'lucide-react';
+import { clearAuthToken } from '@/services/http';
 import useCollections from '@/hooks/collections/useCollections';
 import collectionServices from '@/services/content/collectionServices';
 import { cloudinarySizes } from '@/utils/cloudinary';
@@ -24,7 +25,9 @@ const STATUS_LABELS: Record<ICollectionStatus, string> = {
 };
 
 const AdminCollectionList = () => {
-  const { getCollections, collections } = useCollections();
+  const { getCollections, collections, totalCount } = useCollections();
+  const navigate = useNavigate();
+  const requestControllerRef = useRef<AbortController | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [collectionTypeOptions, setCollectionTypeOptions] = useState<ICollectionTypeFilterItem[]>(
@@ -46,6 +49,7 @@ const AdminCollectionList = () => {
     handleReleaseTypeToggle,
     handleSortChange,
     isResolvingCollectionSlug,
+    offset,
     query,
     selectedFigureScaleId,
     selectedGradeId,
@@ -57,6 +61,7 @@ const AdminCollectionList = () => {
     sortBy,
   } = useCollectionListFilters({
     collectionsCount: collections?.length ?? 0,
+    totalCount,
     collectionTypeOptions,
     figureScaleOptions,
     gunplaGradeOptions,
@@ -65,20 +70,28 @@ const AdminCollectionList = () => {
 
   const fetchCollections = useCallback(async () => {
     if (isResolvingCollectionSlug) return;
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      await getCollections(query);
+      await getCollections(query, controller.signal);
     } catch {
-      setErrorMessage('Failed to load collections.');
+      if (!controller.signal.aborted) setErrorMessage('Failed to load collections.');
     } finally {
-      setIsLoading(false);
+      if (!controller.signal.aborted) setIsLoading(false);
     }
   }, [getCollections, isResolvingCollectionSlug, query]);
 
   useEffect(() => {
     void fetchCollections();
+    return () => requestControllerRef.current?.abort();
   }, [fetchCollections]);
+
+  useEffect(() => {
+    if (!isLoading && offset > 0 && collections?.length === 0) goPrevPage();
+  }, [collections, goPrevPage, isLoading, offset]);
 
   useEffect(() => {
     const loadFilterOptions = async () => {
@@ -108,11 +121,22 @@ const AdminCollectionList = () => {
               Review and update your collection items.
             </Text>
           </Box>
-          <Button asChild colorPalette="blue">
-            <RouterLink to="/collection/new">
-              <Plus size={16} /> Add new
-            </RouterLink>
-          </Button>
+          <Flex gap={2}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                clearAuthToken();
+                navigate('/admin/login', { replace: true });
+              }}
+            >
+              <LogOut size={16} aria-hidden="true" /> Logout
+            </Button>
+            <Button asChild colorPalette="blue">
+              <RouterLink to="/collection/new">
+                <Plus size={16} aria-hidden="true" /> Add new
+              </RouterLink>
+            </Button>
+          </Flex>
         </Flex>
 
         <CollectionFilters
@@ -174,7 +198,10 @@ const AdminCollectionList = () => {
                       <Flex align="center" gap={3}>
                         <Image
                           src={cloudinarySizes(collection.cover).thumb}
-                          alt=""
+                          alt={`${collection.title} cover`}
+                          onError={(event) => {
+                            event.currentTarget.src = '/favicon.png';
+                          }}
                           boxSize="52px"
                           rounded="md"
                           objectFit="cover"
