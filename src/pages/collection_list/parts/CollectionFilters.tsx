@@ -1,4 +1,5 @@
 import { Box, Button, Field, Flex, Menu, Portal, Tabs, Text } from '@chakra-ui/react';
+import StandardDropdown from '@/components/StandardDropdown';
 import {
   ICollectionTypeFilterItem,
   IFiguresScaleFilterItem,
@@ -141,45 +142,12 @@ const CollectionFilters = ({
                 Sort By
               </Text>
               <Box w="full" flex="1" minW={{ base: '0', md: SORT_FILTER_MIN_WIDTH }}>
-                <Menu.Root positioning={{ placement: 'bottom-start', sameWidth: true }}>
-                  <Menu.Trigger asChild>
-                    <Button size="sm" variant="outline" justifyContent="space-between" w="full">
-                      <Text
-                        as="span"
-                        flex="1"
-                        minW="0"
-                        whiteSpace="nowrap"
-                        overflow="hidden"
-                        textOverflow="ellipsis"
-                        textAlign="left"
-                      >
-                        {selectedSortLabel}
-                      </Text>
-                      <Text as="span" ml={2} flexShrink={0}>
-                        v
-                      </Text>
-                    </Button>
-                  </Menu.Trigger>
-                  <Portal>
-                    <Menu.Positioner>
-                      <Menu.Content>
-                        <Menu.RadioItemGroup
-                          value={sortBy}
-                          onValueChange={(details) => {
-                            handleSortChange(details.value);
-                          }}
-                        >
-                          {SORT_OPTIONS.map((option) => (
-                            <Menu.RadioItem key={option.value} value={option.value}>
-                              <Menu.ItemIndicator />
-                              <Text as="span">{option.label}</Text>
-                            </Menu.RadioItem>
-                          ))}
-                        </Menu.RadioItemGroup>
-                      </Menu.Content>
-                    </Menu.Positioner>
-                  </Portal>
-                </Menu.Root>
+                <StandardDropdown
+                  placeholder={selectedSortLabel}
+                  value={sortBy}
+                  options={SORT_OPTIONS}
+                  onValueChange={(value) => handleSortChange(String(value))}
+                />
               </Box>
             </Flex>
           </Field.Root>

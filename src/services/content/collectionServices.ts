@@ -164,6 +164,54 @@ const getCollectionShelves = async (): Promise<ICollectionShelf> => {
 
 type CollectionMutationPayload = ICollectionUpsertPayload | ICollectionUploadPayload | FormData;
 
+export interface ICreateNamedCatalogRequest {
+  name: string;
+}
+
+export interface ICreateGradeRequest {
+  name: string;
+  short_name: string;
+  collection_type_id: number;
+}
+
+export interface ICreateMetadataTagRequest {
+  slug: string;
+  name: string;
+  type: 0 | 1;
+}
+
+const createCatalogEntry = async <T>(endpoint: string, payload: T) => {
+  const token = getAuthToken();
+  if (!isValidJwtToken(token)) {
+    throw new Error('Missing or invalid JWT token. Sign in as an admin first.');
+  }
+
+  try {
+    const response = await http.post(endpoint, payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data?.data;
+  } catch (error) {
+    logError(`Error creating catalog entry at ${endpoint}:`, error);
+    throw error;
+  }
+};
+
+const createCollectionType = (payload: ICreateNamedCatalogRequest) =>
+  createCatalogEntry('/collection/types', payload);
+const createGrade = (payload: ICreateGradeRequest) =>
+  createCatalogEntry('/collection/grades', payload);
+const createScale = (payload: ICreateNamedCatalogRequest) =>
+  createCatalogEntry('/collection/scales', payload);
+const createReleaseType = (payload: ICreateNamedCatalogRequest) =>
+  createCatalogEntry('/collection/release-types', payload);
+const createSeries = (payload: ICreateNamedCatalogRequest) =>
+  createCatalogEntry('/collection/series', payload);
+const createManufacturer = (payload: ICreateNamedCatalogRequest) =>
+  createCatalogEntry('/collection/manufacturers', payload);
+const createMetadataTag = (payload: ICreateMetadataTagRequest) =>
+  createCatalogEntry('/collection/metadata-tags', payload);
+
 const createCollection = async (payload: CollectionMutationPayload) => {
   const token = getAuthToken();
   if (!isValidJwtToken(token)) {
@@ -209,6 +257,13 @@ const collectionServices = {
   getCollectionShelves,
   createCollection,
   updateCollection,
+  createCollectionType,
+  createGrade,
+  createScale,
+  createReleaseType,
+  createSeries,
+  createManufacturer,
+  createMetadataTag,
 };
 
 export default collectionServices;

@@ -1,8 +1,4 @@
-import type {
-  ICollection,
-  ICollectionDrawerContent,
-  IManufacturerDrawerItem,
-} from '@/libs/collection/collection';
+import type { ICollection, ICollectionDrawerContent } from '@/libs/collection/collection';
 import { AxiosError } from 'axios';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
@@ -52,17 +48,6 @@ const useCollectionForm = () => {
   const [isLoadingCollection, setIsLoadingCollection] = useState(false);
   const [isLoadingDrawer, setIsLoadingDrawer] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isTypeDrawerOpen, setIsTypeDrawerOpen] = useState(false);
-  const [isGradeDrawerOpen, setIsGradeDrawerOpen] = useState(false);
-  const [isScaleDrawerOpen, setIsScaleDrawerOpen] = useState(false);
-  const [isStatusDrawerOpen, setIsStatusDrawerOpen] = useState(false);
-  const [isReleaseTypeDrawerOpen, setIsReleaseTypeDrawerOpen] = useState(false);
-  const [isManufacturerDrawerOpen, setIsManufacturerDrawerOpen] = useState(false);
-  const [isSeriesDrawerOpen, setIsSeriesDrawerOpen] = useState(false);
-  const [isDisplaySizeDrawerOpen, setIsDisplaySizeDrawerOpen] = useState(false);
-  const [activeAddonManufacturerIndex, setActiveAddonManufacturerIndex] = useState<number | null>(
-    null,
-  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [collectionType, setCollectionType] = useState<string | null>(null);
   const [initialScaleName, setInitialScaleName] = useState<string | null>(null);
@@ -118,23 +103,7 @@ const useCollectionForm = () => {
     return drawerGrades.filter((g) => g.collection_type_name === 'Gunpla');
   }, [drawerGrades]);
 
-  const selectedGrade = useMemo(() => {
-    return drawerGrades.find((option) => option.grade_id === gradeId) ?? null;
-  }, [drawerGrades, gradeId]);
-  const selectedScale = scales.find((option) => option.id === scaleId);
-  const selectedStatus = STATUS_OPTIONS.find((option) => option.id === statusId);
-  const selectedReleaseType = releaseTypes.find((option) => option.id === releaseTypeId);
   const selectedManufacturer = manufacturers.find((option) => option.id === manufacturerId);
-  const selectedSeries = seriesOptions.find((option) => option.id === seriesId);
-  const selectedDisplaySize = displaySize
-    ? drawerDisplaySizes.find((option) => option === displaySize)
-    : null;
-  const activeAddonManufacturer =
-    activeAddonManufacturerIndex === null
-      ? undefined
-      : manufacturers.find(
-          (option) => option.id === addons[activeAddonManufacturerIndex]?.manufacturerId,
-        );
 
   const coverPreviewUrl = useMemo(() => {
     if (coverFile) return URL.createObjectURL(coverFile);
@@ -480,7 +449,7 @@ const useCollectionForm = () => {
         await collectionServices.createCollection(formData);
       }
 
-      navigate('/');
+      navigate('/admin/collections');
     } catch (error) {
       if (error instanceof AxiosError) {
         const backendMessage = (error.response?.data as { message?: string } | undefined)?.message;
@@ -518,16 +487,12 @@ const useCollectionForm = () => {
     setAddons((prev) => prev.map((addon) => (addon.rowId === rowId ? { ...addon, name } : addon)));
   };
 
-  const handleSelectAddonManufacturer = (manufacturer: IManufacturerDrawerItem) => {
-    if (activeAddonManufacturerIndex === null) return;
+  const handleAddonManufacturerChange = (rowId: number, manufacturerId: number) => {
     setAddons((prev) =>
-      prev.map((addon, index) =>
-        index === activeAddonManufacturerIndex
-          ? { ...addon, manufacturerId: manufacturer.id }
-          : addon,
+      prev.map((addon) =>
+        addon.rowId === rowId ? { ...addon, manufacturerId } : addon,
       ),
     );
-    setActiveAddonManufacturerIndex(null);
   };
 
   const handleSelectCollectionType = (type: string) => {
@@ -540,12 +505,9 @@ const useCollectionForm = () => {
       const firstGunpla = gunplaGrades[0];
       setGradeId(firstGunpla ? firstGunpla.grade_id : null);
     }
-    setIsTypeDrawerOpen(false);
   };
 
   return {
-    activeAddonManufacturer,
-    activeAddonManufacturerIndex,
     addons,
     builtAt,
     collectionType,
@@ -562,23 +524,15 @@ const useCollectionForm = () => {
     gunplaGrades,
     handleAddAddon,
     handleAddonNameChange,
+    handleAddonManufacturerChange,
     handlePicturesChange,
     handleRemoveAddon,
     handleRemoveExistingPicture,
     handleRemoveNewPicture,
-    handleSelectAddonManufacturer,
     handleSubmit,
     isEditMode,
     isLoading,
-    isGradeDrawerOpen,
-    isScaleDrawerOpen,
-    isManufacturerDrawerOpen,
-    isReleaseTypeDrawerOpen,
-    isSeriesDrawerOpen,
-    isStatusDrawerOpen,
-    isDisplaySizeDrawerOpen,
     isSubmitting,
-    isTypeDrawerOpen,
     handleSelectCollectionType,
     manufacturers,
     newPicturePreviewUrls,
@@ -591,28 +545,13 @@ const useCollectionForm = () => {
     scales,
     displaySize,
     selectedManufacturer,
-    selectedReleaseType,
-    selectedSeries,
-    selectedStatus,
-    selectedGrade,
-    selectedScale,
-    selectedDisplaySize,
     seriesId,
     seriesOptions,
     setAcquiredAt,
-    setActiveAddonManufacturerIndex,
     setBuiltAt,
     setCoverFile,
     handleCoverFileChange,
     setDescription,
-    setIsGradeDrawerOpen,
-    setIsScaleDrawerOpen,
-    setIsManufacturerDrawerOpen,
-    setIsReleaseTypeDrawerOpen,
-    setIsSeriesDrawerOpen,
-    setIsStatusDrawerOpen,
-    setIsTypeDrawerOpen,
-    setIsDisplaySizeDrawerOpen,
     setManufacturerId,
     setReleaseTypeId,
     setSeriesId,

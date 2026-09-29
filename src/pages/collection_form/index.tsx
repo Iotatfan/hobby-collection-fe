@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   Field,
   Flex,
@@ -9,9 +10,9 @@ import {
   Textarea,
   VStack,
 } from '@chakra-ui/react';
+import StandardDropdown from '@/components/StandardDropdown';
 import { Link as RouterLink } from 'react-router-dom';
 import CoverImageField from './parts/CoverImageField';
-import FormSelectDrawers from './parts/FormSelectDrawers';
 import MetadataTagGroup from './parts/MetadataTagGroup';
 import PicturesField from './parts/PicturesField';
 import { STATUS_OPTIONS } from './helpers/collectionForm.helpers';
@@ -20,8 +21,6 @@ import useCollectionForm from './hooks/useCollectionForm';
 const CollectionForm = () => {
   const {
     acquiredAt,
-    activeAddonManufacturer,
-    activeAddonManufacturerIndex,
     addons,
     builtAt,
     coverFile,
@@ -35,24 +34,16 @@ const CollectionForm = () => {
     gradeId,
     handleAddAddon,
     handleAddonNameChange,
+    handleAddonManufacturerChange,
     handlePicturesChange,
     handleRemoveAddon,
     handleRemoveExistingPicture,
     handleRemoveNewPicture,
-    handleSelectAddonManufacturer,
     handleSubmit,
     handleCoverFileChange,
     isEditMode,
     isLoading,
-    isGradeDrawerOpen,
-    isScaleDrawerOpen,
-    isManufacturerDrawerOpen,
-    isReleaseTypeDrawerOpen,
-    isSeriesDrawerOpen,
-    isStatusDrawerOpen,
-    isDisplaySizeDrawerOpen,
     isSubmitting,
-    isTypeDrawerOpen,
     manufacturers,
     newPicturePreviewUrls,
     picturesInputRef,
@@ -61,15 +52,9 @@ const CollectionForm = () => {
     scaleId,
     scales,
     selectedManufacturer,
-    selectedReleaseType,
-    selectedSeries,
-    selectedStatus,
-    selectedGrade,
-    selectedScale,
     collectionType,
     collectionTypes,
     setDisplaySize,
-    selectedDisplaySize,
     displaySize,
     gunplaGrades,
     seriesId,
@@ -82,17 +67,8 @@ const CollectionForm = () => {
     drawerModifications,
     drawerDisplaySizes,
     setAcquiredAt,
-    setActiveAddonManufacturerIndex,
     setBuiltAt,
     setDescription,
-    setIsGradeDrawerOpen,
-    setIsScaleDrawerOpen,
-    setIsManufacturerDrawerOpen,
-    setIsReleaseTypeDrawerOpen,
-    setIsSeriesDrawerOpen,
-    setIsStatusDrawerOpen,
-    setIsTypeDrawerOpen,
-    setIsDisplaySizeDrawerOpen,
     handleSelectCollectionType,
     setManufacturerId,
     setReleaseTypeId,
@@ -104,10 +80,9 @@ const CollectionForm = () => {
     setGradeId,
     setScaleId,
   } = useCollectionForm();
-
   return (
     <Flex w="full" justify="center" px={4} py={8}>
-      <VStack w="full" maxW="44rem" align="stretch" gap={5}>
+      <VStack w="full" minW={0} maxW="64rem" align="stretch" gap={5}>
         <Stack gap={1}>
           <Heading size="xl">{isEditMode ? 'Edit Collection' : 'Create Collection'}</Heading>
           <Text color="fg.muted">
@@ -125,9 +100,19 @@ const CollectionForm = () => {
         {isLoading ? (
           <Text>Loading collection...</Text>
         ) : (
-          <form onSubmit={handleSubmit} noValidate>
-            <VStack align="stretch" gap={4}>
-              <Field.Root required>
+          <Box
+            as="form"
+            onSubmit={handleSubmit}
+            noValidate
+            bg="bg.panel"
+            borderWidth="1px"
+            borderColor="border.subtle"
+            borderRadius="2xl"
+            boxShadow="sm"
+            p={{ base: 4, md: 7 }}
+          >
+            <VStack align="stretch" gap={6} minW={0} w="full">
+              <Field.Root required minW={0}>
                 <Field.Label>Title</Field.Label>
                 <Input
                   value={title}
@@ -144,105 +129,112 @@ const CollectionForm = () => {
                 onCoverFileChange={handleCoverFileChange}
               />
 
-              <Stack direction={{ base: 'column', md: 'row' }} gap={4}>
-                <Field.Root required>
+              <Box
+                display="grid"
+                gridTemplateColumns={{ base: '1fr', md: 'repeat(2, minmax(0, 1fr))' }}
+                gap={4}
+                minW={0}
+              >
+                <Field.Root required minW={0}>
                   <Field.Label>Type</Field.Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    justifyContent="start"
-                    onClick={() => setIsTypeDrawerOpen(true)}
-                  >
-                    {collectionType ? collectionType : 'Choose collection type'}
-                  </Button>
+                  <StandardDropdown
+                    placeholder="Choose collection type"
+                    value={collectionType}
+                    options={collectionTypes.map((type) => ({ value: type, label: type }))}
+                    onValueChange={(value) => handleSelectCollectionType(String(value))}
+                  />
                 </Field.Root>
 
-                <Field.Root required>
+                <Field.Root required minW={0}>
                   <Field.Label>Status</Field.Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    justifyContent="start"
-                    onClick={() => setIsStatusDrawerOpen(true)}
-                  >
-                    {selectedStatus ? selectedStatus.name : 'Choose status'}
-                  </Button>
+                  <StandardDropdown
+                    placeholder="Choose status"
+                    value={statusId}
+                    options={STATUS_OPTIONS.map((option) => ({
+                      value: option.id,
+                      label: option.name,
+                    }))}
+                    onValueChange={(value) => setStatusId(Number(value) as 0 | 1 | 2 | 3)}
+                  />
                 </Field.Root>
 
                 {collectionType === 'Gunpla' && (
-                  <Field.Root required>
+                  <Field.Root required minW={0}>
                     <Field.Label>Grade</Field.Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      justifyContent="start"
-                      onClick={() => setIsGradeDrawerOpen(true)}
-                    >
-                      {selectedGrade ? selectedGrade.grade_short_name : 'Choose grade'}
-                    </Button>
+                    <StandardDropdown
+                      placeholder="Choose grade"
+                      value={gradeId}
+                      options={gunplaGrades.map((grade) => ({
+                        value: grade.grade_id,
+                        label: grade.grade_short_name,
+                      }))}
+                      onValueChange={(value) => setGradeId(Number(value))}
+                    />
                   </Field.Root>
                 )}
 
-                <Field.Root required>
+                <Field.Root required minW={0}>
                   <Field.Label>Scale</Field.Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    justifyContent="start"
-                    onClick={() => setIsScaleDrawerOpen(true)}
-                  >
-                    {selectedScale ? selectedScale.name : 'Choose scale'}
-                  </Button>
+                  <StandardDropdown
+                    placeholder="Choose scale"
+                    value={scaleId}
+                    options={scales.map((scale) => ({ value: scale.id, label: scale.name }))}
+                    onValueChange={(value) => setScaleId(Number(value))}
+                  />
                 </Field.Root>
 
-                <Field.Root required>
+                <Field.Root required minW={0}>
                   <Field.Label>Manufacturer</Field.Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    justifyContent="start"
-                    onClick={() => setIsManufacturerDrawerOpen(true)}
-                  >
-                    {selectedManufacturer ? selectedManufacturer.name : 'Choose manufacturer'}
-                  </Button>
+                  <StandardDropdown
+                    placeholder="Choose manufacturer"
+                    value={selectedManufacturer?.id ?? null}
+                    options={manufacturers.map((manufacturer) => ({
+                      value: manufacturer.id,
+                      label: manufacturer.name,
+                    }))}
+                    onValueChange={(value) => setManufacturerId(Number(value))}
+                  />
                 </Field.Root>
 
-                <Field.Root required>
+                <Field.Root required minW={0}>
                   <Field.Label>Release Type</Field.Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    justifyContent="start"
-                    onClick={() => setIsReleaseTypeDrawerOpen(true)}
-                  >
-                    {selectedReleaseType ? selectedReleaseType.name : 'Choose release type'}
-                  </Button>
+                  <StandardDropdown
+                    placeholder="Choose release type"
+                    value={releaseTypeId}
+                    options={releaseTypes.map((releaseType) => ({
+                      value: releaseType.id,
+                      label: releaseType.name,
+                    }))}
+                    onValueChange={(value) => setReleaseTypeId(Number(value))}
+                  />
                 </Field.Root>
 
-                <Field.Root required>
+                <Field.Root required minW={0}>
                   <Field.Label>Series</Field.Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    justifyContent="start"
-                    onClick={() => setIsSeriesDrawerOpen(true)}
-                  >
-                    {selectedSeries ? selectedSeries.name : 'Choose series'}
-                  </Button>
+                  <StandardDropdown
+                    placeholder="Choose series"
+                    value={seriesId}
+                    options={seriesOptions.map((series) => ({
+                      value: series.id,
+                      label: series.name,
+                    }))}
+                    onValueChange={(value) => setSeriesId(Number(value))}
+                    searchable
+                    searchPlaceholder="Search series"
+                    emptyText="No series available."
+                  />
                 </Field.Root>
 
-                <Field.Root required>
+                <Field.Root required minW={0}>
                   <Field.Label>Display Size</Field.Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    justifyContent="start"
-                    onClick={() => setIsDisplaySizeDrawerOpen(true)}
-                  >
-                    {selectedDisplaySize ? selectedDisplaySize : 'Choose display size'}
-                  </Button>
+                  <StandardDropdown
+                    placeholder="Choose display size"
+                    value={displaySize}
+                    options={drawerDisplaySizes.map((size) => ({ value: size, label: size }))}
+                    onValueChange={(value) => setDisplaySize(String(value))}
+                  />
                 </Field.Root>
-              </Stack>
+              </Box>
 
               <Stack gap={4}>
                 <MetadataTagGroup
@@ -284,7 +276,7 @@ const CollectionForm = () => {
                 </Field.Root>
               )}
 
-              <Field.Root>
+              <Field.Root minW={0}>
                 <Field.Label>Description</Field.Label>
                 <Textarea
                   value={description}
@@ -295,14 +287,17 @@ const CollectionForm = () => {
               </Field.Root>
 
               <Field.Root>
-                <Field.Label>Addons</Field.Label>
-                <VStack align="stretch" gap={3}>
+                <Field.Label>Add-ons</Field.Label>
+                <VStack align="stretch" gap={3} minW={0} w="full">
                   {addons.map((addon, index) => {
-                    const addonManufacturer = manufacturers.find(
-                      (option) => option.id === addon.manufacturerId,
-                    );
                     return (
-                      <Stack key={addon.rowId} direction={{ base: 'column', md: 'row' }} gap={2}>
+                      <Stack
+                        key={addon.rowId}
+                        direction={{ base: 'column', md: 'row' }}
+                        gap={2}
+                        minW={0}
+                        w="full"
+                      >
                         <Input
                           value={addon.name}
                           onChange={(event) =>
@@ -310,14 +305,19 @@ const CollectionForm = () => {
                           }
                           placeholder={`Addon ${index + 1} name`}
                         />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          justifyContent="start"
-                          onClick={() => setActiveAddonManufacturerIndex(index)}
-                        >
-                          {addonManufacturer ? addonManufacturer.name : 'Choose manufacturer'}
-                        </Button>
+                        <Box w="full" minW={0} flex={{ base: 'initial', md: '0 0 14rem' }}>
+                          <StandardDropdown
+                            placeholder="Choose manufacturer"
+                            value={addon.manufacturerId}
+                            options={manufacturers.map((manufacturer) => ({
+                              value: manufacturer.id,
+                              label: manufacturer.name,
+                            }))}
+                            onValueChange={(value) =>
+                              handleAddonManufacturerChange(addon.rowId, Number(value))
+                            }
+                          />
+                        </Box>
                         <Button
                           type="button"
                           variant="outline"
@@ -347,64 +347,23 @@ const CollectionForm = () => {
               />
 
               <Stack direction={{ base: 'column', sm: 'row' }} gap={3}>
-                <Button type="submit" colorPalette="blue" loading={isSubmitting}>
+                <Button
+                  type="submit"
+                  colorPalette="blue"
+                  loading={isSubmitting}
+                  whiteSpace="normal"
+                >
                   {isEditMode ? 'Save Changes' : 'Create Collection'}
                 </Button>
                 <Button asChild variant="outline">
-                  <RouterLink to="/">Cancel</RouterLink>
+                  <RouterLink to="/admin/collections">Cancel</RouterLink>
                 </Button>
               </Stack>
             </VStack>
-          </form>
+          </Box>
         )}
       </VStack>
 
-      <FormSelectDrawers
-        activeAddonManufacturerId={activeAddonManufacturer?.id}
-        activeAddonManufacturerIndex={activeAddonManufacturerIndex}
-        collectionType={collectionType}
-        collectionTypes={collectionTypes}
-        gradeId={gradeId}
-        gunplaGrades={gunplaGrades}
-        isGradeDrawerOpen={isGradeDrawerOpen}
-        isScaleDrawerOpen={isScaleDrawerOpen}
-        isManufacturerDrawerOpen={isManufacturerDrawerOpen}
-        isReleaseTypeDrawerOpen={isReleaseTypeDrawerOpen}
-        isSeriesDrawerOpen={isSeriesDrawerOpen}
-        isStatusDrawerOpen={isStatusDrawerOpen}
-        isTypeDrawerOpen={isTypeDrawerOpen}
-        manufacturerId={selectedManufacturer?.id ?? null}
-        manufacturers={manufacturers}
-        onSelectAddonManufacturer={handleSelectAddonManufacturer}
-        releaseTypeId={releaseTypeId}
-        releaseTypes={releaseTypes}
-        seriesId={seriesId}
-        seriesOptions={seriesOptions}
-        setActiveAddonManufacturerIndex={setActiveAddonManufacturerIndex}
-        setGradeId={setGradeId}
-        setScaleId={setScaleId}
-        setIsGradeDrawerOpen={setIsGradeDrawerOpen}
-        setIsScaleDrawerOpen={setIsScaleDrawerOpen}
-        setIsManufacturerDrawerOpen={setIsManufacturerDrawerOpen}
-        setIsReleaseTypeDrawerOpen={setIsReleaseTypeDrawerOpen}
-        setIsSeriesDrawerOpen={setIsSeriesDrawerOpen}
-        setIsStatusDrawerOpen={setIsStatusDrawerOpen}
-        setIsTypeDrawerOpen={setIsTypeDrawerOpen}
-        setManufacturerId={setManufacturerId}
-        setReleaseTypeId={setReleaseTypeId}
-        setSeriesId={setSeriesId}
-        setStatusId={setStatusId}
-        statusId={statusId}
-        statusOptions={STATUS_OPTIONS}
-        handleSelectCollectionType={handleSelectCollectionType}
-        scaleId={scaleId}
-        scales={scales}
-        isDisplaySizeDrawerOpen={isDisplaySizeDrawerOpen}
-        setIsDisplaySizeDrawerOpen={setIsDisplaySizeDrawerOpen}
-        displaySize={displaySize}
-        setDisplaySize={setDisplaySize}
-        drawerDisplaySizes={drawerDisplaySizes}
-      />
     </Flex>
   );
 };

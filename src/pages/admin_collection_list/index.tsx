@@ -2,7 +2,7 @@ import { Badge, Box, Button, Flex, Heading, Image, Spinner, Text } from '@chakra
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { LogOut, Pencil, Plus } from 'lucide-react';
+import { Database, LogOut, Pencil, Plus } from 'lucide-react';
 import { clearAuthToken } from '@/services/http';
 import useCollections from '@/hooks/collections/useCollections';
 import collectionServices from '@/services/content/collectionServices';
@@ -122,6 +122,11 @@ const AdminCollectionList = () => {
             </Text>
           </Box>
           <Flex gap={2}>
+            <Button asChild variant="outline">
+              <RouterLink to="/admin/catalog">
+                <Database size={16} aria-hidden="true" /> Manage catalog
+              </RouterLink>
+            </Button>
             <Button
               variant="outline"
               onClick={() => {

@@ -8,6 +8,7 @@ const CollectionForm = lazy(() => import('@/pages/collection_form'));
 const CollectionShelf = lazy(() => import('@/pages/collection_shelf'));
 const AdminLogin = lazy(() => import('@/pages/admin_login'));
 const AdminCollectionList = lazy(() => import('@/pages/admin_collection_list'));
+const AdminCatalog = lazy(() => import('@/pages/admin_catalog'));
 
 export interface IRoute {
   name: string;
@@ -63,6 +64,12 @@ export const routes: IRoute[] = [
             name: 'admin-collection-list',
             path: '/admin/collections',
             component: AdminCollectionList,
+            handle: { showHeader: true },
+          },
+          {
+            name: 'admin-catalog',
+            path: '/admin/catalog',
+            component: AdminCatalog,
             handle: { showHeader: true },
           },
           {
