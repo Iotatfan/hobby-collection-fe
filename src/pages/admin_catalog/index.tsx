@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  chakra,
   Field,
   Flex,
   Heading,
@@ -109,7 +110,9 @@ const AdminCatalog = () => {
       setSuccessMessage(`${selectedCatalog.label} created successfully.`);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : `Unable to create ${selectedCatalog.label.toLowerCase()}.`,
+        error instanceof Error
+          ? error.message
+          : `Unable to create ${selectedCatalog.label.toLowerCase()}.`,
       );
     } finally {
       setIsSubmitting(false);
@@ -134,8 +137,7 @@ const AdminCatalog = () => {
           </Button>
         </Flex>
 
-        <Box
-          as="form"
+        <chakra.form
           onSubmit={handleSubmit}
           bg="white"
           rounded="lg"
@@ -247,9 +249,8 @@ const AdminCatalog = () => {
               Add {selectedCatalog.label.toLowerCase()}
             </Button>
           </VStack>
-        </Box>
+        </chakra.form>
       </Box>
-
     </>
   );
 };

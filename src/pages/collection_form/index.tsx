@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  chakra,
   Field,
   Flex,
   Heading,
@@ -100,8 +101,7 @@ const CollectionForm = () => {
         {isLoading ? (
           <Text>Loading collection...</Text>
         ) : (
-          <Box
-            as="form"
+          <chakra.form
             onSubmit={handleSubmit}
             noValidate
             bg="bg.panel"
@@ -360,10 +360,9 @@ const CollectionForm = () => {
                 </Button>
               </Stack>
             </VStack>
-          </Box>
+          </chakra.form>
         )}
       </VStack>
-
     </Flex>
   );
 };
