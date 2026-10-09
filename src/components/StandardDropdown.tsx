@@ -1,6 +1,6 @@
 import { Box, Button, Input, Menu, Portal, Text } from '@chakra-ui/react';
 import { ChevronDown } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 export interface DropdownOption {
   value: string | number;
@@ -15,6 +15,7 @@ interface StandardDropdownProps {
   searchable?: boolean;
   searchPlaceholder?: string;
   emptyText?: string;
+  disabled?: boolean;
 }
 
 const StandardDropdown = ({
@@ -25,28 +26,31 @@ const StandardDropdown = ({
   searchable = false,
   searchPlaceholder = 'Search options',
   emptyText = 'No options available.',
+  disabled = false,
 }: StandardDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
+  useEffect(() => {
+    if (disabled) {
+      setIsOpen(false);
+      setSearch('');
+    }
+  }, [disabled]);
   const normalizedSearch = search.trim().toLocaleLowerCase();
   const visibleOptions = useMemo(
     () =>
       normalizedSearch
-        ? options.filter((option) =>
-            option.label.toLocaleLowerCase().includes(normalizedSearch),
-          )
+        ? options.filter((option) => option.label.toLocaleLowerCase().includes(normalizedSearch))
         : options,
     [normalizedSearch, options],
   );
-  const selectedLabel = options.find(
-    (option) => String(option.value) === String(value),
-  )?.label;
+  const selectedLabel = options.find((option) => String(option.value) === String(value))?.label;
 
   return (
     <Menu.Root
-      open={isOpen}
+      open={isOpen && !disabled}
       onOpenChange={(details) => {
-        setIsOpen(details.open);
+        setIsOpen(details.open && !disabled);
         if (!details.open) setSearch('');
       }}
       closeOnSelect={!searchable}
@@ -59,7 +63,7 @@ const StandardDropdown = ({
           justifyContent="space-between"
           w="full"
           minW={0}
-          disabled={options.length === 0}
+          disabled={disabled || options.length === 0}
         >
           <Text
             as="span"
@@ -80,10 +84,7 @@ const StandardDropdown = ({
       </Menu.Trigger>
       <Portal>
         <Menu.Positioner>
-          <Menu.Content
-            w="var(--reference-width)"
-            maxW="var(--available-width)"
-          >
+          <Menu.Content w="var(--reference-width)" maxW="var(--available-width)">
             {searchable && (
               <Box
                 px={2}
@@ -114,6 +115,7 @@ const StandardDropdown = ({
                 <Menu.RadioItemGroup
                   value={value === null ? '' : String(value)}
                   onValueChange={(details) => {
+                    if (disabled) return;
                     const selectedOption = options.find(
                       (option) => String(option.value) === details.value,
                     );
@@ -128,6 +130,7 @@ const StandardDropdown = ({
                     <Menu.RadioItem
                       key={String(option.value)}
                       value={String(option.value)}
+                      disabled={disabled}
                       bg="bg.panel"
                       _checked={{ bg: 'bg.panel' }}
                       _highlighted={{ bg: 'bg.subtle' }}

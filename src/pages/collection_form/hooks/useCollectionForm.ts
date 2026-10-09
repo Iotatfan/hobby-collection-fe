@@ -11,7 +11,6 @@ import {
   createAddonRowFactory,
   resolveImageSrc,
   resolveStatusId,
-  STATUS_OPTIONS,
   toDateInputValue,
   toIsoDateTime,
 } from '../helpers/collectionForm.helpers';
@@ -23,6 +22,7 @@ const useCollectionForm = () => {
   const coverInputRef = useRef<HTMLInputElement>(null);
   const picturesInputRef = useRef<HTMLInputElement>(null);
   const addonRowIdRef = useRef(0);
+  const submissionInFlightRef = useRef(false);
 
   const [title, setTitle] = useState('');
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -304,6 +304,7 @@ const useCollectionForm = () => {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (submissionInFlightRef.current) return;
     setErrorMessage(null);
 
     if (!title.trim()) {
@@ -366,6 +367,7 @@ const useCollectionForm = () => {
       (addon) => addon.name && addon.manufacturerId !== null,
     );
 
+    submissionInFlightRef.current = true;
     setIsSubmitting(true);
     try {
       const formData = new FormData();
@@ -458,6 +460,7 @@ const useCollectionForm = () => {
         setErrorMessage(error instanceof Error ? error.message : 'Failed to save collection.');
       }
     } finally {
+      submissionInFlightRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -489,9 +492,7 @@ const useCollectionForm = () => {
 
   const handleAddonManufacturerChange = (rowId: number, manufacturerId: number) => {
     setAddons((prev) =>
-      prev.map((addon) =>
-        addon.rowId === rowId ? { ...addon, manufacturerId } : addon,
-      ),
+      prev.map((addon) => (addon.rowId === rowId ? { ...addon, manufacturerId } : addon)),
     );
   };
 

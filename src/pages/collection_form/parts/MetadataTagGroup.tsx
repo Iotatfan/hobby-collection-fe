@@ -4,6 +4,7 @@ import type { IMetadataTag } from '@/libs/collection/collection';
 import type { Dispatch, SetStateAction } from 'react';
 
 type MetadataTagGroupProps = {
+  disabled?: boolean;
   label: string;
   options: IMetadataTag[];
   selectedIds: number[];
@@ -12,6 +13,7 @@ type MetadataTagGroupProps = {
 };
 
 const MetadataTagGroup = ({
+  disabled = false,
   label,
   options,
   selectedIds,
@@ -26,6 +28,7 @@ const MetadataTagGroup = ({
           const isSelected = selectedIds.includes(option.id);
           return (
             <Button
+              disabled={disabled}
               key={option.id}
               type="button"
               variant={isSelected ? 'solid' : 'outline'}

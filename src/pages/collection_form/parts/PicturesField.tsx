@@ -2,6 +2,7 @@ import { Box, Button, Field, Image, Input, SimpleGrid, Text } from '@chakra-ui/r
 import type { ChangeEvent, RefObject } from 'react';
 
 type PicturesFieldProps = {
+  disabled?: boolean;
   existingPicturePreviewUrls: string[];
   existingPicturesCount: number;
   newPicturePreviewUrls: string[];
@@ -13,6 +14,7 @@ type PicturesFieldProps = {
 };
 
 const PicturesField = ({
+  disabled = false,
   existingPicturePreviewUrls,
   existingPicturesCount,
   newPicturePreviewUrls,
@@ -28,13 +30,16 @@ const PicturesField = ({
     <Field.Root>
       <Field.Label>Pictures</Field.Label>
       <Input
+        disabled={disabled}
         id="pictures-upload-input"
         ref={picturesInputRef}
         type="file"
         multiple
         accept="image/*"
         display="none"
-        onChange={onPicturesChange}
+        onChange={(event) => {
+          if (!disabled) onPicturesChange(event);
+        }}
       />
       <Text fontSize="sm" color="fg.muted">
         {totalPictures > 0
@@ -63,6 +68,7 @@ const PicturesField = ({
               objectPosition="center"
             />
             <Button
+              disabled={disabled}
               type="button"
               size="2xs"
               colorPalette="red"
@@ -102,6 +108,7 @@ const PicturesField = ({
               objectPosition="center"
             />
             <Button
+              disabled={disabled}
               type="button"
               size="2xs"
               colorPalette="red"
@@ -122,7 +129,8 @@ const PicturesField = ({
         ))}
         <Box
           role="button"
-          tabIndex={0}
+          tabIndex={disabled ? -1 : 0}
+          aria-disabled={disabled}
           aria-label="Add gallery image"
           borderWidth="1px"
           borderStyle="dashed"
@@ -132,11 +140,15 @@ const PicturesField = ({
           alignItems="center"
           justifyContent="center"
           color="fg.muted"
-          cursor="pointer"
+          cursor={disabled ? 'not-allowed' : 'pointer'}
+          opacity={disabled ? 0.5 : 1}
           _hover={{ borderColor: 'blue.400', color: 'blue.500' }}
-          onClick={() => picturesInputRef.current?.click()}
+          onClick={() => {
+            if (!disabled) picturesInputRef.current?.click();
+          }}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') picturesInputRef.current?.click();
+            if (!disabled && (event.key === 'Enter' || event.key === ' '))
+              picturesInputRef.current?.click();
           }}
         >
           Add image

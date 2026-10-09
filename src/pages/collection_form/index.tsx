@@ -115,6 +115,7 @@ const CollectionForm = () => {
               <Field.Root required minW={0}>
                 <Field.Label>Title</Field.Label>
                 <Input
+                  disabled={isSubmitting}
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   placeholder="Collection title"
@@ -122,6 +123,7 @@ const CollectionForm = () => {
               </Field.Root>
 
               <CoverImageField
+                disabled={isSubmitting}
                 coverFile={coverFile}
                 coverInputRef={coverInputRef}
                 coverPreviewUrl={coverPreviewUrl}
@@ -138,6 +140,7 @@ const CollectionForm = () => {
                 <Field.Root required minW={0}>
                   <Field.Label>Type</Field.Label>
                   <StandardDropdown
+                    disabled={isSubmitting}
                     placeholder="Choose collection type"
                     value={collectionType}
                     options={collectionTypes.map((type) => ({ value: type, label: type }))}
@@ -148,6 +151,7 @@ const CollectionForm = () => {
                 <Field.Root required minW={0}>
                   <Field.Label>Status</Field.Label>
                   <StandardDropdown
+                    disabled={isSubmitting}
                     placeholder="Choose status"
                     value={statusId}
                     options={STATUS_OPTIONS.map((option) => ({
@@ -162,6 +166,7 @@ const CollectionForm = () => {
                   <Field.Root required minW={0}>
                     <Field.Label>Grade</Field.Label>
                     <StandardDropdown
+                      disabled={isSubmitting}
                       placeholder="Choose grade"
                       value={gradeId}
                       options={gunplaGrades.map((grade) => ({
@@ -176,6 +181,7 @@ const CollectionForm = () => {
                 <Field.Root required minW={0}>
                   <Field.Label>Scale</Field.Label>
                   <StandardDropdown
+                    disabled={isSubmitting}
                     placeholder="Choose scale"
                     value={scaleId}
                     options={scales.map((scale) => ({ value: scale.id, label: scale.name }))}
@@ -186,6 +192,7 @@ const CollectionForm = () => {
                 <Field.Root required minW={0}>
                   <Field.Label>Manufacturer</Field.Label>
                   <StandardDropdown
+                    disabled={isSubmitting}
                     placeholder="Choose manufacturer"
                     value={selectedManufacturer?.id ?? null}
                     options={manufacturers.map((manufacturer) => ({
@@ -199,6 +206,7 @@ const CollectionForm = () => {
                 <Field.Root required minW={0}>
                   <Field.Label>Release Type</Field.Label>
                   <StandardDropdown
+                    disabled={isSubmitting}
                     placeholder="Choose release type"
                     value={releaseTypeId}
                     options={releaseTypes.map((releaseType) => ({
@@ -212,6 +220,7 @@ const CollectionForm = () => {
                 <Field.Root required minW={0}>
                   <Field.Label>Series</Field.Label>
                   <StandardDropdown
+                    disabled={isSubmitting}
                     placeholder="Choose series"
                     value={seriesId}
                     options={seriesOptions.map((series) => ({
@@ -228,6 +237,7 @@ const CollectionForm = () => {
                 <Field.Root required minW={0}>
                   <Field.Label>Display Size</Field.Label>
                   <StandardDropdown
+                    disabled={isSubmitting}
                     placeholder="Choose display size"
                     value={displaySize}
                     options={drawerDisplaySizes.map((size) => ({ value: size, label: size }))}
@@ -238,6 +248,7 @@ const CollectionForm = () => {
 
               <Stack gap={4}>
                 <MetadataTagGroup
+                  disabled={isSubmitting}
                   label="Features"
                   options={drawerFeatures}
                   selectedIds={featureIds}
@@ -246,6 +257,7 @@ const CollectionForm = () => {
                 />
 
                 <MetadataTagGroup
+                  disabled={isSubmitting}
                   label="Modifications"
                   options={drawerModifications}
                   selectedIds={modificationIds}
@@ -258,6 +270,7 @@ const CollectionForm = () => {
                 <Field.Root required>
                   <Field.Label>Built Date</Field.Label>
                   <Input
+                    disabled={isSubmitting}
                     type="date"
                     value={builtAt}
                     onChange={(event) => setBuiltAt(event.target.value)}
@@ -269,6 +282,7 @@ const CollectionForm = () => {
                 <Field.Root required>
                   <Field.Label>Acquired Date</Field.Label>
                   <Input
+                    disabled={isSubmitting}
                     type="date"
                     value={acquiredAt}
                     onChange={(event) => setAcquiredAt(event.target.value)}
@@ -279,6 +293,7 @@ const CollectionForm = () => {
               <Field.Root minW={0}>
                 <Field.Label>Description</Field.Label>
                 <Textarea
+                  disabled={isSubmitting}
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
                   placeholder="Optional description"
@@ -299,6 +314,7 @@ const CollectionForm = () => {
                         w="full"
                       >
                         <Input
+                          disabled={isSubmitting}
                           value={addon.name}
                           onChange={(event) =>
                             handleAddonNameChange(addon.rowId, event.target.value)
@@ -307,6 +323,7 @@ const CollectionForm = () => {
                         />
                         <Box w="full" minW={0} flex={{ base: 'initial', md: '0 0 14rem' }}>
                           <StandardDropdown
+                            disabled={isSubmitting}
                             placeholder="Choose manufacturer"
                             value={addon.manufacturerId}
                             options={manufacturers.map((manufacturer) => ({
@@ -320,6 +337,7 @@ const CollectionForm = () => {
                         </Box>
                         <Button
                           type="button"
+                          disabled={isSubmitting}
                           variant="outline"
                           colorPalette="red"
                           onClick={() => handleRemoveAddon(addon.rowId)}
@@ -329,13 +347,19 @@ const CollectionForm = () => {
                       </Stack>
                     );
                   })}
-                  <Button type="button" variant="outline" onClick={handleAddAddon}>
+                  <Button
+                    type="button"
+                    disabled={isSubmitting}
+                    variant="outline"
+                    onClick={handleAddAddon}
+                  >
                     Add addon
                   </Button>
                 </VStack>
               </Field.Root>
 
               <PicturesField
+                disabled={isSubmitting}
                 existingPicturePreviewUrls={existingPicturePreviewUrls}
                 existingPicturesCount={existingPictureUrls.length}
                 newPicturePreviewUrls={newPicturePreviewUrls}
@@ -351,6 +375,7 @@ const CollectionForm = () => {
                   type="submit"
                   colorPalette="blue"
                   loading={isSubmitting}
+                  disabled={isSubmitting}
                   whiteSpace="normal"
                 >
                   {isEditMode ? 'Save Changes' : 'Create Collection'}
