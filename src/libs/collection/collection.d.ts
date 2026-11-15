@@ -214,3 +214,11 @@ export interface ICollectionShelf {
   other_model_kit_shelf: IShelf;
   backlog_shelf: IShelf;
 }
+
+export type ShelfCategory = 'gunpla' | 'figure' | 'other-model-kit';
+
+export interface ICollectionShelfQuery {
+  category: ShelfCategory;
+  limit: number;
+  offset: number;
+}

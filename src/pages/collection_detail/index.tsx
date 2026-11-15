@@ -640,6 +640,8 @@ const CollectionDetail = () => {
             >
               <Text
                 ref={descriptionRef}
+                whiteSpace="pre-wrap"
+                overflowWrap="anywhere"
                 fontSize={{ base: 'md', lg: 'lg' }}
                 color="gray.700"
                 lineHeight="relaxed"

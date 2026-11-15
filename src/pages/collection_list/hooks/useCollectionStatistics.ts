@@ -1,5 +1,7 @@
+import { useShelfSceneCurrent } from '@/layouts/shelves/scene';
 import { useState, useEffect } from 'react';
 import { ICollectionStatistics } from '@/libs/collection/collection';
+import { getCachedCollectionStatistics } from '@/utils/collectionCaches';
 import collectionServices from '@/services/content/collectionServices';
 
 interface UseCollectionStatisticsReturn {
@@ -9,12 +11,23 @@ interface UseCollectionStatisticsReturn {
 }
 
 const useCollectionStatistics = (): UseCollectionStatisticsReturn => {
-  const [statistics, setStatistics] = useState<ICollectionStatistics | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [statistics, setStatistics] = useState<ICollectionStatistics | null>(
+    getCachedCollectionStatistics,
+  );
+  const [isLoading, setIsLoading] = useState(!statistics);
   const [isError, setIsError] = useState(false);
 
+  const enabled = useShelfSceneCurrent();
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
+    const cached = getCachedCollectionStatistics();
+    if (cached) {
+      setIsError(false);
+      setStatistics(cached);
+      setIsLoading(false);
+      return;
+    }
 
     const fetchStatistics = async () => {
       setIsLoading(true);
@@ -34,7 +47,7 @@ const useCollectionStatistics = (): UseCollectionStatisticsReturn => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [enabled]);
 
   return { statistics, isLoading, isError };
 };

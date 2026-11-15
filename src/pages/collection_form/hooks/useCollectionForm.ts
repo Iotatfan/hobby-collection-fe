@@ -379,7 +379,7 @@ const useCollectionForm = () => {
       if (isAcquiredStatus) {
         formData.append('acquired_at', toIsoDateTime(acquiredAt));
       }
-      formData.append('description', description.trim());
+      formData.append('description', description);
       formData.append('grade_id', String(gradeId));
       formData.append('scale_id', String(scaleId));
       formData.append('release_type_id', String(releaseTypeId));

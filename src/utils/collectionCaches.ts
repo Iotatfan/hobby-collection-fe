@@ -4,7 +4,9 @@ import {
   ICollectionFilterQuery,
   ICollectionFilterOptions,
   ICollectionShelf,
+  ICollectionShelfQuery,
   ICollectionListResponse,
+  ICollectionStatistics,
 } from '@/libs/collection/collection';
 
 type CollectionDetailCache = {
@@ -203,8 +205,36 @@ export function setCachedCollectionTypeFilters(data: ICollectionFilterOptions) {
   safeSet(`collection_filters`, JSON.stringify(entry));
 }
 
-export function getCachedCollectionShelves(): ICollectionShelf | null {
-  const key = `collection_shelves`;
+let statisticsGeneration = 0;
+export const getStatisticsCacheGeneration = () => statisticsGeneration;
+
+export function getCachedCollectionStatistics(): ICollectionStatistics | null {
+  const key = 'collection_statistics';
+  const raw = safeGet(key);
+  if (!raw) return null;
+  const entry = parseCachedJson<{ data: ICollectionStatistics; timestamp: number }>(raw, key);
+  if (
+    !entry ||
+    !entry.data ||
+    !Number.isFinite(entry.timestamp) ||
+    Date.now() - entry.timestamp >= CACHE_DURATION_FIVE_MINUTES
+  ) {
+    safeRemove(key);
+    return null;
+  }
+  return entry.data;
+}
+export function setCachedCollectionStatistics(data: ICollectionStatistics) {
+  safeSet('collection_statistics', JSON.stringify({ data, timestamp: Date.now() }));
+}
+
+const shelfCacheKey = (query?: ICollectionShelfQuery) =>
+  query
+    ? `collection_shelves_${query.category}_${query.limit}_${query.offset}`
+    : 'collection_shelves';
+
+export function getCachedCollectionShelves(query?: ICollectionShelfQuery): ICollectionShelf | null {
+  const key = shelfCacheKey(query);
   const raw = safeGet(key);
   if (!raw) return null;
 
@@ -219,21 +249,37 @@ export function getCachedCollectionShelves(): ICollectionShelf | null {
   return parsed.data;
 }
 
-export function setCachedCollectionShelves(data: ICollectionShelf) {
+export function removeCachedCollectionShelves(query: ICollectionShelfQuery) {
+  safeRemove(shelfCacheKey(query));
+}
+
+export function setCachedCollectionShelves(data: ICollectionShelf, query?: ICollectionShelfQuery) {
   const entry: CollectionShelfCache = {
     data,
     timestamp: Date.now(),
   };
 
-  safeSet(`collection_shelves`, JSON.stringify(entry));
+  safeSet(shelfCacheKey(query), JSON.stringify(entry));
 }
 
 export function invalidateCollectionCache(id?: number) {
+  statisticsGeneration++;
+  safeRemove('collection_statistics');
+  try {
+    for (const key of Object.keys(sessionStorage)) {
+      if (key.startsWith('shelves:')) sessionStorage.removeItem(key);
+    }
+  } catch {
+    /* Session storage is optional. */
+  }
   const listCacheKeys: string[] = [];
   try {
     for (let index = 0; index < localStorage.length; index += 1) {
       const key = localStorage.key(index);
-      if (key?.startsWith(`${CACHE_VERSION}:collection_list`)) {
+      if (
+        key?.startsWith(`${CACHE_VERSION}:collection_list`) ||
+        key?.startsWith(`${CACHE_VERSION}:collection_shelves`)
+      ) {
         listCacheKeys.push(key.slice(`${CACHE_VERSION}:`.length));
       }
     }

@@ -9,16 +9,17 @@ interface ViewToggleButtonProps {
   to: string;
   label: string;
   icon: LucideIcon;
+  floating?: boolean;
 }
 
-const ViewToggleButton = ({ to, label, icon: Icon }: ViewToggleButtonProps) => {
+const ViewToggleButton = ({ to, label, icon: Icon, floating = true }: ViewToggleButtonProps) => {
   const navigate = useNavigate();
 
   return (
     <MotionBox
-      position="fixed"
-      bottom={{ base: '24px', md: '32px' }}
-      right={{ base: '24px', md: '32px' }}
+      position={floating ? 'fixed' : 'relative'}
+      bottom={floating ? { base: '24px', md: '32px' } : undefined}
+      right={floating ? { base: '24px', md: '32px' } : undefined}
       zIndex={1000}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       whileHover={{ scale: 1.1 }}

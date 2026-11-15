@@ -5,7 +5,12 @@ const ProtectedRoute = lazy(() => import('@/router/middleware/protectedRoute'));
 const CollectionList = lazy(() => import('@/pages/collection_list'));
 const CollectionDetail = lazy(() => import('@/pages/collection_detail'));
 const CollectionForm = lazy(() => import('@/pages/collection_form'));
-const CollectionShelf = lazy(() => import('@/pages/collection_shelf'));
+import ShelvesWorkspace from '@/layouts/shelves';
+import {
+  ShelfOverview as CollectionShelf,
+  ShelfCategoryPage as CollectionShelfCategory,
+  ShelfDetailPage as CollectionShelfDetail,
+} from '@/layouts/shelves/routes';
 const AdminLogin = lazy(() => import('@/pages/admin_login'));
 const AdminCollectionList = lazy(() => import('@/pages/admin_collection_list'));
 const AdminCatalog = lazy(() => import('@/pages/admin_catalog'));
@@ -43,9 +48,22 @@ export const routes: IRoute[] = [
         },
       },
       {
-        name: 'collection-shelf',
+        name: 'shelves-workspace',
         path: '/shelves',
-        component: CollectionShelf,
+        component: ShelvesWorkspace,
+        children: [
+          { name: 'collection-shelf', path: '/shelves', component: CollectionShelf },
+          {
+            name: 'shelf-category',
+            path: '/shelves/category/:categorySlug',
+            component: CollectionShelfCategory,
+          },
+          {
+            name: 'shelf-detail',
+            path: '/shelves/collection/:id/:title?',
+            component: CollectionShelfDetail,
+          },
+        ],
       },
       {
         name: 'collection-detail',

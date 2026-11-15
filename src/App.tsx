@@ -17,18 +17,20 @@ const router = createBrowserRouter(toRouteObjects(routes), {
   basename: import.meta.env.BASE_URL,
 });
 
-const fallback = (
+const RouteFallback = () => (
   <Flex
     w="100%"
     h="100vh"
-    bg="background.bg"
-    opacity={0.6}
+    bg={window.location.pathname.startsWith('/shelves') ? '#0a192f' : 'background.bg'}
+    color={window.location.pathname.startsWith('/shelves') ? 'white' : undefined}
     justifyContent="center"
     alignItems="center"
   >
     <Spinner size="xl" />
   </Flex>
 );
+
+const fallback = <RouteFallback />;
 
 function App() {
   return (

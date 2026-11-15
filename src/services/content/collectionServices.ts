@@ -11,8 +11,10 @@ import {
   ICollectionUpsertPayload,
   ICollectionStatistics,
   ICollectionShelf,
+  ICollectionShelfQuery,
   ICollectionListResponse,
 } from '@/libs/collection/collection';
+import { collectionRequest } from '@/services/content/collectionRequest';
 import http, { getAuthToken, isValidJwtToken } from '@/services/http';
 import {
   getCachedCollection,
@@ -26,6 +28,9 @@ import {
   setCachedCollectionTypeFilters,
   getCachedCollectionShelves,
   setCachedCollectionShelves,
+  getCachedCollectionStatistics,
+  setCachedCollectionStatistics,
+  getStatisticsCacheGeneration,
 } from '@/utils/collectionCaches';
 
 const logError = (...args: unknown[]) => {
@@ -68,21 +73,19 @@ const getAllCollections = async (query?: ICollectionFilterQuery, signal?: AbortS
   }
 };
 
-const getCollection = async (id: number) => {
+const getCollection = async (id: number, signal?: AbortSignal) => {
   const cached = getCachedCollection(id);
-  if (cached) {
-    return { data: cached as ICollection, fromCache: true };
-  }
-
-  try {
-    const response = await http.get(`/collection/${id}`);
-    setCachedCollection(response.data.data as ICollection);
-
-    return { data: response.data.data as ICollection, fromCache: false };
-  } catch (error) {
-    logError('Error fetching collection detail:', error);
-    throw error;
-  }
+  if (cached) return { data: cached, fromCache: true };
+  return collectionRequest(
+    `detail:${id}`,
+    async (requestSignal) => {
+      const response = await http.get(`/collection/${id}`, { signal: requestSignal });
+      const data = response.data.data as ICollection;
+      setCachedCollection(data);
+      return { data, fromCache: false };
+    },
+    signal,
+  );
 };
 
 const getDrawerContent = async () => {
@@ -142,24 +145,45 @@ const getCollectionTypeFilters = async () => {
   }
 };
 
-const getCollectionStatistics = async (): Promise<ICollectionStatistics> => {
-  const response = await http.get('/collection/statistics');
-  return response.data.data as ICollectionStatistics;
+const getCollectionStatistics = async (signal?: AbortSignal): Promise<ICollectionStatistics> => {
+  const cached = getCachedCollectionStatistics();
+  if (cached) return cached;
+  const generation = getStatisticsCacheGeneration();
+  return collectionRequest(
+    `statistics:${generation}`,
+    async (requestSignal) => {
+      const response = await http.get('/collection/statistics', { signal: requestSignal });
+      const data = response.data.data as ICollectionStatistics;
+      // A request started before a mutation must not repopulate the invalidated cache.
+      if (generation === getStatisticsCacheGeneration()) setCachedCollectionStatistics(data);
+      return data;
+    },
+    signal,
+  );
 };
 
-const getCollectionShelves = async (): Promise<ICollectionShelf> => {
-  const cached = getCachedCollectionShelves();
+const getCollectionShelves = async (
+  query?: ICollectionShelfQuery,
+  signal?: AbortSignal,
+): Promise<ICollectionShelf> => {
+  const cached = getCachedCollectionShelves(query);
   if (cached) return cached;
-
-  try {
-    const response = await http.get('/collection/shelves');
-    const data = response.data.data as ICollectionShelf;
-    setCachedCollectionShelves(data);
-    return data;
-  } catch (error) {
-    logError('Error fetching collection shelves:', error);
-    throw error;
-  }
+  const key = query
+    ? `shelves:${query.category}:${query.limit}:${query.offset}`
+    : 'shelves:overview';
+  return collectionRequest(
+    key,
+    async (requestSignal) => {
+      const response = await http.get('/collection/shelves', {
+        params: query,
+        signal: requestSignal,
+      });
+      const data = response.data.data as ICollectionShelf;
+      setCachedCollectionShelves(data, query);
+      return data;
+    },
+    signal,
+  );
 };
 
 type CollectionMutationPayload = ICollectionUpsertPayload | ICollectionUploadPayload | FormData;

@@ -1,19 +1,26 @@
-import { Box, Flex, Spinner, Text } from '@chakra-ui/react';
+import { Box, Flex, Text } from '@chakra-ui/react';
 import { BoxIcon, Clock, LayoutGrid, Package, Star } from 'lucide-react';
 import ViewToggleButton from '@/layouts/hobby_showcase/ViewToggleButton';
 import StatisticsSection from '../collection_list/parts/StatisticsSection';
 import Shelf from './parts/Shelf';
 import useCollectionShelves from './hooks/useCollectionShelves';
+import { useShelfRestoration } from './helpers/navigation';
+import { useShelfSceneReady, useShelfSceneCurrent } from '@/layouts/shelves/scene';
+import { ShelfSkeletonRows } from '@/layouts/shelves/ShelfLoadingParts';
+import ScenePart from '@/layouts/shelves/ScenePart';
 import { Helmet } from 'react-helmet-async';
 
 const CollectionShelf = () => {
+  const current = useShelfSceneCurrent();
   const { shelves, isLoading, isError } = useCollectionShelves();
+  useShelfSceneReady(true);
+  useShelfRestoration(true);
   const shelfRows = shelves
     ? [
         { shelf: shelves.gunpla_shelf, icon: BoxIcon, accent: '#5B6CF6' },
         { shelf: shelves.figure_shelf, icon: Star, accent: '#805AD5' },
         { shelf: shelves.other_model_kit_shelf, icon: Package, accent: '#38A169' },
-        { shelf: shelves.backlog_shelf, icon: Clock, accent: '#D97706', variant: 'wide' as const },
+        { shelf: shelves.backlog_shelf, icon: Clock, accent: '#D97706' },
       ].filter(({ shelf }) => shelf?.items?.length)
     : [];
 
@@ -24,30 +31,29 @@ const CollectionShelf = () => {
 
   return (
     <>
-      <Helmet>
-        {/* Standard Page Info */}
-        <title>{pageTitle}</title>
-        <meta name="description" content={pageDescription} />
+      {current && (
+        <Helmet>
+          {/* Standard Page Info */}
+          <title>{pageTitle}</title>
+          <meta name="description" content={pageDescription} />
 
-        {/* Open Graph / Facebook / Discord */}
-        <meta property="og:type" content="website" />
-        <meta property="og:title" content={pageTitle} />
-        <meta property="og:description" content={pageDescription} />
-        {/* <meta property="og:image" content={pageImage} /> */}
-        <meta property="og:url" content={pageUrl} />
-        <meta property="og:site_name" content="Hobby Showcase" />
+          {/* Open Graph / Facebook / Discord */}
+          <meta property="og:type" content="website" />
+          <meta property="og:title" content={pageTitle} />
+          <meta property="og:description" content={pageDescription} />
+          {/* <meta property="og:image" content={pageImage} /> */}
+          <meta property="og:url" content={pageUrl} />
+          <meta property="og:site_name" content="Hobby Showcase" />
 
-        {/* Twitter / X Card */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={pageTitle} />
-        <meta name="twitter:description" content={pageDescription} />
-        {/* <meta name="twitter:image" content={pageImage} /> */}
-      </Helmet>
+          {/* Twitter / X Card */}
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content={pageTitle} />
+          <meta name="twitter:description" content={pageDescription} />
+          {/* <meta name="twitter:image" content={pageImage} /> */}
+        </Helmet>
+      )}
 
-      <Box
-        minH="100vh"
-        bg="radial-gradient(circle at 15% 20%, rgba(30, 64, 175, 0.24), transparent 28%), radial-gradient(circle at 88% 12%, rgba(124, 58, 237, 0.18), transparent 25%), linear-gradient(180deg, #0a192f 0%, #0a192f 45%, #020c1b 100%)"
-      >
+      <Box minH="100vh" bg="transparent">
         <Flex
           w="full"
           direction="column"
@@ -59,22 +65,24 @@ const CollectionShelf = () => {
           maxW="92rem"
           px={{ base: 4, md: 6, lg: 8 }}
         >
-          <Box>
-            <Text as="h1" color="white" fontSize={{ base: '3xl', md: '4xl' }} fontWeight="bold">
+          <ScenePart role="summary">
+            <Text
+              as="h1"
+              tabIndex={-1}
+              color="white"
+              fontSize={{ base: '3xl', md: '4xl' }}
+              fontWeight="bold"
+            >
               My Collection
             </Text>
             <StatisticsSection variant="dark" />
-          </Box>
+          </ScenePart>
 
           {isLoading && (
-            <Flex align="center" justify="center" minH="40vh">
-              <Spinner
-                borderWidth="4px"
-                animationDuration="0.65s"
-                color="whiteAlpha.900"
-                size="xl"
-              />
-            </Flex>
+            <>
+              <ShelfSkeletonRows />
+              <Text role="status">Loading shelves...</Text>
+            </>
           )}
 
           {isError && (
@@ -85,8 +93,8 @@ const CollectionShelf = () => {
 
           {!isLoading &&
             !isError &&
-            shelfRows.map(({ shelf, icon, accent, variant }) => (
-              <Shelf key={shelf.name} shelf={shelf} icon={icon} accent={accent} variant={variant} />
+            shelfRows.map(({ shelf, icon, accent }, index) => (
+              <Shelf order={index} key={shelf.name} shelf={shelf} icon={icon} accent={accent} />
             ))}
 
           {!isLoading && !isError && shelfRows.length === 0 && (
@@ -95,7 +103,21 @@ const CollectionShelf = () => {
         </Flex>
       </Box>
 
-      <ViewToggleButton to="/" label="Switch to Classic View" icon={LayoutGrid} />
+      <ScenePart
+        role="controls"
+        order={3}
+        position="fixed"
+        bottom={{ base: '24px', md: '32px' }}
+        right={{ base: '24px', md: '32px' }}
+        zIndex={1000}
+      >
+        <ViewToggleButton
+          floating={false}
+          to="/"
+          label="Switch to Classic View"
+          icon={LayoutGrid}
+        />
+      </ScenePart>
     </>
   );
 };
