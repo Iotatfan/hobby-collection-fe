@@ -6,6 +6,8 @@ export interface CoverMotion {
   to?: Bounds;
   intrinsic: { width: number; height: number };
   photo?: boolean;
+  ready?: boolean;
+  revealing?: boolean;
   blend?: { src: string; from: Bounds; to: Bounds };
 }
 export function findCover(root: HTMLElement, key: string): HTMLImageElement | null {
@@ -49,7 +51,16 @@ export function captureCover(source: HTMLElement, from: string, to: string): Cov
     findCover(source, key);
   if (!image?.naturalWidth || !image.naturalHeight) return null;
   const intrinsic = { width: image.naturalWidth, height: image.naturalHeight };
-  const bounds = paintedCoverBounds(image, intrinsic);
+  let bounds = paintedCoverBounds(image, intrinsic);
+  if (!gallery) {
+    const moving = source.ownerDocument.querySelector<HTMLElement>(
+      `[data-category-bridge-item="${key}"]`,
+    );
+    if (moving && getComputedStyle(moving).visibility === 'visible') {
+      const rect = moving.getBoundingClientRect();
+      bounds = { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+    }
+  }
   return bounds
     ? {
         key,
@@ -95,4 +106,22 @@ export function resolveCoverTarget(
       to: bounds,
     },
   };
+}
+
+/** Detail layout can be measured before its replacement image has mounted or decoded. */
+export function resolveCoverDestination(
+  cover: CoverMotion,
+  destination: HTMLElement,
+): CoverMotion | null {
+  const gallery = destination.querySelector<HTMLElement>(
+    `[data-gallery-item="${cover.key.slice(6)}"]`,
+  );
+  if (gallery) {
+    if (gallery.dataset.galleryKind === 'photo') return null;
+    const rect = gallery.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    return { ...cover, to: containBounds(cover.intrinsic, rect) };
+  }
+  const target = findCover(destination, cover.key);
+  return target ? resolveCoverTarget(cover, target) : null;
 }

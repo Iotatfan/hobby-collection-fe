@@ -2,7 +2,6 @@ import { Box, Button, Link, Spinner, Text, useBreakpointValue } from '@chakra-ui
 import { useEffect, useRef } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Helmet } from 'react-helmet-async';
 import { ArrowLeft } from 'lucide-react';
 import { categories, isCategory } from '@/pages/collection_shelf/helpers/categories';
 import {
@@ -15,7 +14,6 @@ import {
   useShelfLocation as useLocation,
   useShelfNavigationType as useNavigationType,
   useShelfSceneReady,
-  useShelfSceneCurrent,
 } from '@/layouts/shelves/scene';
 import { ShelfSkeletonRows } from '@/layouts/shelves/ShelfLoadingParts';
 import { readCategoryPages } from '@/pages/collection_shelf/helpers/categoryCache';
@@ -45,7 +43,6 @@ export default function CategoryScene({ data }: { data?: CategorySceneData }) {
 
   const state = location.state as ShelfNavigation | null;
   const active = useShelfSceneReady(true);
-  const currentScene = useShelfSceneCurrent();
   useShelfRestoration(true);
   useEffect(() => {
     if (
@@ -97,11 +94,6 @@ export default function CategoryScene({ data }: { data?: CategorySceneData }) {
       px={{ base: 4, md: 8 }}
       py={8}
     >
-      {currentScene && (
-        <Helmet>
-          <title>{shelfName || config?.name || 'Category unavailable'} | Hobby Collection</title>
-        </Helmet>
-      )}
       <Box maxW="92rem" mx="auto">
         <ScenePart role="controls">
           <Link focusRing="none" focusVisibleRing="outside" asChild color="orange.200" mb={6}>

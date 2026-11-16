@@ -34,7 +34,6 @@ const CollectionShelf = () => {
       {current && (
         <Helmet>
           {/* Standard Page Info */}
-          <title>{pageTitle}</title>
           <meta name="description" content={pageDescription} />
 
           {/* Open Graph / Facebook / Discord */}

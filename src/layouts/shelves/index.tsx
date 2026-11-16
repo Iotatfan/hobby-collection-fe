@@ -1,4 +1,7 @@
-﻿import { Box, Image } from '@chakra-ui/react';
+import { Helmet } from 'react-helmet-async';
+import { getCachedCollection } from '@/utils/collectionCaches';
+import type { ShelfNavigation } from '@/pages/collection_shelf/helpers/navigation';
+import { Box } from '@chakra-ui/react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Suspense, useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import {
@@ -15,8 +18,7 @@ import { ShelfSceneContext, type CategorySceneData } from '@/layouts/shelves/sce
 import { shelfBackground } from '@/pages/collection_shelf/helpers/categories';
 import {
   captureCover,
-  findCover,
-  resolveCoverTarget,
+  resolveCoverDestination,
   type CoverMotion,
 } from '@/layouts/shelves/coverMotion';
 import {
@@ -24,7 +26,9 @@ import {
   writeSession,
   restingAnchorTop,
 } from '@/pages/collection_shelf/helpers/navigation';
+import { MotionRegistry } from '@/layouts/shelves/motionRegistry';
 import { shelfMotion } from '@/layouts/shelves/motion';
+import CoverBridge from '@/layouts/shelves/CoverBridge';
 import CategoryBridge from '@/layouts/shelves/CategoryBridge';
 import {
   captureCategory,
@@ -39,6 +43,7 @@ type Scene = {
   navigationType: NavigationType;
   element: ReactNode;
   categoryData?: CategorySceneData;
+  detailTitle?: string;
 };
 const sceneId = (location: Location) => location.pathname;
 const browsing = (scene: Scene) => !scene.location.pathname.startsWith('/shelves/collection/');
@@ -58,6 +63,12 @@ function retainScenes(scenes: Scene[], current: Scene, source?: Scene | null) {
     .slice(0, 3);
   return [...unique.filter((scene) => scene.id !== current.id), current];
 }
+type CoverWork = {
+  generation: number;
+  snapshot: CoverMotion;
+  resolve: () => void;
+  release: () => void;
+};
 type Phase = 'preparing' | 'animating' | 'settled';
 const MotionBox = motion.create(Box);
 
@@ -78,20 +89,24 @@ export default function ShelvesWorkspace() {
   const [phase, setPhase] = useState<Phase>('preparing');
   const [readyEntry, setReadyEntry] = useState<{ key: string; generation: number } | null>(null);
   const [cover, setCover] = useState<CoverMotion | null>(null);
+  const [cancelledCoverKey, setCancelledCoverKey] = useState<string | null>(null);
   const [categoryBridge, setCategoryBridge] = useState<CategoryMotion | null>(null);
   const bridgePending = useRef(false);
   const coverNode = useRef<HTMLDivElement>(null);
-  const interruptedCover = useRef<CoverMotion | null>(null);
+  const coverWork = useRef<CoverWork | null>(null);
   const navigationSerial = useRef(0);
+  // Retained motion nodes keep their ref across history entries; their identity is the scene ID.
   const roots = useRef(new Map<string, HTMLDivElement>());
   const sourceScroll = useRef(0);
   const selectedCategory = useRef<string | undefined>(undefined);
   const positioned = useRef('');
   const settled = useRef<Scene | null>(null);
   const departingId = useRef<string | null>(null);
-  const pendingMotion = useRef(new Set<Promise<unknown>>());
   const finishRequest = useRef<{ key: string; serial: number } | null>(null);
   const attemptFinish = useRef<() => void>(() => {});
+  const registry = useRef<MotionRegistry | null>(null);
+  if (!registry.current) registry.current = new MotionRegistry(() => attemptFinish.current());
+  const motions = registry.current;
   const sceneComplete = useRef('');
   const latest = scenes[scenes.length - 1];
   const latestScene = useRef(latest);
@@ -113,6 +128,16 @@ export default function ShelvesWorkspace() {
       ),
     );
   }, []);
+  const reportDetailTitle = useCallback((key: string, generation: number, title: string) => {
+    if (key !== routeKey.current || generation !== navigationSerial.current) return;
+    setScenes((previous) =>
+      previous.map((scene) =>
+        scene.location.key === key && scene.detailTitle !== title
+          ? { ...scene, detailTitle: title }
+          : scene,
+      ),
+    );
+  }, []);
   const reportReady = useCallback((key: string, generation: number) => {
     if (generation !== navigationSerial.current || key !== routeKey.current) return;
     setReadyEntry((previous) =>
@@ -120,16 +145,25 @@ export default function ShelvesWorkspace() {
     );
   }, []);
   const settle = useCallback((key: string, serial: number) => {
+    if (serial !== navigationSerial.current || key !== routeKey.current) return;
+    finishRequest.current = { key, serial };
+    // Never finish in the middle of React replacing child layout effects.
+    queueMicrotask(() => attemptFinish.current());
+  }, []);
+
+  attemptFinish.current = () => {
+    const request = finishRequest.current;
+    if (!request) return;
     if (
-      serial !== navigationSerial.current ||
-      routeKey.current !== key ||
-      latestScene.current.location.key !== key
-    )
-      return;
-    if (pendingMotion.current.size || bridgePending.current) {
-      finishRequest.current = { key, serial };
+      request.serial !== navigationSerial.current ||
+      request.key !== routeKey.current ||
+      request.key !== latestScene.current.location.key
+    ) {
+      finishRequest.current = null;
       return;
     }
+    if (motions.size || bridgePending.current) return;
+    finishRequest.current = null;
     const current = latestScene.current;
     settled.current = current;
     setScenes((previous) =>
@@ -137,45 +171,47 @@ export default function ShelvesWorkspace() {
         previous.filter(
           (scene) =>
             scene.id === current.id ||
-            (browsing(scene) &&
-              !roots.current.get(scene.location.key)?.querySelector('[data-scene-error]')),
+            (browsing(scene) && !roots.current.get(scene.id)?.querySelector('[data-scene-error]')),
         ),
         current,
       ),
     );
     departingId.current = null;
     setCover(null);
+    setCancelledCoverKey(null);
     setCategoryBridge(null);
     setPhase('settled');
-  }, []);
-
-  attemptFinish.current = () => {
-    const request = finishRequest.current;
-    if (request) {
-      finishRequest.current = null;
-      settle(request.key, request.serial);
-    }
   };
-  const trackMotion = useCallback((promise: Promise<unknown>, serial: number) => {
-    if (serial !== navigationSerial.current) return () => {};
-    pendingMotion.current.add(promise);
-    const done = () => {
-      if (serial !== navigationSerial.current) return;
-      pendingMotion.current.delete(promise);
-      if (!pendingMotion.current.size) attemptFinish.current();
-    };
-    void promise.then(done, done);
-    return done;
-  }, []);
+  const trackMotion = useCallback(
+    (promise: Promise<unknown>, serial: number) => motions.track(promise, serial),
+    [motions],
+  );
+
+  const cancelCover = useCallback(
+    (key: string, generation: number) => {
+      const work = coverWork.current;
+      if (!work || work.generation !== generation || generation !== navigationSerial.current)
+        return;
+      work.resolve();
+      work.release();
+      coverWork.current = null;
+      // Pending scene motions can outlive cancellation. Only the destination
+      // should become visible while the departing scene finishes fading.
+      setCancelledCoverKey(work.snapshot.key);
+      setCover(null);
+      settle(key, generation);
+    },
+    [settle],
+  );
 
   // An interrupted navigation continues from the scene currently visible to the visitor.
   if (latest.location.key !== location.key) {
     const source = phase === 'preparing' ? outgoing || settled.current : latest;
     const item = (location.pathname.match(/collection\/(\d+)/) ||
       source?.location.pathname.match(/collection\/(\d+)/))?.[1];
-    const root = source && roots.current.get(source.location.key);
+    const root = source && roots.current.get(source.id);
     const destinationRoot = scenes.find((scene) => scene.id === sceneId(location));
-    const targetRoot = destinationRoot && roots.current.get(destinationRoot.location.key);
+    const targetRoot = destinationRoot && roots.current.get(destinationRoot.id);
     const itemCategory = (container: HTMLElement | undefined) =>
       item && container
         ? Array.from(container.querySelectorAll<HTMLElement>('[data-part-item]'))
@@ -199,22 +235,25 @@ export default function ShelvesWorkspace() {
         : null;
     bridgePending.current = Boolean(capturedCategory);
     setCategoryBridge(capturedCategory);
-    navigationSerial.current++;
-    const moving = coverNode.current?.getBoundingClientRect();
-    interruptedCover.current =
-      cover && moving
-        ? {
-            ...cover,
-            from: {
-              left: moving.left,
-              top: moving.top,
-              width: moving.width,
-              height: moving.height,
-            },
-            to: undefined,
-            blend: undefined,
-          }
+    let capturedCover =
+      root && source && !reduced
+        ? captureCover(root, source.location.pathname, location.pathname)
         : null;
+    const moving = coverNode.current?.getBoundingClientRect();
+    if (
+      capturedCover &&
+      cover?.ready &&
+      cover.key === capturedCover.key &&
+      cover.photo === capturedCover.photo &&
+      (!cover.photo || cover.src === capturedCover.src) &&
+      moving
+    ) {
+      capturedCover = {
+        ...capturedCover,
+        from: { left: moving.left, top: moving.top, width: moving.width, height: moving.height },
+      };
+    }
+    navigationSerial.current++;
     if (source && root && browsing(source)) {
       const saved = readSession<{ anchor?: string; horizontal?: number }>(
         `entry:${source.location.key}`,
@@ -249,19 +288,37 @@ export default function ShelvesWorkspace() {
       navigationType,
       element: retained?.element || element,
       categoryData: retained?.categoryData,
+      detailTitle: retained?.detailTitle,
     };
     departingId.current = source?.id || null;
-    pendingMotion.current.clear();
+    motions.reset(navigationSerial.current);
+    coverWork.current?.resolve();
+    coverWork.current?.release();
+    coverWork.current = null;
+    if (capturedCover) {
+      let resolve = () => {};
+      const promise = new Promise<void>((done) => {
+        resolve = done;
+      });
+      coverWork.current = {
+        generation: navigationSerial.current,
+        snapshot: capturedCover,
+        resolve,
+        release: motions.track(promise, navigationSerial.current),
+      };
+    }
     finishRequest.current = null;
     setScenes(retainScenes(scenes, next, source));
     setPhase('preparing');
     setReadyEntry(null);
-    setCover(null);
+    setCover(capturedCover);
+    setCancelledCoverKey(null);
     sceneComplete.current = '';
     positioned.current = '';
   }
   const sharedTransition = Boolean(!reduced && outgoing && (categoryBridge || cover));
   const serial = navigationSerial.current;
+  const hasOutgoing = Boolean(outgoing);
   useLayoutEffect(() => {
     if (
       phase !== 'preparing' ||
@@ -269,61 +326,92 @@ export default function ShelvesWorkspace() {
       readyEntry.generation !== serial
     )
       return;
-    const source = outgoing && roots.current.get(outgoing.location.key);
-    if (source && !reduced) {
-      const captured = captureCover(source, outgoing!.location.pathname, latest.location.pathname);
-      setCover(
-        captured &&
-          captured.key === interruptedCover.current?.key &&
-          captured.photo === interruptedCover.current.photo &&
-          (!captured.photo || captured.src === interruptedCover.current.src)
-          ? interruptedCover.current
-          : captured,
-      );
-    }
-    interruptedCover.current = null;
     setPhase('animating');
-  }, [phase, readyEntry, serial, latest.location.key, latest.location.pathname, outgoing, reduced]);
+  }, [phase, readyEntry, serial, latest.location.key]);
 
   useLayoutEffect(() => {
     if (phase !== 'animating') return;
     const key = latest.location.key;
-    if (reduced || !outgoing) {
+    if (reduced || !hasOutgoing) {
+      bridgePending.current = false;
+      setCategoryBridge(null);
+      cancelCover(key, serial);
       settle(key, serial);
       return;
     }
-    if (!cover) return;
-    // Restoration commits before the next frame; geometry is read once, never per frame.
-    const frame = requestAnimationFrame(() => {
-      if (serial !== navigationSerial.current || routeKey.current !== key) return;
-      const destination = roots.current.get(key);
-      const target = destination && findCover(destination, cover.key);
-      const resolved = target && resolveCoverTarget(cover, target);
-      const bounds = resolved?.to;
-      if (
-        bounds &&
-        (cover.photo ||
-          Math.abs(bounds.left - cover.from.left) > 0.5 ||
-          Math.abs(bounds.top - cover.from.top) > 0.5 ||
-          Math.abs(bounds.width - cover.from.width) > 0.5)
-      ) {
-        setCover(resolved);
-      } else {
-        setCover(null);
-        if (sceneComplete.current === key) settle(key, serial);
+    const work = coverWork.current;
+    if (!work || work.generation !== serial) return;
+    let stopped = false;
+    let frame = 0;
+    let observer: MutationObserver | null = null;
+    let resize: ResizeObserver | null = null;
+    let observed: HTMLElement | undefined;
+    const stop = () => {
+      stopped = true;
+      cancelAnimationFrame(frame);
+      observer?.disconnect();
+      resize?.disconnect();
+      observed?.removeEventListener('load', schedule, true);
+      clearTimeout(timer);
+    };
+    const measure = () => {
+      frame = 0;
+      if (stopped || serial !== navigationSerial.current || routeKey.current !== key) return;
+      const destination = roots.current.get(latest.id);
+      if (!destination) {
+        schedule();
+        return;
       }
+      if (!observed) {
+        observed = destination;
+        observer = new MutationObserver(schedule);
+        observer.observe(destination, {
+          subtree: true,
+          childList: true,
+          attributes: true,
+          attributeFilter: ['src', 'width', 'height', 'data-gallery-kind'],
+        });
+        resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(schedule);
+        resize?.observe(destination);
+        destination.addEventListener('load', schedule, true);
+      }
+      const resolved = resolveCoverDestination(work.snapshot, destination);
+      if (resolved) {
+        stop();
+        setCover(resolved);
+      } else schedule();
+    };
+    function schedule() {
+      if (!stopped && !frame) frame = requestAnimationFrame(measure);
+    }
+    const timer = setTimeout(() => {
+      stop();
+      cancelCover(key, serial);
+    }, 500);
+    schedule();
+    return stop;
+  }, [phase, latest.location.key, latest.id, reduced, hasOutgoing, serial, cancelCover, settle]);
+
+  useLayoutEffect(() => {
+    if (phase !== 'animating' || !cover?.revealing) return;
+    const key = latest.location.key;
+    const frame = requestAnimationFrame(() => {
+      const work = coverWork.current;
+      if (!work || work.generation !== serial || routeKey.current !== key) return;
+      work.resolve();
+      work.release();
+      coverWork.current = null;
+      settle(key, serial);
     });
     return () => cancelAnimationFrame(frame);
-    // Updating the target must not schedule another geometry read.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, latest.location.key, reduced, settle, serial]);
+  }, [phase, cover?.revealing, latest.location.key, serial, settle]);
 
   useLayoutEffect(() => {
     if (phase !== 'animating' || !categoryBridge || categoryBridge.resolved) return;
     const key = latest.location.key;
     const frame = requestAnimationFrame(() => {
       if (serial !== navigationSerial.current || routeKey.current !== key) return;
-      const destination = roots.current.get(key);
+      const destination = roots.current.get(latest.id);
       const resolved = destination && resolveCategory(categoryBridge, destination);
       if (resolved?.parts.some((part) => part.src && !part.leaving)) setCategoryBridge(resolved);
       else {
@@ -333,7 +421,7 @@ export default function ShelvesWorkspace() {
       }
     });
     return () => cancelAnimationFrame(frame);
-  }, [phase, categoryBridge, latest.location.key, serial]);
+  }, [phase, categoryBridge, latest.location.key, latest.id, serial]);
 
   useLayoutEffect(() => {
     if (!categoryBridge?.revealing) return;
@@ -342,7 +430,7 @@ export default function ShelvesWorkspace() {
     const frame = requestAnimationFrame(() => {
       if (serial !== navigationSerial.current || routeKey.current !== key) return;
       bridgePending.current = false;
-      setCategoryBridge(null);
+      // Preserve the outgoing mask until the deferred settlement commits.
       settle(key, serial);
     });
     return () => cancelAnimationFrame(frame);
@@ -355,14 +443,14 @@ export default function ShelvesWorkspace() {
   }, [phase, sharedTransition, latest.location.key, cover, serial, settle]);
 
   useLayoutEffect(() => {
-    if (phase !== 'animating' || !cover || cover.photo) return;
-    const root = roots.current.get(latest.location.key);
+    if (phase !== 'animating' || !cover?.ready || !cover.to || cover.photo) return;
+    const root = roots.current.get(latest.id);
     if (!root) return;
     const check = () => {
       const gallery = root.querySelector<HTMLElement>(
         `[data-gallery-item="${cover.key.slice(6)}"]`,
       );
-      if (gallery?.dataset.galleryKind === 'photo') settle(latest.location.key, serial);
+      if (gallery?.dataset.galleryKind === 'photo') cancelCover(latest.location.key, serial);
     };
     check();
     const observer = new MutationObserver(check);
@@ -373,7 +461,7 @@ export default function ShelvesWorkspace() {
       attributeFilter: ['data-gallery-kind'],
     });
     return () => observer.disconnect();
-  }, [phase, cover, latest.location.key, serial, settle]);
+  }, [phase, cover, latest.location.key, latest.id, serial, cancelCover]);
 
   const completeScene = (key: string) => {
     if (phase !== 'animating' || key !== routeKey.current || serial !== navigationSerial.current)
@@ -381,6 +469,18 @@ export default function ShelvesWorkspace() {
     sceneComplete.current = key;
     if (!cover) settle(key, serial);
   };
+  const detailId = Number(latest.location.pathname.match(/^\/shelves\/collection\/(\d+)/)?.[1]);
+  const titlePreview = (latest.location.state as ShelfNavigation | null)?.preview?.item;
+  const itemTitle =
+    latest.detailTitle ||
+    (titlePreview?.id === detailId ? titlePreview.title : undefined) ||
+    (Number.isSafeInteger(detailId) && detailId > 0
+      ? getCachedCollection(detailId)?.title
+      : undefined);
+  const pageTitle = latest.location.pathname.startsWith('/shelves/collection/')
+    ? `${itemTitle || 'Collection Detail'} | Hobby Collection`
+    : 'Hobby Collection Showcase';
+  const departingCoverKey = cover?.ready ? cover.key : cancelledCoverKey;
   return (
     <Box
       data-shelves-workspace=""
@@ -393,11 +493,20 @@ export default function ShelvesWorkspace() {
       overflowX="clip"
       css={{
         '& [data-scene-departing="true"] a:focus': { outline: 'none' },
-        ...(cover?.to
-          ? {
-              [`& [data-part-item="${cover.key.slice(6)}"] [role="group"], & img[data-shelf-morph="${cover.key}"], & [data-shelf-morph="${cover.key}"] img, & [data-gallery-item="${cover.key.slice(6)}"] [data-gallery-current-image]`]:
+        // The source owns the art until decode completes; then the bridge owns it
+        // until settlement removes the bridge and reveals the destination together.
+        ...(cover || departingCoverKey
+          ? Object.fromEntries(
+              [
+                ...(cover ? [['[data-scene-active="true"]', cover.key]] : []),
+                ...(departingCoverKey
+                  ? [['[data-scene-departing="true"]', departingCoverKey]]
+                  : []),
+              ].map(([root, key]) => [
+                `& ${root} [data-part-item="${key.slice(6)}"] [role="group"], & ${root} img[data-shelf-morph="${key}"], & ${root} [data-shelf-morph="${key}"] img, & ${root} [data-gallery-item="${key.slice(6)}"] [data-gallery-current-image]`,
                 { visibility: 'hidden' },
-            }
+              ]),
+            )
           : {}),
         ...(categoryBridge?.painted
           ? {
@@ -417,6 +526,9 @@ export default function ShelvesWorkspace() {
           : {}),
       }}
     >
+      <Helmet>
+        <title>{pageTitle}</title>
+      </Helmet>
       {scenes.map((scene) => {
         const incoming = scene.id === latest.id;
         const departing = scene.id === outgoing?.id;
@@ -432,6 +544,7 @@ export default function ShelvesWorkspace() {
               active,
               current: incoming,
               categoryData: reportCategory,
+              detailTitle: reportDetailTitle,
               ready: reportReady,
               claimPosition,
               trackMotion,
@@ -454,8 +567,8 @@ export default function ShelvesWorkspace() {
           >
             <MotionBox
               ref={(node: HTMLDivElement | null) => {
-                if (node) roots.current.set(scene.location.key, node);
-                else roots.current.delete(scene.location.key);
+                if (node) roots.current.set(scene.id, node);
+                else roots.current.delete(scene.id);
               }}
               data-shelf-scene={scene.location.pathname}
               data-scene-departing={departing ? 'true' : 'false'}
@@ -536,84 +649,24 @@ export default function ShelvesWorkspace() {
         />
       )}
       {cover && !reduced && (
-        <>
-          <MotionBox
-            key={`${serial}-${cover.key}`}
-            ref={coverNode}
-            data-shelf-morph-overlay=""
-            aria-hidden="true"
-            inert
-            position="fixed"
-            zIndex={1000}
-            pointerEvents="none"
-            willChange="transform"
-            left={`${cover.from.left}px`}
-            top={`${cover.from.top}px`}
-            w={`${cover.from.width}px`}
-            h={`${cover.from.height}px`}
-            transformOrigin="top left"
-            initial={{ x: 0, y: 0, scale: 1, opacity: 1 }}
-            animate={
-              cover.to
-                ? {
-                    x: cover.to.left - cover.from.left,
-                    y: cover.to.top - cover.from.top,
-                    scale: cover.to.width / cover.from.width,
-                    opacity: cover.blend ? 0 : 1,
-                  }
-                : { x: 0, y: 0, scale: 1, opacity: 1 }
-            }
-            transition={{ duration: shelfMotion.coverDuration, ease: shelfMotion.ease }}
-            onAnimationComplete={(definition) => {
-              if (
-                cover.to &&
-                typeof definition === 'object' &&
-                !Array.isArray(definition) &&
-                definition.x === cover.to.left - cover.from.left &&
-                definition.y === cover.to.top - cover.from.top &&
-                definition.scale === cover.to.width / cover.from.width &&
-                definition.opacity === (cover.blend ? 0 : 1)
-              )
-                settle(latest.location.key, serial);
-            }}
-          >
-            <Image src={cover.src} alt="" w="full" h="full" display="block" objectFit="contain" />
-          </MotionBox>
-          {cover.blend && (
-            <MotionBox
-              key={`${serial}-${cover.key}-blend`}
-              data-shelf-morph-blend=""
-              aria-hidden="true"
-              inert
-              position="fixed"
-              zIndex={1001}
-              pointerEvents="none"
-              willChange="transform, opacity"
-              left={`${cover.blend.from.left}px`}
-              top={`${cover.blend.from.top}px`}
-              w={`${cover.blend.from.width}px`}
-              h={`${cover.blend.from.height}px`}
-              transformOrigin="top left"
-              initial={{ x: 0, y: 0, scale: 1, opacity: 0 }}
-              animate={{
-                x: cover.blend.to.left - cover.blend.from.left,
-                y: cover.blend.to.top - cover.blend.from.top,
-                scale: cover.blend.to.width / cover.blend.from.width,
-                opacity: 1,
-              }}
-              transition={{ duration: shelfMotion.coverDuration, ease: shelfMotion.ease }}
-            >
-              <Image
-                src={cover.blend.src}
-                alt=""
-                w="full"
-                h="full"
-                display="block"
-                objectFit="contain"
-              />
-            </MotionBox>
-          )}
-        </>
+        <CoverBridge
+          key={serial}
+          cover={cover}
+          overlayRef={coverNode}
+          onReady={() => {
+            if (serial === navigationSerial.current)
+              setCover((current) =>
+                current && !current.ready ? { ...current, ready: true } : current,
+              );
+          }}
+          onComplete={() => {
+            if (serial === navigationSerial.current)
+              setCover((current) =>
+                current && !current.revealing ? { ...current, revealing: true } : current,
+              );
+          }}
+          onError={() => cancelCover(latest.location.key, serial)}
+        />
       )}
     </Box>
   );

@@ -388,7 +388,7 @@ test('slow category data shows preview assets and skeletons then keeps previews 
     release();
     await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible();
     await expect(
-      page.locator('[data-scene-active="true"]').getByText('30', { exact: true }).first(),
+      page.locator('[data-scene-active="true"]').getByText('30 items', { exact: true }),
     ).toBeVisible();
     await expect(page.getByRole('link', { name: 'Kit 1', exact: true })).toBeVisible();
     await expect(page.locator('[data-shelves-workspace]')).toHaveAttribute(
@@ -971,6 +971,7 @@ test('interrupted cover Back and Forward settles only the latest scene', async (
   await page.goto('/shelves');
   const item = page.getByRole('link', { name: 'Kit 1', exact: true });
   await item.locator('img').evaluate((node) => (node as HTMLImageElement).decode());
+  await recordCoverOwnership(page);
   await item.click();
   await expect(page.locator('[data-shelf-morph-overlay]')).toBeAttached();
   for (let index = 0; index < 2; index++) {
@@ -987,6 +988,7 @@ test('interrupted cover Back and Forward settles only the latest scene', async (
   await expect(page.locator('[data-shelf-morph-overlay]')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Kit 1', exact: true })).toBeVisible();
   await expect(page.getByRole('img', { name: 'Kit 1 - Box art', exact: true })).toBeVisible();
+  await assertCoverOwnership(page, false);
 });
 
 for (const origin of ['overview', 'category'] as const) {
@@ -1011,6 +1013,7 @@ for (const origin of ['overview', 'category'] as const) {
       await page
         .getByRole('img', { name: `Kit ${id} - Photo 2`, exact: true })
         .evaluate((node) => (node as HTMLImageElement).decode());
+      await recordCoverOwnership(page, id);
       if (method === 'browser') await page.goBack();
       else
         await page
@@ -1038,6 +1041,7 @@ for (const origin of ['overview', 'category'] as const) {
         'settled',
       );
       await expect(source).toHaveCount(0);
+      await assertCoverOwnership(page);
       await expect(destination).toHaveCount(0);
       await expect(item).toBeFocused();
       await expect(item.locator('img')).toBeVisible();
@@ -1535,6 +1539,309 @@ async function settledWorkspace(page: Page) {
   );
 }
 
+async function recordCoverMovement(page: Page) {
+  await page.evaluate(() => {
+    const frames: { x: number; y: number; width: number }[] = [];
+    let stopped = false;
+    Reflect.set(window, '__coverMovement', { frames, stop: () => (stopped = true) });
+    const tick = () => {
+      const node = document.querySelector('[data-shelf-morph-overlay]');
+      if (node && getComputedStyle(node).visibility === 'visible') {
+        const rect = node.getBoundingClientRect();
+        frames.push({ x: rect.x, y: rect.y, width: rect.width });
+      }
+      if (!stopped) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
+async function recordCoverOwnership(page: Page, id = 1) {
+  await page.evaluate((id) => {
+    const frames: { scene: number; overlay: number }[] = [];
+    let stopped = false;
+    Reflect.set(window, '__coverOwnership', { frames, stop: () => (stopped = true) });
+    const tick = () => {
+      const frame = { scene: 0, overlay: 0 };
+      for (const image of document.querySelectorAll<HTMLImageElement>(
+        `img[data-shelf-morph="cover-${id}"], [data-gallery-item="${id}"] [data-gallery-current-image], [data-shelf-morph-overlay] img, [data-shelf-morph-blend] img`,
+      )) {
+        if (!image.complete || !image.naturalWidth) continue;
+        const rect = image.getBoundingClientRect();
+        if (!rect.width || !rect.height || rect.bottom <= 0 || rect.top >= innerHeight) continue;
+        let opacity = 1;
+        for (let node: HTMLElement | null = image; node; node = node.parentElement) {
+          const style = getComputedStyle(node);
+          if (style.visibility === 'hidden' || style.display === 'none') {
+            opacity = 0;
+            break;
+          }
+          opacity *= Number(style.opacity);
+        }
+        if (opacity > 0.01) {
+          // The two crossfading images belong to the same moving artwork.
+          if (image.closest('[data-shelf-morph-overlay], [data-shelf-morph-blend]'))
+            frame.overlay = 1;
+          else frame.scene++;
+        }
+      }
+      frames.push(frame);
+      if (!stopped) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, id);
+}
+
+async function assertCoverOwnership(page: Page, animated = true) {
+  const frames = await page.evaluate(async () => {
+    // Include painted frames after settlement, when the destination owns the art again.
+    for (let i = 0; i < 3; i++)
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    const capture = Reflect.get(window, '__coverOwnership');
+    capture.stop();
+    return capture.frames as { scene: number; overlay: number }[];
+  });
+  expect(frames.length).toBeGreaterThan(3);
+  expect(
+    frames.filter((frame) => frame.scene + frame.overlay > 1),
+    'duplicate artwork',
+  ).toEqual([]);
+  if (animated) {
+    expect(frames.filter((frame) => frame.overlay === 1).length).toBeGreaterThan(2);
+    expect(
+      frames.filter((frame) => frame.scene + frame.overlay === 0),
+      'missing artwork',
+    ).toEqual([]);
+  }
+  expect(frames.at(-1)).toEqual({ scene: 1, overlay: 0 });
+}
+
+for (const width of [1280, 390]) {
+  for (const back of ['button', 'browser'] as const) {
+    test(`cover has a single visible owner through delayed decode and cached ${back} returns at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await mock(page);
+      await page.goto('/shelves/category/gunpla');
+      await settledWorkspace(page);
+      const link = page.getByRole('link', { name: 'Kit 1', exact: true });
+      await link.locator('img').evaluate((node) => (node as HTMLImageElement).decode());
+      await page.evaluate(() => {
+        const decode = HTMLImageElement.prototype.decode;
+        HTMLImageElement.prototype.decode = async function () {
+          await decode.call(this);
+          if (this.closest('[data-shelf-morph-overlay]'))
+            await new Promise((resolve) => setTimeout(resolve, 120));
+        };
+      });
+      for (let cycle = 0; cycle < 2; cycle++) {
+        await recordCoverOwnership(page);
+        await link.click();
+        await settledWorkspace(page);
+        await assertCoverOwnership(page);
+        await recordCoverOwnership(page);
+        if (back === 'browser') await page.goBack();
+        else await page.getByRole('link', { name: 'Back to Gunpla' }).click();
+        await settledWorkspace(page);
+        await assertCoverOwnership(page);
+      }
+    });
+  }
+}
+
+for (const failure of ['reject', 'timeout'] as const) {
+  test(`cover decode ${failure} restores the destination without duplicate artwork`, async ({
+    page,
+  }) => {
+    await mock(page);
+    await page.goto('/shelves');
+    await settledWorkspace(page);
+    const link = page.getByRole('link', { name: 'Kit 1', exact: true });
+    await link.locator('img').evaluate((node) => (node as HTMLImageElement).decode());
+    await page.evaluate((failure) => {
+      const decode = HTMLImageElement.prototype.decode;
+      HTMLImageElement.prototype.decode = function () {
+        if (this.closest('[data-shelf-morph-overlay]'))
+          return failure === 'reject'
+            ? Promise.reject(new Error('Bridge decode failed'))
+            : new Promise<void>(() => {});
+        return decode.call(this);
+      };
+    }, failure);
+    await recordCoverOwnership(page);
+    await link.click();
+    await settledWorkspace(page);
+    await assertCoverOwnership(page, false);
+    await expect(page.locator('[data-shelf-morph-overlay]')).toHaveCount(0);
+    await expect(page.getByRole('img', { name: 'Kit 1 - Box art', exact: true })).toBeVisible();
+  });
+}
+
+for (const width of [1280, 390]) {
+  for (const back of ['button', 'browser'] as const) {
+    test(`fresh View All after two ${back} returns replays category and cover at ${width}px`, async ({
+      page,
+    }) => {
+      test.setTimeout(60_000);
+      await page.setViewportSize({ width, height: 700 });
+      await mockThreeShelves(page, true);
+      await page.goto('/shelves');
+      await settledWorkspace(page);
+      for (let cycle = 0; cycle < 3; cycle++) {
+        await test.step(`navigation cycle ${cycle + 1}`, async () => {
+          await page.evaluate(() => scrollTo(0, 350));
+          await startNeighborFrames(page);
+          await page.getByRole('link', { name: 'View all Figure' }).click();
+          await settledWorkspace(page);
+          await assertNeighborSpread(page, true);
+          await recordCoverMovement(page);
+          await page.getByRole('link', { name: `Kit ${101 + cycle}`, exact: true }).click();
+          await settledWorkspace(page);
+          await assertCoverMovement(page);
+          if (back === 'browser') {
+            await page.goBack();
+            await page.goBack();
+          } else {
+            await page.getByRole('link', { name: 'Back to Figure' }).click();
+            await page.getByRole('link', { name: 'Back to shelves' }).click();
+          }
+          await settledWorkspace(page);
+          await expect(page).toHaveURL(/\/shelves$/);
+        });
+      }
+    });
+  }
+}
+async function assertCoverMovement(page: Page) {
+  const frames = await page.evaluate(() => {
+    const capture = Reflect.get(window, '__coverMovement');
+    capture.stop();
+    return capture.frames as { x: number; y: number; width: number }[];
+  });
+  expect(
+    frames.length,
+    'cover must remain painted through multiple animation frames',
+  ).toBeGreaterThan(2);
+  expect(
+    frames.some((frame) => Math.abs(frame.width - frames[0].width) > 10),
+    'cover must move into the gallery and back',
+  ).toBe(true);
+}
+
+test('cover handoff retries a gallery frame that has not acquired layout yet', async ({ page }) => {
+  await mock(page);
+  await page.goto('/shelves/category/gunpla');
+  await settledWorkspace(page);
+  await page.evaluate(() => {
+    const original = Element.prototype.getBoundingClientRect;
+    let started = 0;
+    Element.prototype.getBoundingClientRect = function () {
+      if (this.hasAttribute('data-gallery-item')) {
+        started ||= performance.now();
+        if (performance.now() - started < 120) return new DOMRect();
+      }
+      return original.call(this);
+    };
+  });
+  await recordCoverMovement(page);
+  await page.getByRole('link', { name: 'Kit 2', exact: true }).click();
+  await settledWorkspace(page);
+  await assertCoverMovement(page);
+  await expect(page.locator('[data-shelf-morph-overlay]')).toHaveCount(0);
+});
+
+test('switching to reduced motion during category entry releases pending bridges', async ({
+  page,
+}) => {
+  await mock(page);
+  await page.goto('/shelves');
+  await settledWorkspace(page);
+  await page
+    .getByRole('link', { name: 'View all Gunpla' })
+    .evaluate((node) => (node as HTMLAnchorElement).click());
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await settledWorkspace(page);
+  await expect(page.locator('[data-category-bridge], [data-shelf-morph-overlay]')).toHaveCount(0);
+  await page.getByRole('link', { name: 'Back to shelves' }).click();
+  await settledWorkspace(page);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.getByRole('link', { name: 'View all Gunpla' }).click();
+  await settledWorkspace(page);
+});
+
+for (const width of [1280, 390]) {
+  for (const back of ['button', 'browser'] as const) {
+    test(`cover handoff and tab titles replay across five category visits with ${back} at ${width}px`, async ({
+      page,
+    }) => {
+      test.setTimeout(60_000);
+      await page.setViewportSize({ width, height: 700 });
+      const offsets = await mock(page);
+      await page.goto('/shelves');
+      await settledWorkspace(page);
+      for (let cycle = 0; cycle < 5; cycle++) {
+        if (back === 'browser' && cycle > 0) await page.goForward();
+        else await page.getByRole('link', { name: 'View all Gunpla' }).click();
+        await settledWorkspace(page);
+        await expect(page).toHaveTitle('Hobby Collection Showcase');
+        const selected = cycle % 2 ? 21 : 2;
+        if (selected === 21) await loadAll(page);
+        const link = page.getByRole('link', { name: `Kit ${selected}`, exact: true });
+        await link.scrollIntoViewIfNeeded();
+        await recordCoverMovement(page);
+        await link.click();
+        await expect(page).toHaveTitle(`Kit ${selected} | Hobby Collection`);
+        await settledWorkspace(page);
+        await assertCoverMovement(page);
+        if (cycle % 2) {
+          await page.getByRole('button', { name: 'Show photo 2' }).click();
+          const photo = page.getByRole('img', { name: `Kit ${selected} - Photo 2` });
+          await expect
+            .poll(() => photo.evaluate((node) => (node as HTMLImageElement).naturalWidth))
+            .toBeGreaterThan(0);
+          await photo.evaluate((node) => (node as HTMLImageElement).decode());
+        }
+        await recordCoverMovement(page);
+        if (back === 'browser') await page.goBack();
+        else await page.getByRole('link', { name: 'Back to Gunpla' }).click();
+        await expect(page).toHaveTitle('Hobby Collection Showcase');
+        await settledWorkspace(page);
+        await assertCoverMovement(page);
+        if (back === 'browser') await page.goBack();
+        else await page.getByRole('link', { name: 'Back to shelves' }).click();
+        await settledWorkspace(page);
+        await expect(page).toHaveTitle('Hobby Collection Showcase');
+        await expect(
+          page.locator('[data-category-bridge], [data-shelf-morph-overlay]'),
+        ).toHaveCount(0);
+      }
+      expect(offsets.filter((offset) => offset > 0)).toEqual([12, 24]);
+    });
+  }
+}
+
+test('direct detail title follows loaded item while category owns the title after navigation', async ({
+  page,
+}) => {
+  await mock(page);
+  let release = () => {};
+  const response = new Promise<void>((resolve) => (release = resolve));
+  await page.route(/\/collection\/9$/, async (route) => {
+    await response;
+    await route.fulfill({ json: { data: { ...item(9), title: 'Named model', pictures: [] } } });
+  });
+  await page.goto('/shelves/collection/9/named-model');
+  await expect(page).toHaveTitle('Collection Detail | Hobby Collection');
+  release();
+  await expect(page).toHaveTitle('Named model | Hobby Collection');
+  await page.getByRole('link', { name: 'Back to shelves' }).click();
+  await expect(page).toHaveTitle('Hobby Collection Showcase');
+  await page.getByRole('link', { name: 'View all Gunpla' }).click();
+  await settledWorkspace(page);
+  await expect(page).toHaveTitle('Hobby Collection Showcase');
+});
+
 test('category shelves depart vertically away from the selected shelf and return along the same paths', async ({
   page,
 }) => {
@@ -1895,7 +2202,7 @@ test('shelves links keep keyboard focus visible without leaving pointer outlines
   await expect(item).toHaveCSS('outline-style', 'none');
 });
 
-async function mockThreeShelves(page: Page) {
+async function mockThreeShelves(page: Page, withBacklog = false) {
   await mock(page);
   let figureRequests = 0;
   await page.route('**/collection/shelves*', (route) => {
@@ -1918,6 +2225,13 @@ async function mockThreeShelves(page: Page) {
       count: 12,
       items: Array.from({ length: count }, (_, index) => item(index + 201)),
     };
+    if (withBacklog)
+      data.data.backlog_shelf = {
+        id: 3,
+        name: 'Backlog',
+        count: 1,
+        items: [{ ...item(301), status: 1 }],
+      };
     return route.fulfill({ json: data });
   });
   return () => figureRequests;
@@ -2011,7 +2325,7 @@ for (const width of [1280, 390]) {
       page,
     }) => {
       await page.setViewportSize({ width, height: 700 });
-      const figureRequests = await mockThreeShelves(page);
+      const figureRequests = await mockThreeShelves(page, true);
       await page.goto('/shelves');
       await settledWorkspace(page);
       await expect
@@ -2152,3 +2466,95 @@ test('an interrupted switch between categories keeps each ledge tied to its own 
   await expect(page.locator('[data-category-bridge]')).toHaveCount(0);
   await expect(page.getByRole('heading', { level: 1, name: 'Figure', exact: true })).toBeVisible();
 });
+
+async function recordCategorySpread(page: Page, selected: number, columns: number) {
+  await page.evaluate(
+    ({ selected, columns }) => {
+      const ids = [
+        selected - 1,
+        selected + 1,
+        selected > columns ? selected - columns : selected + columns,
+      ];
+      const frames: { x: number; y: number; opacity: number }[][] = [];
+      let stopped = false;
+      Reflect.set(window, '__categorySpread', {
+        frames,
+        stop: () => {
+          stopped = true;
+        },
+      });
+      const tick = () => {
+        const root = document.querySelector('[data-shelf-scene="/shelves/category/gunpla"]');
+        frames.push(
+          ids.map((id) => {
+            const node = root!.querySelector(`[data-part-item="${id}"]`)!;
+            const style = getComputedStyle(node),
+              matrix = new DOMMatrixReadOnly(style.transform);
+            return { x: matrix.m41, y: matrix.m42, opacity: Number(style.opacity) };
+          }),
+        );
+        if (!stopped) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    },
+    { selected, columns },
+  );
+}
+async function assertCategorySpread(page: Page, above: boolean) {
+  const frames = await page.evaluate(() => {
+    const capture = Reflect.get(window, '__categorySpread') as {
+      frames: { x: number; y: number; opacity: number }[][];
+      stop: () => void;
+    };
+    capture.stop();
+    return capture.frames;
+  });
+  const moving = (part: { opacity: number }) => part.opacity > 0.01 && part.opacity < 0.99;
+  expect(
+    frames.some((parts) => moving(parts[0]) && parts[0].x < -2),
+    'left category neighbor must spread/regroup',
+  ).toBe(true);
+  expect(
+    frames.some((parts) => moving(parts[1]) && parts[1].x > 2),
+    'right category neighbor must spread/regroup',
+  ).toBe(true);
+  expect(
+    frames.some((parts) => moving(parts[2]) && (above ? parts[2].y < -2 : parts[2].y > 2)),
+    'adjacent category row must spread/regroup',
+  ).toBe(true);
+}
+
+for (const width of [1280, 390]) {
+  for (const back of ['button', 'browser'] as const) {
+    test(`category items spread and regroup on first and deep cached rows with ${back} at ${width}px`, async ({
+      page,
+    }) => {
+      test.setTimeout(60_000);
+      await page.setViewportSize({ width, height: 700 });
+      await mock(page);
+      await page.goto('/shelves/category/gunpla');
+      await loadAll(page);
+      await settledWorkspace(page);
+      const columns = width === 390 ? 3 : 6;
+      for (const selected of width === 390 ? [2, 23] : [3, 21]) {
+        for (let cycle = 0; cycle < 2; cycle++) {
+          const link = page.getByRole('link', { name: `Kit ${selected}`, exact: true });
+          await link.scrollIntoViewIfNeeded();
+          await recordCategorySpread(page, selected, columns);
+          await link.click();
+          await settledWorkspace(page);
+          await assertCategorySpread(page, selected > columns);
+          await recordCategorySpread(page, selected, columns);
+          if (back === 'button') await page.getByRole('link', { name: 'Back to Gunpla' }).click();
+          else await page.goBack();
+          await settledWorkspace(page);
+          await assertCategorySpread(page, selected > columns);
+          await expect(link).toBeFocused();
+          await expect(
+            page.locator('[data-category-bridge], [data-shelf-morph-overlay]'),
+          ).toHaveCount(0);
+        }
+      }
+    });
+  }
+}

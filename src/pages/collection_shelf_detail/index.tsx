@@ -1,8 +1,7 @@
 ﻿import { useEffect, useRef } from 'react';
-import { Helmet } from 'react-helmet-async';
 import { useNavigate, useParams } from 'react-router-dom';
 import { slugify } from '@/pages/collection_detail/helpers/collectionDetail.helpers';
-import { useShelfLocation, useShelfSceneReady } from '@/layouts/shelves/scene';
+import { useShelfLocation, useShelfSceneReady, useShelfDetailTitle } from '@/layouts/shelves/scene';
 import { DetailLoading } from '@/layouts/shelves/ShelfDestinationLoading';
 import { LoadingBackLink } from '@/layouts/shelves/ShelfLoadingParts';
 import ShelfDetailLayout from '@/layouts/shelves/ShelfDetailLayout';
@@ -19,6 +18,7 @@ export default function CollectionShelfDetail() {
   const pendingAtEntry = useRef(!collection);
   const active = useShelfSceneReady(true);
   useShelfRestoration(true);
+  useShelfDetailTitle(collection?.title);
   useEffect(() => {
     if (!active || !collection || !title || title === slugify(collection.title)) return;
     navigate(`/shelves/collection/${collection.id}/${slugify(collection.title)}`, {
@@ -29,20 +29,13 @@ export default function CollectionShelfDetail() {
   if (!collection) return <DetailLoading error={error} retry={retry} />;
   const gallery = { title: collection.title, cover: collection.cover, images, index, setIndex };
   return (
-    <>
-      {active && (
-        <Helmet>
-          <title>{collection.title} | Hobby Collection</title>
-        </Helmet>
-      )}
-      <ShelfDetailLayout
-        itemId={id || ''}
-        coverSelected={index === 0 && Boolean(collection.cover)}
-        back={<LoadingBackLink compact />}
-        hero={<GalleryHero {...gallery} />}
-        thumbnails={<GalleryThumbnails {...gallery} />}
-        information={<DetailInformation collection={collection} fade={pendingAtEntry.current} />}
-      />
-    </>
+    <ShelfDetailLayout
+      itemId={id || ''}
+      coverSelected={index === 0 && Boolean(collection.cover)}
+      back={<LoadingBackLink compact />}
+      hero={<GalleryHero {...gallery} />}
+      thumbnails={<GalleryThumbnails {...gallery} />}
+      information={<DetailInformation collection={collection} fade={pendingAtEntry.current} />}
+    />
   );
 }

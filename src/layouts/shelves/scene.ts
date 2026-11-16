@@ -44,6 +44,7 @@ export interface ShelfScene {
   trackMotion: (promise: Promise<unknown>, generation: number) => () => void;
   current: boolean;
   categoryData?: (key: string, data: CategorySceneData) => void;
+  detailTitle?: (key: string, generation: number, title: string) => void;
   ready: (key: string, generation: number) => void;
   claimPosition: (key: string) => boolean;
 }
@@ -73,4 +74,16 @@ export function useShelfSceneActive() {
 
 export function useShelfSceneCurrent() {
   return useContext(ShelfSceneContext)?.current ?? true;
+}
+
+/** Only the current route may update the workspace-owned document title. */
+export function useShelfDetailTitle(title?: string) {
+  const scene = useContext(ShelfSceneContext);
+  const report = scene?.detailTitle;
+  const key = scene?.location.key;
+  const generation = scene?.transition.generation;
+  const current = scene?.current;
+  useLayoutEffect(() => {
+    if (current && key && generation !== undefined && title) report?.(key, generation, title);
+  }, [report, key, generation, current, title]);
 }
