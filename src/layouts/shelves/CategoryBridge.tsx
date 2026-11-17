@@ -95,6 +95,8 @@ function MovingPart({
     };
   }, [part.id, part.src]);
   const controls = useAnimationControls();
+  const fromClip = part.fromClip || 'inset(0% 0% 0% 0%)';
+  const toClip = part.toClip || fromClip;
   const complete = useRef(onComplete);
   complete.current = onComplete;
   useLayoutEffect(() => {
@@ -107,7 +109,8 @@ function MovingPart({
         scaleX: part.to.width / part.from.width,
         scaleY: part.to.height / part.from.height,
         opacity: part.leaving ? 0 : 1,
-        clipPath: part.src ? part.toClip || part.fromClip || 'inset(0% 0% 0% 0%)' : undefined,
+        // Static clipping can stay on the composited layer instead of being animated per frame.
+        ...(part.src && fromClip !== toClip ? { clipPath: toClip } : {}),
         transition: { duration: shelfMotion.coverDuration, ease: shelfMotion.ease },
       })
       .then(() => {
@@ -117,7 +120,7 @@ function MovingPart({
       active = false;
       controls.stop();
     };
-  }, [part, resolved, controls]);
+  }, [part, resolved, controls, fromClip, toClip]);
   return (
     <MotionBox
       data-category-bridge-item={part.id}
@@ -128,13 +131,14 @@ function MovingPart({
       w={`${part.from.width}px`}
       h={`${part.from.height}px`}
       transformOrigin="top left"
+      willChange={resolved ? 'transform, opacity' : undefined}
       initial={{
         x: 0,
         y: 0,
         scaleX: 1,
         scaleY: 1,
         opacity: 1,
-        clipPath: part.src ? part.fromClip || 'inset(0% 0% 0% 0%)' : undefined,
+        clipPath: part.src ? fromClip : undefined,
       }}
       animate={controls}
       borderRadius={part.src ? undefined : 'sm'}

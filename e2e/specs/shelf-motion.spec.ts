@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { MotionRegistry } from '../../src/layouts/shelves/motionRegistry';
+import { SceneMotionBatch } from '../../src/layouts/shelves/sceneMotionBatch';
 
 const deferred = () => {
   let resolve = () => {};
@@ -52,4 +53,50 @@ test('scheduled frames hold settlement and old generations cannot finish the cur
   scheduled.resolve();
   await flush();
   expect(idle).toEqual([2]);
+});
+
+test('entrance transforms cannot change a neighboring part measurement', () => {
+  const batch = new SceneMotionBatch();
+  let anchorTop = 40;
+  let neighborOffset = 0;
+  batch.prepare(
+    () => {
+      anchorTop = 0;
+    },
+    () => () => {
+      anchorTop = 48;
+    },
+  );
+  batch.prepare(
+    () => {},
+    () => {
+      const restingTop = anchorTop;
+      return () => {
+        neighborOffset = 20 - restingTop;
+      };
+    },
+  );
+  batch.flushPreparation();
+  expect(anchorTop).toBe(48);
+  expect(neighborOffset).toBe(20);
+});
+
+test('cancelled preparation cannot overwrite replacement motion in a child-only commit', async () => {
+  const batch = new SceneMotionBatch();
+  let position = 0;
+  const cancel = batch.prepare(
+    () => {},
+    () => () => {
+      position = 48;
+    },
+  );
+  cancel();
+  batch.prepare(
+    () => {},
+    () => () => {
+      position = -32;
+    },
+  );
+  await flush();
+  expect(position).toBe(-32);
 });

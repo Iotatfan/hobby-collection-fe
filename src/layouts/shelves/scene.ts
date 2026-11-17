@@ -1,4 +1,5 @@
 import type { IShelfItem } from '@/libs/collection/collection';
+import type { SceneMotionBatch } from '@/layouts/shelves/sceneMotionBatch';
 import { createContext, useContext, useLayoutEffect } from 'react';
 import {
   useLocation,
@@ -42,6 +43,7 @@ export interface ShelfScene {
   active: boolean;
   transition: ShelfTransition;
   trackMotion: (promise: Promise<unknown>, generation: number) => () => void;
+  motionBatch: SceneMotionBatch;
   current: boolean;
   categoryData?: (key: string, data: CategorySceneData) => void;
   detailTitle?: (key: string, generation: number, title: string) => void;

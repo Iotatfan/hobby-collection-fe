@@ -1,5 +1,6 @@
 import { Box, Image, Link } from '@chakra-ui/react';
 import { motion, useReducedMotion } from 'framer-motion';
+import { useMemo } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { IDisplaySize, IShelfItem as ShelfItemData } from '@/libs/collection/collection';
 import { useShelfLocation as useLocation } from '@/layouts/shelves/scene';
@@ -38,77 +39,81 @@ const ShelfItem = ({ item, index = 0, clickable = true, contained = false }: She
   const reducedMotion = useReducedMotion();
   const destination = `/shelves/collection/${item.id}/${slugify(item.title)}`;
   const dimensions = getShelfImageDimensions(item.cover);
-  const cap = HEIGHT_MAP[item.display_size] || HEIGHT_MAP.small_tall;
-  const imageWidth = dimensions
-    ? {
-        base: `${dimensions.width * Math.min(1, parseFloat(cap.base) / dimensions.height)}px`,
-        md: `${dimensions.width * Math.min(1, parseFloat(cap.md) / dimensions.height)}px`,
-      }
-    : 'auto';
-  const card = (
-    <MotionBox
-      role="group"
-      position="relative"
-      zIndex={1}
-      w="max-content"
-      maxW={contained ? 'full' : undefined}
-      borderRadius="sm"
-      overflow="hidden"
-      borderWidth="1px"
-      borderColor="whiteAlpha.400"
-      bg="gray.900"
-      boxShadow="0 16px 30px rgba(0, 0, 0, 0.5)"
-      initial={false}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: shelfMotion.hoverDuration, ease: shelfMotion.ease }}
-      cursor={clickable ? 'pointer' : 'not-allowed'}
-      opacity={clickable ? 1 : 0.65}
-      _before={{
-        content: '""',
-        position: 'absolute',
-        inset: 0,
-        zIndex: 1,
-        boxShadow: 'inset 14px 0 20px rgba(255,255,255,0.16)',
-        pointerEvents: 'none',
-      }}
-      _after={{
-        content: '""',
-        position: 'absolute',
-        bg: 'linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(0,0,0,0.78) 100%)',
-        filter: 'blur(8px)',
-        pointerEvents: 'none',
-      }}
-      {...(clickable &&
-        !reducedMotion && {
-          whileHover: { y: -8, scale: 1.025 },
-        })}
-    >
-      <Image
-        src={cloudinarySizes(item.cover).cover}
-        data-shelf-morph={`cover-${item.id}`}
-        alt={item.title}
-        onError={(event) => {
-          if (!event.currentTarget.dataset.fallback) {
-            event.currentTarget.dataset.fallback = 'true';
-            event.currentTarget.src = '/favicon.png';
-          }
-        }}
-        onLoad={(event) => rememberShelfImageDimensions(item.cover, event.currentTarget)}
-        htmlWidth={dimensions?.width}
-        htmlHeight={dimensions?.height}
-        loading="lazy"
-        objectFit="contain"
-        display="block"
-        w={imageWidth}
-        aspectRatio={dimensions ? `${dimensions.width} / ${dimensions.height}` : undefined}
+  // Scene phase and bridge bookkeeping updates should not rebuild unchanged artwork.
+  const card = useMemo(() => {
+    const cap = HEIGHT_MAP[item.display_size] || HEIGHT_MAP.small_tall;
+    const imageWidth = dimensions
+      ? {
+          base: `${dimensions.width * Math.min(1, parseFloat(cap.base) / dimensions.height)}px`,
+          md: `${dimensions.width * Math.min(1, parseFloat(cap.md) / dimensions.height)}px`,
+        }
+      : 'auto';
+    return (
+      <MotionBox
+        role="group"
+        position="relative"
+        zIndex={1}
+        w="max-content"
         maxW={contained ? 'full' : undefined}
-        h="auto"
-        maxH={HEIGHT_MAP[item.display_size] || { base: '120px', md: '150px' }}
-        transition="filter 0.2s ease"
-        _groupHover={clickable ? { filter: 'saturate(1.12) brightness(1.08)' } : undefined}
-      />
-    </MotionBox>
-  );
+        borderRadius="sm"
+        overflow="hidden"
+        borderWidth="1px"
+        borderColor="whiteAlpha.400"
+        bg="gray.900"
+        boxShadow="0 16px 30px rgba(0, 0, 0, 0.5)"
+        initial={false}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: shelfMotion.hoverDuration, ease: shelfMotion.ease }}
+        cursor={clickable ? 'pointer' : 'not-allowed'}
+        opacity={clickable ? 1 : 0.65}
+        _before={{
+          content: '""',
+          position: 'absolute',
+          inset: 0,
+          zIndex: 1,
+          boxShadow: 'inset 14px 0 20px rgba(255,255,255,0.16)',
+          pointerEvents: 'none',
+        }}
+        _after={{
+          content: '""',
+          position: 'absolute',
+          inset: 0,
+          bg: 'whiteAlpha.100',
+          opacity: 0,
+          transition: `opacity ${shelfMotion.hoverDuration}s ease`,
+          pointerEvents: 'none',
+        }}
+        _hover={clickable ? { _after: { opacity: 1 } } : undefined}
+        {...(clickable &&
+          !reducedMotion && {
+            whileHover: { y: -6, scale: 1.025 },
+          })}
+      >
+        <Image
+          src={cloudinarySizes(item.cover).cover}
+          data-shelf-morph={`cover-${item.id}`}
+          alt={item.title}
+          onError={(event) => {
+            if (!event.currentTarget.dataset.fallback) {
+              event.currentTarget.dataset.fallback = 'true';
+              event.currentTarget.src = '/favicon.png';
+            }
+          }}
+          onLoad={(event) => rememberShelfImageDimensions(item.cover, event.currentTarget)}
+          htmlWidth={dimensions?.width}
+          htmlHeight={dimensions?.height}
+          loading="lazy"
+          objectFit="contain"
+          display="block"
+          w={imageWidth}
+          aspectRatio={dimensions ? `${dimensions.width} / ${dimensions.height}` : undefined}
+          maxW={contained ? 'full' : undefined}
+          h="auto"
+          maxH={HEIGHT_MAP[item.display_size] || { base: '120px', md: '150px' }}
+        />
+      </MotionBox>
+    );
+  }, [item, dimensions, contained, clickable, reducedMotion]);
 
   if (!clickable) {
     return (

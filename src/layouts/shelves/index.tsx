@@ -27,6 +27,7 @@ import {
   restingAnchorTop,
 } from '@/pages/collection_shelf/helpers/navigation';
 import { MotionRegistry } from '@/layouts/shelves/motionRegistry';
+import { SceneMotionBatch } from '@/layouts/shelves/sceneMotionBatch';
 import { shelfMotion } from '@/layouts/shelves/motion';
 import CoverBridge from '@/layouts/shelves/CoverBridge';
 import CategoryBridge from '@/layouts/shelves/CategoryBridge';
@@ -107,6 +108,7 @@ export default function ShelvesWorkspace() {
   const registry = useRef<MotionRegistry | null>(null);
   if (!registry.current) registry.current = new MotionRegistry(() => attemptFinish.current());
   const motions = registry.current;
+  const [motionBatch] = useState(() => new SceneMotionBatch());
   const sceneComplete = useRef('');
   const latest = scenes[scenes.length - 1];
   const latestScene = useRef(latest);
@@ -319,6 +321,8 @@ export default function ShelvesWorkspace() {
   const sharedTransition = Boolean(!reduced && outgoing && (categoryBridge || cover));
   const serial = navigationSerial.current;
   const hasOutgoing = Boolean(outgoing);
+  // Child layout effects enqueue preparation before the workspace advances the phase.
+  useLayoutEffect(() => motionBatch.flushPreparation());
   useLayoutEffect(() => {
     if (
       phase !== 'preparing' ||
@@ -548,6 +552,7 @@ export default function ShelvesWorkspace() {
               ready: reportReady,
               claimPosition,
               trackMotion,
+              motionBatch,
               transition: {
                 generation: serial,
                 phase,

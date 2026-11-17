@@ -138,10 +138,8 @@ const Shelf = ({
           pt={4}
           pb={0}
           className="custom-scrollbar"
-          style={{
-            perspective: '1200px',
-            transformStyle: 'preserve-3d',
-          }}
+          perspective="1200px"
+          transformStyle="preserve-3d"
         >
           {shelf.items.map((item, index) => (
             <ShelfItem

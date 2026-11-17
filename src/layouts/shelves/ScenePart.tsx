@@ -14,6 +14,7 @@ import {
   type ShelfTransition,
 } from '@/layouts/shelves/scene';
 import { shelfMotion } from '@/layouts/shelves/motion';
+import type { SceneMeasurements } from '@/layouts/shelves/sceneMotionBatch';
 
 const MotionBox = motion.create(Box);
 const ParentMoving = createContext(false);
@@ -33,28 +34,22 @@ function movementOffset(
   transition: ShelfTransition,
   role: ShelfContentRole,
   departures: Map<string, Offset>,
+  measurements: SceneMeasurements,
 ): Offset {
   const key = transition.itemId ? `item:${transition.itemId}` : `category:${transition.category}`;
   const saved =
     transition.direction === 'back' && !transition.departing ? departures.get(key) : undefined;
   if (saved) return saved;
-  const root = node?.closest<HTMLElement>('[data-shelf-scene]');
-  const anchor = transition.itemId
-    ? Array.from(root?.querySelectorAll<HTMLElement>('[data-part-item]') || []).find(
-        (part) => part.dataset.partItem === transition.itemId,
-      )
-    : Array.from(root?.querySelectorAll<HTMLElement>('[data-scene-part="shelf"]') || []).find(
-        (part) => part.dataset.partCategory === transition.category,
-      );
-  const bounds = node?.getBoundingClientRect(),
-    origin = anchor?.getBoundingClientRect();
+  const anchor = measurements.anchor(node, transition);
+  const bounds = node ? measurements.bounds(node) : undefined,
+    origin = anchor?.bounds;
   const horizontal = role === 'information' || role === 'controls';
   let offset = { x: horizontal ? (role === 'controls' ? 16 : 32) : 0, y: horizontal ? 0 : 40 };
   if (bounds && origin && role !== 'controls') {
     const centerX = bounds.left + bounds.width / 2,
       centerY = bounds.top + bounds.height / 2;
     const row = node?.closest('[data-shelf-scroll]'),
-      anchorRow = anchor?.closest('[data-shelf-scroll]');
+      anchorRow = anchor?.row;
     const sameRow =
       role === 'box' &&
       (row && anchorRow ? row === anchorRow : centerY >= origin.top && centerY <= origin.bottom);
@@ -94,6 +89,7 @@ export default function ScenePart({
   const plan = useRef<Plan | null>(null);
   const transition = scene?.transition;
   const trackMotion = scene?.trackMotion;
+  const motionBatch = scene?.motionBatch;
   const anchored =
     (role === 'shelf' && Boolean(category) && category === transition?.category) ||
     (role === 'box' &&
@@ -104,27 +100,34 @@ export default function ScenePart({
   input.current = { transition, role, order, anchored, parentMoving };
   useLayoutEffect(() => {
     const { transition: current, role, order, anchored, parentMoving } = input.current;
-    if (!current || current.phase === 'settled' || reduced) {
+    if (!current || !motionBatch || current.phase === 'settled' || reduced) {
       controls.set(resting);
       return;
     }
     if (current.phase === 'preparing') {
-      controls.stop();
-      controls.set(resting);
-      const skip = !current.participating || anchored || parentMoving;
-      const offset = skip
-        ? { x: 0, y: 0 }
-        : movementOffset(element.current, current, role, departures.current);
-      plan.current = {
-        generation: current.generation,
-        departing: current.departing,
-        skip,
-        offset,
-        role,
-        order,
-      };
-      if (!skip && !current.departing) controls.set({ opacity: 0, ...offset });
-      return;
+      return motionBatch.prepare(
+        () => {
+          controls.stop();
+          controls.set(resting);
+        },
+        (measurements) => {
+          const skip = !current.participating || anchored || parentMoving;
+          const offset = skip
+            ? { x: 0, y: 0 }
+            : movementOffset(element.current, current, role, departures.current, measurements);
+          plan.current = {
+            generation: current.generation,
+            departing: current.departing,
+            skip,
+            offset,
+            role,
+            order,
+          };
+          return () => {
+            if (!skip && !current.departing) controls.set({ opacity: 0, ...offset });
+          };
+        },
+      );
     }
     const prepared = plan.current;
     // Content mounted by hydration did not participate in preparation and does not replay entry.
@@ -138,39 +141,46 @@ export default function ScenePart({
     });
     // Reserve motion before the frame so a bridge completion cannot overtake registration.
     const release = trackMotion?.(scheduled, prepared.generation);
-    const frame = requestAnimationFrame(() => {
+    const cancelFrame = motionBatch.animate(() => {
       const bounds = element.current?.getBoundingClientRect();
       const offsetY = prepared.departing ? 0 : prepared.offset.y;
       // Restoration has committed. Test resting bounds, not the entrance translation.
-      if (
+      const offscreen =
         prepared.role !== 'shelf' &&
         bounds &&
-        (bounds.bottom - offsetY < 0 || bounds.top - offsetY > window.innerHeight)
-      ) {
-        controls.set(resting);
-        finish();
-        return;
-      }
-      void controls
-        .start({
-          opacity: prepared.departing ? 0 : 1,
-          x: prepared.departing ? prepared.offset.x : 0,
-          y: prepared.departing ? prepared.offset.y : 0,
-          transition: {
-            duration: 0.28,
-            ease: shelfMotion.ease,
-            delay: prepared.departing ? 0 : Math.min(prepared.order * 0.025, 0.1),
-          },
-        })
-        .then(finish, finish);
+        (bounds.bottom - offsetY < 0 || bounds.top - offsetY > window.innerHeight);
+      return () => {
+        if (offscreen) {
+          controls.set(resting);
+          finish();
+          return;
+        }
+        void controls
+          .start({
+            opacity: prepared.departing ? 0 : 1,
+            x: prepared.departing ? prepared.offset.x : 0,
+            y: prepared.departing ? prepared.offset.y : 0,
+            transition: {
+              duration: shelfMotion.contentDuration,
+              ease: shelfMotion.ease,
+              delay: prepared.departing
+                ? 0
+                : Math.min(
+                    prepared.order * shelfMotion.entranceStagger,
+                    shelfMotion.maxEntranceDelay,
+                  ),
+            },
+          })
+          .then(finish, finish);
+      };
     });
     return () => {
-      cancelAnimationFrame(frame);
+      cancelFrame();
       controls.stop();
       release?.();
       finish();
     };
-  }, [transition?.generation, transition?.phase, reduced, controls, trackMotion]);
+  }, [transition?.generation, transition?.phase, reduced, controls, trackMotion, motionBatch]);
   return (
     <MotionBox
       {...props}

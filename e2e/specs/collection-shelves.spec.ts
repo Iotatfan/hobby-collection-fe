@@ -1,5 +1,45 @@
 import { expect, test, type Page } from '@playwright/test';
 
+test('motion preparation measures resting positions while interrupted translations remain painted', async ({
+  page,
+}) => {
+  await mock(page);
+  await page.goto('/shelves');
+  await settledWorkspace(page);
+  const bounds = await page.evaluate(async () => {
+    const modulePath = '/src/layouts/shelves/sceneMotionBatch.ts';
+    const { SceneMotionBatch } = await import(modulePath);
+    const root = document.createElement('div');
+    root.setAttribute('data-shelf-scene', 'measurement-fixture');
+    root.style.cssText = 'position:fixed;left:100px;top:100px;width:100px;height:100px';
+    const parent = document.createElement('div');
+    parent.setAttribute('data-scene-part', 'shelf');
+    parent.style.transform = 'translateY(-48px)';
+    const child = document.createElement('div');
+    child.setAttribute('data-scene-part', 'box');
+    child.style.cssText = 'transform:translateX(32px);width:20px;height:20px';
+    parent.append(child);
+    root.append(parent);
+    document.body.append(root);
+    let resting: { left: number; top: number } | undefined;
+    const painted = child.getBoundingClientRect();
+    const batch = new SceneMotionBatch();
+    batch.prepare(
+      () => {},
+      (measurements: { bounds: (node: HTMLElement) => DOMRect }) => {
+        const rect = measurements.bounds(child);
+        resting = { left: rect.left, top: rect.top };
+        return () => {};
+      },
+    );
+    batch.flushPreparation();
+    root.remove();
+    return { painted: { left: painted.left, top: painted.top }, resting };
+  });
+  expect(bounds.painted).toEqual({ left: 132, top: 52 });
+  expect(bounds.resting).toEqual({ left: 100, top: 100 });
+});
+
 const item = (id: number) => ({
   id,
   title: `Kit ${id}`,
@@ -2290,6 +2330,18 @@ async function assertNeighborSpread(page: Page, artwork = false, summary = false
     sample.stop();
     return sample.frames;
   });
+  if (
+    !frames.some(
+      (frame) => frame.above < -2 && frame.aboveOpacity > 0.01 && frame.aboveOpacity < 0.99,
+    ) ||
+    !frames.some(
+      (frame) => frame.below > 2 && frame.belowOpacity > 0.01 && frame.belowOpacity < 0.99,
+    )
+  )
+    await test.info().attach('neighbor-motion-frames', {
+      body: JSON.stringify(frames),
+      contentType: 'application/json',
+    });
   expect(
     frames.some(
       (frame) => frame.above < -2 && frame.aboveOpacity > 0.01 && frame.aboveOpacity < 0.99,
