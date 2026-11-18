@@ -96,7 +96,7 @@ for (const mode of ['create', 'edit'] as const) {
       for (const [placeholder, value] of [
         ['Choose status', 'Built'],
         ['Choose scale', '1/144'],
-        ['Choose manufacturer', 'Bandai'],
+        ['Choose brand', 'Bandai'],
         ['Choose release type', 'Standard'],
         ['Choose series', 'Gundam'],
         ['Choose display size', 'small_wide'],
@@ -108,7 +108,7 @@ for (const mode of ['create', 'edit'] as const) {
       await page.getByPlaceholder('Optional description').fill(collection.description);
       await page.getByRole('button', { name: 'Add addon' }).click();
       await page.getByPlaceholder('Addon 1 name').fill('Stand');
-      await page.getByRole('button', { name: 'Choose manufacturer', exact: true }).click();
+      await page.getByRole('button', { name: 'Choose brand', exact: true }).click();
       await page.getByRole('menuitemradio', { name: 'Bandai', exact: true }).click();
     }
 

@@ -28,7 +28,7 @@ const CATALOG_OPTIONS = [
   { id: 'scales', label: 'Scale' },
   { id: 'release-types', label: 'Release type' },
   { id: 'series', label: 'Series' },
-  { id: 'manufacturers', label: 'Manufacturer' },
+  { id: 'manufacturers', label: 'Brand' },
   { id: 'metadata-tags', label: 'Metadata tag' },
 ] as const;
 

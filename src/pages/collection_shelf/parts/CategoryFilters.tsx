@@ -163,7 +163,7 @@ export default function CategoryFilters({
           { key: 'scale_id', label: 'Scale', options: options?.scales || [] },
           {
             key: 'manufacturer_id',
-            label: category === 'figure' ? 'Brand' : 'Manufacturer',
+            label: 'Brand',
             options: options?.manufacturers || [],
           },
           { key: 'series_id', label: 'Series', options: options?.series || [] },

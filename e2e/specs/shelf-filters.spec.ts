@@ -231,7 +231,7 @@ for (const category of Object.keys(keys) as Category[]) {
       ).toBeVisible();
     else {
       await choose(page, 'Scale', '1/7');
-      await choose(page, category === 'figure' ? 'Brand' : 'Manufacturer', 'Maker A');
+      await choose(page, 'Brand', 'Maker A');
     }
     await choose(page, 'Series', series[1].name);
     await expect(

@@ -190,10 +190,10 @@ const CollectionForm = () => {
                 </Field.Root>
 
                 <Field.Root required minW={0}>
-                  <Field.Label>Manufacturer</Field.Label>
+                  <Field.Label>Brand</Field.Label>
                   <StandardDropdown
                     disabled={isSubmitting}
-                    placeholder="Choose manufacturer"
+                    placeholder="Choose brand"
                     value={selectedManufacturer?.id ?? null}
                     options={manufacturers.map((manufacturer) => ({
                       value: manufacturer.id,
@@ -324,7 +324,7 @@ const CollectionForm = () => {
                         <Box w="full" minW={0} flex={{ base: 'initial', md: '0 0 14rem' }}>
                           <StandardDropdown
                             disabled={isSubmitting}
-                            placeholder="Choose manufacturer"
+                            placeholder="Choose brand"
                             value={addon.manufacturerId}
                             options={manufacturers.map((manufacturer) => ({
                               value: manufacturer.id,

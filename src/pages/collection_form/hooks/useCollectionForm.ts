@@ -334,7 +334,7 @@ const useCollectionForm = () => {
       manufacturerId === null ||
       seriesId === null
     ) {
-      setErrorMessage('Status, type, scale, release type, manufacturer, and series are required.');
+      setErrorMessage('Status, type, scale, release type, brand, and series are required.');
       return;
     }
 
@@ -359,7 +359,7 @@ const useCollectionForm = () => {
         (!addon.name && addon.manufacturerId !== null),
     );
     if (hasIncompleteAddon) {
-      setErrorMessage('Each addon needs both a name and a manufacturer.');
+      setErrorMessage('Each addon needs both a name and a brand.');
       return;
     }
 
