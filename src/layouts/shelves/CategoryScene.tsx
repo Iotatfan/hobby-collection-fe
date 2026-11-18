@@ -21,6 +21,8 @@ import type { CategorySceneData } from '@/layouts/shelves/scene';
 import { shelfMotion } from '@/layouts/shelves/motion';
 import ScenePart from '@/layouts/shelves/ScenePart';
 import { warmShelfRoute } from '@/layouts/shelves/warmup';
+import CategoryFilters from '@/pages/collection_shelf/parts/CategoryFilters';
+import FilterShelfMotion from '@/pages/collection_shelf/parts/FilterShelfMotion';
 
 const MotionBox = motion.create(Box);
 export default function CategoryScene({ data }: { data?: CategorySceneData }) {
@@ -113,43 +115,59 @@ export default function CategoryScene({ data }: { data?: CategorySceneData }) {
             <Text as="h1" tabIndex={-1} fontSize="3xl" fontWeight="bold">
               {shelfName || config?.name || 'Category unavailable'}
             </Text>
-            {config && (
-              <Text color="whiteAlpha.800" mt={2}>
-                {`${visibleCount} items`}
-              </Text>
-            )}
           </ScenePart>
-          {config &&
-            rows.map((row, index) => (
-              <MotionBox
-                key={`${category}-${index}`}
-                initial={
-                  reduced || type === 'POP' || !active || index * rowSize < 12
-                    ? false
-                    : { opacity: 0 }
-                }
-                animate={{ opacity: 1 }}
-                transition={{
-                  duration: reduced ? 0 : shelfMotion.rowDuration,
-                  ease: shelfMotion.ease,
-                }}
-                mt={8}
-              >
+          {category && (
+            <ScenePart role="controls">
+              <CategoryFilters category={category} data={data} count={visibleCount} />
+            </ScenePart>
+          )}
+          <FilterShelfMotion
+            revision={`${data?.resultKey || ''}:${visibleItems.map((item) => item.id).join(',')}`}
+          >
+            {config &&
+              rows.map((row, index) => (
+                <MotionBox
+                  key={`${category}-${index}`}
+                  initial={
+                    reduced || type === 'POP' || !active || index * rowSize < 12
+                      ? false
+                      : { opacity: 0 }
+                  }
+                  animate={{ opacity: 1 }}
+                  transition={{
+                    duration: reduced ? 0 : shelfMotion.rowDuration,
+                    ease: shelfMotion.ease,
+                  }}
+                  mt={8}
+                >
+                  <Shelf
+                    showHeading={false}
+                    shelf={{
+                      id: index,
+                      name: shelfName,
+                      items: row,
+                      count: visibleCount,
+                    }}
+                    category={category}
+                    icon={config.icon}
+                    accent={config.accent}
+                    expanded
+                  />
+                </MotionBox>
+              ))}
+            {config && !loading && !error && !visibleItems.length && (
+              <Box mt={8}>
                 <Shelf
                   showHeading={false}
-                  shelf={{
-                    id: index,
-                    name: shelfName,
-                    items: row,
-                    count: visibleCount,
-                  }}
+                  shelf={{ id: 0, name: shelfName, items: [], count: visibleCount }}
                   category={category}
                   icon={config.icon}
                   accent={config.accent}
                   expanded
                 />
-              </MotionBox>
-            ))}
+              </Box>
+            )}
+          </FilterShelfMotion>
           {skeletonCount > 0 && <ShelfSkeletonRows count={skeletonCount} headings="none" />}
         </Box>
         {config && (
@@ -172,13 +190,22 @@ export default function CategoryScene({ data }: { data?: CategorySceneData }) {
               ) : error ? (
                 <Text color="red.300">{error}</Text>
               ) : !items.length ? (
-                'No items in this category.'
+                data && Object.keys(data.filters).length ? (
+                  'No matching items'
+                ) : (
+                  'No items in this category.'
+                )
               ) : complete ? (
                 `All ${items.length} items shown.`
               ) : (
                 `${items.length} of ${count} items shown.`
               )}
             </Box>
+            {!loading && !items.length && data && Object.keys(data.filters).length > 0 && (
+              <Button variant="outline" colorPalette="orange" onClick={data.clearFilters}>
+                Reset filters
+              </Button>
+            )}
             {!loading && (!complete || error) && (
               <Button variant="outline" colorPalette="orange" onClick={() => void load?.()}>
                 {error ? 'Retry' : `Load more ${config.name}`}

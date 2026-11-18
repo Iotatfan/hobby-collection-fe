@@ -7,6 +7,8 @@ import {
   ICollectionShelfQuery,
   ICollectionListResponse,
   ICollectionStatistics,
+  ICategoryFilterOptions,
+  ShelfCategory,
 } from '@/libs/collection/collection';
 
 type CollectionDetailCache = {
@@ -228,10 +230,38 @@ export function setCachedCollectionStatistics(data: ICollectionStatistics) {
   safeSet('collection_statistics', JSON.stringify({ data, timestamp: Date.now() }));
 }
 
-const shelfCacheKey = (query?: ICollectionShelfQuery) =>
-  query
-    ? `collection_shelves_${query.category}_${query.limit}_${query.offset}`
-    : 'collection_shelves';
+export const shelfCacheKey = (query?: ICollectionShelfQuery) => {
+  if (!query) return 'collection_shelves';
+  const base = `collection_shelves_${query.category}_${query.limit}_${query.offset}`;
+  const filters = [
+    ['grade', query.grade_id],
+    ['scale', query.scale_id],
+    [
+      'release',
+      query.release_type_id
+        ?.slice()
+        .sort((a, b) => a - b)
+        .join('-'),
+    ],
+    ['manufacturer', query.manufacturer_id],
+    ['series', query.series_id],
+  ].filter(([, value]) => value !== undefined && value !== '');
+  return base + filters.map(([field, value]) => `_${field}${value}`).join('');
+};
+
+export function getCachedCategoryFilters(category: ShelfCategory): ICategoryFilterOptions | null {
+  const key = `collection_filters_${category}`;
+  const raw = safeGet(key);
+  const entry = raw
+    ? parseCachedJson<{ data: ICategoryFilterOptions; timestamp: number }>(raw, key)
+    : null;
+  if (!entry || Date.now() - entry.timestamp >= CACHE_DURATION_FIVE_MINUTES) return null;
+  return entry.data;
+}
+
+export function setCachedCategoryFilters(data: ICategoryFilterOptions) {
+  safeSet(`collection_filters_${data.category}`, JSON.stringify({ data, timestamp: Date.now() }));
+}
 
 export function getCachedCollectionShelves(query?: ICollectionShelfQuery): ICollectionShelf | null {
   const key = shelfCacheKey(query);
@@ -278,7 +308,8 @@ export function invalidateCollectionCache(id?: number) {
       const key = localStorage.key(index);
       if (
         key?.startsWith(`${CACHE_VERSION}:collection_list`) ||
-        key?.startsWith(`${CACHE_VERSION}:collection_shelves`)
+        key?.startsWith(`${CACHE_VERSION}:collection_shelves`) ||
+        key?.startsWith(`${CACHE_VERSION}:collection_filters_`)
       ) {
         listCacheKeys.push(key.slice(`${CACHE_VERSION}:`.length));
       }

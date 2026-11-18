@@ -3,20 +3,27 @@ import {
   type CategoryPages,
 } from '@/pages/collection_shelf/helpers/categoryCache';
 import { useShelfSceneCurrent } from '@/layouts/shelves/scene';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ShelfCategory } from '@/libs/collection/collection';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ShelfCategory, ShelfFilters } from '@/libs/collection/collection';
 import { removeCachedCollectionShelves } from '@/utils/collectionCaches';
 import collectionServices from '@/services/content/collectionServices';
 import { categories } from '../helpers/categories';
 import { writeSession } from '../helpers/navigation';
+import { categoryPagesKey, filterKey, shelfFilterQuery } from '../helpers/filters';
 
 const empty: CategoryPages = { items: [], count: 0, offset: 0, complete: false };
-export default function useCategoryShelves(category: ShelfCategory | undefined) {
+export default function useCategoryShelves(
+  category: ShelfCategory | undefined,
+  filters: ShelfFilters,
+) {
   const enabled = useShelfSceneCurrent();
   const [pages, setPages] = useState<CategoryPages>(() => readCategoryPages(category) || empty);
   const [loading, setLoading] = useState(pages === empty && Boolean(category));
   const [error, setError] = useState('');
   const [ready, setReady] = useState(pages !== empty || !category);
+  const key = filterKey(filters);
+  const [resultKey, setResultKey] = useState(key);
+  const queryFilters = useMemo(() => shelfFilterQuery(filters), [filters]);
   const current = useRef(pages);
   const request = useRef<AbortController | null>(null);
   const active = useRef(category);
@@ -29,7 +36,7 @@ export default function useCategoryShelves(category: ShelfCategory | undefined) 
     setError('');
     try {
       const response = await collectionServices.getCollectionShelves(
-        { category, limit: 12, offset: previous.offset },
+        { category, limit: 12, offset: previous.offset, ...queryFilters },
         controller.signal,
       );
       if (controller.signal.aborted || active.current !== category) return;
@@ -53,10 +60,16 @@ export default function useCategoryShelves(category: ShelfCategory | undefined) 
       };
       current.current = next;
       setPages(next);
-      writeSession(`pages:${category}`, next);
+      setResultKey(key);
+      writeSession(categoryPagesKey(category, filters), next);
     } catch (failure) {
       if (!controller.signal.aborted && active.current === category) {
-        removeCachedCollectionShelves({ category, limit: 12, offset: previous.offset });
+        removeCachedCollectionShelves({
+          category,
+          limit: 12,
+          offset: previous.offset,
+          ...queryFilters,
+        });
         setError(failure instanceof Error ? failure.message : 'Failed to load shelf items.');
       }
     } finally {
@@ -66,15 +79,19 @@ export default function useCategoryShelves(category: ShelfCategory | undefined) 
         setReady(true);
       }
     }
-  }, [category]);
+  }, [category, filters, key, queryFilters]);
   useEffect(() => {
     if (!enabled) return;
     active.current = category;
     setError('');
     setReady(false);
-    const cached = readCategoryPages(category);
+    const cached = readCategoryPages(category, filters);
     current.current = cached || empty;
-    setPages(current.current);
+    // Keep painted artwork until the replacement query has completed.
+    if (cached) {
+      setPages(cached);
+      setResultKey(key);
+    }
     if (cached || !category) {
       setLoading(false);
       setReady(true);
@@ -83,6 +100,9 @@ export default function useCategoryShelves(category: ShelfCategory | undefined) 
       request.current?.abort();
       request.current = null;
     };
-  }, [category, load, enabled]);
-  return { ...pages, loading, error, ready, load };
+  }, [category, load, enabled, filters, key]);
+  return useMemo(
+    () => ({ ...pages, loading, error, ready, load, resultKey, pending: resultKey !== key }),
+    [pages, loading, error, ready, load, resultKey, key],
+  );
 }

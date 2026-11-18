@@ -221,4 +221,27 @@ export interface ICollectionShelfQuery {
   category: ShelfCategory;
   limit: number;
   offset: number;
+  grade_id?: number;
+  scale_id?: number;
+  release_type_id?: number[];
+  manufacturer_id?: number;
+  series_id?: number;
+}
+
+export interface ShelfFilters {
+  grade_id?: number;
+  scale_id?: number;
+  release_type_id?: number;
+  manufacturer_id?: number;
+  series_id?: number;
+}
+
+export interface ICategoryFilterOptions {
+  category: ShelfCategory;
+  total_count: number;
+  grades: { id: number; name: string; short_name: string }[];
+  scales: IFiguresScaleFilterItem[];
+  release_types: IReleaseTypeDrawerItem[];
+  manufacturers: IManufacturerDrawerItem[];
+  series: ISeriesDrawerItem[];
 }

@@ -4,16 +4,17 @@
 
 `src/services/http.ts` default-exports the shared Axios instance, configured with `env.apiBaseUrl`. Collection API operations belong in the default `collectionServices` object from `src/services/content/collectionServices.ts`; login belongs in `src/services/authServices.ts`. Components and hooks should use these services rather than bypassing their auth/cache behavior with direct HTTP calls.
 
-| Method                                  | Endpoint                     | Result or purpose                                           |
-| --------------------------------------- | ---------------------------- | ----------------------------------------------------------- |
-| `getAllCollections(query?, signal?)`    | GET `/collection`            | List response with `collections` and optional `total_count` |
-| `getCollection(id, signal?)`            | GET `/collection/:id`        | `{ data, fromCache }`                                       |
-| `getDrawerContent()`                    | GET `/collection/drawer`     | Form option data                                            |
-| `getCollectionTypeFilters()`            | GET `/collection/filter`     | Normalized filter options                                   |
-| `getCollectionStatistics(signal?)`      | GET `/collection/statistics` | Collection statistics                                       |
-| `getCollectionShelves(query?, signal?)` | GET `/collection/shelves`    | Overview or category shelf data                             |
-| `createCollection(payload)`             | POST `/create_collection`    | Created collection                                          |
-| `updateCollection(id, payload)`         | PATCH `/collection/:id`      | Updated collection                                          |
+| Method                                  | Endpoint                              | Result or purpose                                           |
+| --------------------------------------- | ------------------------------------- | ----------------------------------------------------------- |
+| `getAllCollections(query?, signal?)`    | GET `/collection`                     | List response with `collections` and optional `total_count` |
+| `getCollection(id, signal?)`            | GET `/collection/:id`                 | `{ data, fromCache }`                                       |
+| `getDrawerContent()`                    | GET `/collection/drawer`              | Form option data                                            |
+| `getCollectionTypeFilters()`            | GET `/collection/filter`              | Classic View filter options                                 |
+| `getCategoryFilters(category, signal?)` | GET `/collection/filter?category=...` | Category-used options and unfiltered total                  |
+| `getCollectionStatistics(signal?)`      | GET `/collection/statistics`          | Collection statistics                                       |
+| `getCollectionShelves(query?, signal?)` | GET `/collection/shelves`             | Overview or category shelf data                             |
+| `createCollection(payload)`             | POST `/create_collection`             | Created collection                                          |
+| `updateCollection(id, payload)`         | PATCH `/collection/:id`               | Updated collection                                          |
 
 Catalog creation methods use POST: `createCollectionType` at `/collection/types`, `createGrade` at `/collection/grades`, `createScale` at `/collection/scales`, `createReleaseType` at `/collection/release-types`, `createSeries` at `/collection/series`, `createManufacturer` at `/collection/manufacturers`, and `createMetadataTag` at `/collection/metadata-tags`. Request interfaces for these helpers are exported from the service module.
 
@@ -45,7 +46,7 @@ Detail, statistics, and shelves requests use `collectionRequest` to share same-k
 | Drawer options    | 24 hours  | `collection_drawer`                                    |
 | Filter options    | 24 hours  | `collection_filters`                                   |
 
-List keys account for collection types, grades, scales, release types, sort, limit, and offset. Shelf keys distinguish overview and category pagination. Preserve those distinctions when changing query behavior.
+List keys account for collection types, grades, scales, release types, sort, limit, and offset. Shelf keys distinguish overview, category, pagination, and every active filter ID. Category metadata is cached for five minutes separately from the 24-hour Classic View filter cache. Release-type query arrays use repeated keys. Figure Brand uses `manufacturer_id`; category shelf `count` is the full matching count and scoped filter metadata supplies the unfiltered total. Preserve those distinctions when changing query behavior.
 
 Collection create/update already call `invalidateCollectionCache(id)` and seed the returned detail record. Do not add redundant invalidation in their callers. Invalidation clears statistics, list/shelf caches, drawer/filter options, the specified detail, and `shelves:` session entries when storage is available. Preserve the statistics generation check that prevents a pre-mutation request from restoring stale cached statistics. Catalog creation helpers do not automatically perform this collection invalidation; inspect the caller's option refresh flow when changing catalog behavior.
 

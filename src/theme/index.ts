@@ -8,6 +8,9 @@ const customConfig = defineConfig({
         purple: { value: '#7C3AED' },
         regular: { value: '#374151' },
         blueTint: { value: '#F5F7FA' },
+        shelves: {
+          surface: { value: '#0a192f' },
+        },
         specificationLabel: { value: '#55585fff' },
         specificationValue: { value: '#222325ff' },
       },

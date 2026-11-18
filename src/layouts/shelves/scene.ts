@@ -1,4 +1,8 @@
-import type { IShelfItem } from '@/libs/collection/collection';
+import type {
+  IShelfItem,
+  ICategoryFilterOptions,
+  ShelfFilters,
+} from '@/libs/collection/collection';
 import type { SceneMotionBatch } from '@/layouts/shelves/sceneMotionBatch';
 import { createContext, useContext, useLayoutEffect } from 'react';
 import {
@@ -28,6 +32,15 @@ export interface ShelfTransition {
   sharedItemIds?: string[];
 }
 export interface CategorySceneData {
+  filters: ShelfFilters;
+  options: ICategoryFilterOptions | null;
+  filtersError: string;
+  filtersLoading: boolean;
+  changeFilter: (field: keyof ShelfFilters, value?: number) => void;
+  clearFilters: () => void;
+  retryFilters: () => void;
+  resultKey: string;
+  pending: boolean;
   name?: string;
   items: IShelfItem[];
   count: number;

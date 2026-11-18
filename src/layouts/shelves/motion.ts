@@ -7,4 +7,6 @@
   maxEntranceDelay: 0.048,
   rowDuration: 0.18,
   hoverDuration: 0.14,
+  filterExitDuration: 0.25,
+  filterRegroupDuration: 0.375,
 };

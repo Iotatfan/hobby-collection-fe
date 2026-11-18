@@ -123,7 +123,7 @@ const ShelfItem = ({ item, index = 0, clickable = true, contained = false }: She
     );
   }
 
-  return (
+  const content = (
     <ScenePart
       role="box"
       display="flex"
@@ -170,6 +170,13 @@ const ShelfItem = ({ item, index = 0, clickable = true, contained = false }: She
         </RouterLink>
       </Link>
     </ScenePart>
+  );
+  return contained ? (
+    <Box data-filter-item={item.id} display="flex" alignItems="flex-end" minW={0}>
+      {content}
+    </Box>
+  ) : (
+    content
   );
 };
 

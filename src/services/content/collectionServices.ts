@@ -13,6 +13,8 @@ import {
   ICollectionShelf,
   ICollectionShelfQuery,
   ICollectionListResponse,
+  ICategoryFilterOptions,
+  ShelfCategory,
 } from '@/libs/collection/collection';
 import { collectionRequest } from '@/services/content/collectionRequest';
 import http, { getAuthToken, isValidJwtToken } from '@/services/http';
@@ -31,6 +33,9 @@ import {
   getCachedCollectionStatistics,
   setCachedCollectionStatistics,
   getStatisticsCacheGeneration,
+  shelfCacheKey,
+  getCachedCategoryFilters,
+  setCachedCategoryFilters,
 } from '@/utils/collectionCaches';
 
 const logError = (...args: unknown[]) => {
@@ -168,18 +173,48 @@ const getCollectionShelves = async (
 ): Promise<ICollectionShelf> => {
   const cached = getCachedCollectionShelves(query);
   if (cached) return cached;
-  const key = query
-    ? `shelves:${query.category}:${query.limit}:${query.offset}`
-    : 'shelves:overview';
+  const key = shelfCacheKey(query);
   return collectionRequest(
     key,
     async (requestSignal) => {
       const response = await http.get('/collection/shelves', {
         params: query,
+        paramsSerializer: { indexes: null },
         signal: requestSignal,
       });
       const data = response.data.data as ICollectionShelf;
       setCachedCollectionShelves(data, query);
+      return data;
+    },
+    signal,
+  );
+};
+
+const getCategoryFilters = async (
+  category: ShelfCategory,
+  signal?: AbortSignal,
+): Promise<ICategoryFilterOptions> => {
+  const cached = getCachedCategoryFilters(category);
+  if (cached) return cached;
+  const generation = getStatisticsCacheGeneration();
+  return collectionRequest(
+    `category-filters:${category}:${generation}`,
+    async (requestSignal) => {
+      const response = await http.get('/collection/filter', {
+        params: { category },
+        signal: requestSignal,
+      });
+      const data = response.data?.data as ICategoryFilterOptions;
+      if (
+        data?.category !== category ||
+        !Number.isFinite(data.total_count) ||
+        ![data.grades, data.scales, data.release_types, data.manufacturers, data.series].every(
+          Array.isArray,
+        )
+      ) {
+        throw new Error('Category filters are unavailable. Please retry.');
+      }
+      if (generation === getStatisticsCacheGeneration()) setCachedCategoryFilters(data);
       return data;
     },
     signal,
@@ -277,6 +312,7 @@ const collectionServices = {
   getCollection,
   getDrawerContent,
   getCollectionTypeFilters,
+  getCategoryFilters,
   getCollectionStatistics,
   getCollectionShelves,
   createCollection,

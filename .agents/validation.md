@@ -68,12 +68,13 @@ An explicit `PLAYWRIGHT_BASE_URL` disables Playwright-managed server startup. Us
 
 ## Existing suites and regression scenarios
 
-| Suite                        | Responsibilities                                                                                         |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `collection-list.spec.ts`    | List pagination fallback and URL filter persistence                                                      |
-| `collection-form.spec.ts`    | Create/edit submission locking, failure recovery, description preservation                               |
-| `collection-shelves.spec.ts` | Shelf/category/detail behavior, loading, caching, pagination, navigation, motion, gallery, accessibility |
-| `shelf-motion.spec.ts`       | MotionRegistry cancellation, replacement work, generation isolation                                      |
+| Suite                        | Responsibilities                                                                                                             |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `collection-list.spec.ts`    | List pagination fallback and URL filter persistence                                                                          |
+| `collection-form.spec.ts`    | Create/edit submission locking, failure recovery, description preservation                                                   |
+| `collection-shelves.spec.ts` | Shelf/category/detail behavior, loading, caching, pagination, navigation, motion, gallery, accessibility                     |
+| `shelf-motion.spec.ts`       | MotionRegistry cancellation, replacement work, generation isolation                                                          |
+| `shelf-filters.spec.ts`      | Category filters, full-dataset matching, restoration, mobile controls, late responses, cross-row regrouping, anchored ledges |
 
 Use existing request mocking patterns (`page.route`) and initialize runtime config/auth cookies before navigation when needed. Synthetic JWTs are for browser tests only. Model API envelopes, pagination, images, and timing explicitly so a test exercises the intended state.
 
