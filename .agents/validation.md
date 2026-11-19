@@ -18,7 +18,7 @@
 | `npm run test:e2e:report` | Open the HTML test report                                  |
 | `npm run deploy`          | Build and deploy the Worker; changes external state        |
 
-The Vite configuration includes React and Cloudflare plugins. Wrangler's source configuration points assets at `dist/client`, enables SPA fallback, and runs the Worker first for `/collection/*`. Preview is a local Worker preview, rather than Vite's static preview command. Do not deploy merely to validate a local change.
+The Vite configuration includes React and Cloudflare plugins. Wrangler's source configuration points assets at `dist/client`, enables SPA fallback, and runs the Worker first for `/collection/*` and `/shelves/collection/*`. Preview is a local Worker preview, rather than Vite's static preview command. Do not deploy merely to validate a local change.
 
 ## Choose checks by impact
 

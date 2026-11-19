@@ -19,7 +19,7 @@ export default {
     const userAgent = request.headers.get('user-agent') ?? '';
 
     // Let non-collection routes behave normally.
-    const match = url.pathname.match(/^\/collection\/(\d+)(?:\/.*)?$/);
+    const match = url.pathname.match(/^\/(?:shelves\/)?collection\/(\d+)(?:\/.*)?$/);
     if (!match) {
       return env.ASSETS.fetch(request);
     }
