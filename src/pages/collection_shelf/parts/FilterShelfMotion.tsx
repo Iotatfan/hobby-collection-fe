@@ -8,7 +8,7 @@ type Artwork = { id: string; rect: DOMRect; clone: HTMLElement; direction: numbe
 type Snapshot = {
   root: DOMRect;
   items: Artwork[];
-  rows: { rect: DOMRect; gridHeight: number; ledge?: HTMLElement }[];
+  rows: { rect: DOMRect; gridHeight: number; ledge?: HTMLElement; ledgeRect?: DOMRect }[];
 };
 type Props = {
   children: ReactNode;
@@ -43,6 +43,7 @@ class ShelfMotionBoundary extends Component<Props> {
       (row) => ({
         rect: row.getBoundingClientRect(),
         gridHeight: row.querySelector('[data-shelf-scroll]')?.getBoundingClientRect().height || 0,
+        ledgeRect: row.querySelector<HTMLElement>('[data-scene-ledge]')?.getBoundingClientRect(),
         ledge: row.querySelector<HTMLElement>('[data-scene-ledge]')?.cloneNode(true) as
           | HTMLElement
           | undefined,
@@ -114,11 +115,10 @@ class ShelfMotionBoundary extends Component<Props> {
       ghosts.push(node);
       return node;
     };
-    snapshot.rows.slice(rows.length).forEach(({ rect, ledge }) => {
-      if (!ledge) return;
+    snapshot.rows.slice(rows.length).forEach(({ ledgeRect, ledge }) => {
+      if (!ledge || !ledgeRect) return;
       // The ledge's own height stays intact; its parent row may already be gone.
-      const height = window.matchMedia('(min-width: 48rem)').matches ? 28 : 24;
-      makeGhost(ledge, new DOMRect(rect.left, rect.bottom - height, rect.width, height));
+      makeGhost(ledge, ledgeRect);
     });
     const departing = snapshot.items.filter((item) => !nodes.has(item.id));
     const exits = departing.map((item) => {

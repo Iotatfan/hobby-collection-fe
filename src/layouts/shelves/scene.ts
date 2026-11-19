@@ -17,6 +17,7 @@ export type ShelfContentRole =
   | 'shelf'
   | 'row'
   | 'box'
+  | 'caption'
   | 'ledge'
   | 'information'
   | 'controls';
@@ -29,6 +30,7 @@ export interface ShelfTransition {
   departing: boolean;
   participating: boolean;
   shared?: boolean;
+  categoryNavigation?: boolean;
   sharedItemIds?: string[];
 }
 export interface CategorySceneData {
@@ -64,9 +66,13 @@ export interface ShelfScene {
   claimPosition: (key: string) => boolean;
 }
 export const ShelfSceneContext = createContext<ShelfScene | null>(null);
+// Content reads stable route/visibility signals without subscribing to bridge bookkeeping.
+export const ShelfLocationContext = createContext<Location | null>(null);
+export const ShelfCurrentContext = createContext(true);
+export const ShelfActiveContext = createContext(true);
 export function useShelfLocation() {
   const fallback = useLocation();
-  return useContext(ShelfSceneContext)?.location || fallback;
+  return useContext(ShelfLocationContext) || fallback;
 }
 export function useShelfNavigationType() {
   const fallback = useNavigationType();
@@ -84,11 +90,11 @@ export function useShelfSceneReady(ready: boolean) {
   return scene?.active ?? true;
 }
 export function useShelfSceneActive() {
-  return useContext(ShelfSceneContext)?.active ?? true;
+  return useContext(ShelfActiveContext);
 }
 
 export function useShelfSceneCurrent() {
-  return useContext(ShelfSceneContext)?.current ?? true;
+  return useContext(ShelfCurrentContext);
 }
 
 /** Only the current route may update the workspace-owned document title. */

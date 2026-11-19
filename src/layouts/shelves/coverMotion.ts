@@ -6,6 +6,8 @@ export interface CoverMotion {
   to?: Bounds;
   intrinsic: { width: number; height: number };
   photo?: boolean;
+  entry?: boolean;
+  handoff?: boolean;
   ready?: boolean;
   revealing?: boolean;
   blend?: { src: string; from: Bounds; to: Bounds };
@@ -46,9 +48,9 @@ export function captureCover(source: HTMLElement, from: string, to: string): Cov
   if (!detail) return null;
   const key = `cover-${detail[1]}`;
   const gallery = source.querySelector<HTMLElement>(`[data-gallery-item="${detail[1]}"]`);
-  const image =
-    gallery?.querySelector<HTMLImageElement>('[data-gallery-current-image]') ||
-    findCover(source, key);
+  const image = gallery
+    ? gallery.querySelector<HTMLImageElement>('[data-gallery-current-image]')
+    : findCover(source, key);
   if (!image?.naturalWidth || !image.naturalHeight) return null;
   const intrinsic = { width: image.naturalWidth, height: image.naturalHeight };
   let bounds = paintedCoverBounds(image, intrinsic);
@@ -117,10 +119,9 @@ export function resolveCoverDestination(
     `[data-gallery-item="${cover.key.slice(6)}"]`,
   );
   if (gallery) {
-    if (gallery.dataset.galleryKind === 'photo') return null;
     const rect = gallery.getBoundingClientRect();
     if (!rect.width || !rect.height) return null;
-    return { ...cover, to: containBounds(cover.intrinsic, rect) };
+    return { ...cover, entry: true, to: containBounds(cover.intrinsic, rect) };
   }
   const target = findCover(destination, cover.key);
   return target ? resolveCoverTarget(cover, target) : null;

@@ -1,5 +1,5 @@
 import { Box } from '@chakra-ui/react';
-import { motion, useAnimationControls, useReducedMotion } from 'framer-motion';
+import { animate, useReducedMotion } from 'framer-motion';
 import {
   createContext,
   useContext,
@@ -16,9 +16,12 @@ import {
 import { shelfMotion } from '@/layouts/shelves/motion';
 import type { SceneMeasurements } from '@/layouts/shelves/sceneMotionBatch';
 
-const MotionBox = motion.create(Box);
 const ParentMoving = createContext(false);
-const resting = { opacity: 1, x: 0, y: 0 };
+function reset(node: HTMLElement) {
+  node.style.opacity = '1';
+  node.style.transform = 'none';
+}
+const translation = ({ x, y }: Offset) => `translate(${x}px, ${y}px)`;
 type Offset = { x: number; y: number };
 type Plan = {
   generation: number;
@@ -27,6 +30,7 @@ type Plan = {
   offset: Offset;
   role: ShelfContentRole;
   order: number;
+  categoryFade: boolean;
 };
 
 function movementOffset(
@@ -57,6 +61,14 @@ function movementOffset(
       ? { x: centerX < origin.left + origin.width / 2 ? -32 : 32, y: 0 }
       : { x: 0, y: centerY < origin.top + origin.height / 2 ? -48 : 48 };
   }
+  if (['summary', 'information', 'controls'].includes(role)) {
+    if (bounds && origin && (bounds.bottom <= origin.top || bounds.top >= origin.bottom)) {
+      offset = { x: 0, y: bounds.top < origin.top ? -24 : 24 };
+    } else {
+      offset = horizontal ? { x: offset.x < 0 ? -16 : 16, y: 0 } : { x: 0, y: -24 };
+    }
+  }
+  if (role === 'caption') offset = { x: 0, y: 12 };
   // Frames and bridged ledges remain at their resting geometry for bridge measurement.
   if (role === 'row' || (role === 'ledge' && transition.sharedItemIds)) offset = { x: 0, y: 0 };
   if (transition.departing) {
@@ -73,7 +85,7 @@ export default function ScenePart({
   order = 0,
   children,
   ...props
-}: Omit<ComponentProps<typeof MotionBox>, 'role' | 'children' | 'order'> & {
+}: Omit<ComponentProps<typeof Box>, 'role' | 'children' | 'order'> & {
   role: ShelfContentRole;
   category?: string;
   itemId?: string;
@@ -83,11 +95,12 @@ export default function ScenePart({
   const element = useRef<HTMLDivElement>(null);
   const parentMoving = useContext(ParentMoving);
   const scene = useContext(ShelfSceneContext);
-  const controls = useAnimationControls();
+  const animation = useRef<ReturnType<typeof animate> | null>(null);
   const reduced = useReducedMotion();
   const departures = useRef(new Map<string, Offset>());
   const plan = useRef<Plan | null>(null);
   const transition = scene?.transition;
+  const locationKey = scene?.location.key;
   const trackMotion = scene?.trackMotion;
   const motionBatch = scene?.motionBatch;
   const anchored =
@@ -100,17 +113,23 @@ export default function ScenePart({
   input.current = { transition, role, order, anchored, parentMoving };
   useLayoutEffect(() => {
     const { transition: current, role, order, anchored, parentMoving } = input.current;
+    const node = element.current;
+    if (!node) return;
     if (!current || !motionBatch || current.phase === 'settled' || reduced) {
-      controls.set(resting);
+      reset(node);
       return;
     }
     if (current.phase === 'preparing') {
       return motionBatch.prepare(
         () => {
-          controls.stop();
-          controls.set(resting);
+          animation.current?.stop();
+          reset(node);
         },
         (measurements) => {
+          const categoryFade = Boolean(
+            current.categoryNavigation &&
+            ['caption', 'information', 'controls', 'ledge'].includes(role),
+          );
           const skip = !current.participating || anchored || parentMoving;
           const offset = skip
             ? { x: 0, y: 0 }
@@ -122,9 +141,13 @@ export default function ScenePart({
             offset,
             role,
             order,
+            categoryFade,
           };
           return () => {
-            if (!skip && !current.departing) controls.set({ opacity: 0, ...offset });
+            if (!skip && !current.departing) {
+              node.style.opacity = '0';
+              node.style.transform = translation(offset);
+            }
           };
         },
       );
@@ -132,7 +155,7 @@ export default function ScenePart({
     const prepared = plan.current;
     // Content mounted by hydration did not participate in preparation and does not replay entry.
     if (!prepared || prepared.generation !== current.generation || prepared.skip) {
-      controls.set(resting);
+      reset(node);
       return;
     }
     let finish = () => {};
@@ -140,7 +163,11 @@ export default function ScenePart({
       finish = resolve;
     });
     // Reserve motion before the frame so a bridge completion cannot overtake registration.
-    const release = trackMotion?.(scheduled, prepared.generation);
+    const release = motionBatch.track(
+      `${prepared.generation}:${locationKey}:${prepared.role}`,
+      scheduled,
+      (promise) => trackMotion?.(promise, prepared.generation) || (() => {}),
+    );
     const cancelFrame = motionBatch.animate(() => {
       const bounds = element.current?.getBoundingClientRect();
       const offsetY = prepared.departing ? 0 : prepared.offset.y;
@@ -151,49 +178,54 @@ export default function ScenePart({
         (bounds.bottom - offsetY < 0 || bounds.top - offsetY > window.innerHeight);
       return () => {
         if (offscreen) {
-          controls.set(resting);
+          reset(node);
           finish();
           return;
         }
-        void controls
-          .start({
+        const target = prepared.departing ? prepared.offset : { x: 0, y: 0 };
+        const controls = animate(
+          node,
+          {
             opacity: prepared.departing ? 0 : 1,
-            x: prepared.departing ? prepared.offset.x : 0,
-            y: prepared.departing ? prepared.offset.y : 0,
-            transition: {
-              duration: shelfMotion.contentDuration,
-              ease: shelfMotion.ease,
-              delay: prepared.departing
-                ? 0
-                : Math.min(
-                    prepared.order * shelfMotion.entranceStagger,
-                    shelfMotion.maxEntranceDelay,
-                  ),
-            },
-          })
-          .then(finish, finish);
+            transform: translation(target),
+          },
+          {
+            duration: prepared.categoryFade
+              ? prepared.departing
+                ? shelfMotion.categoryFadeOut
+                : shelfMotion.categoryFadeIn
+              : shelfMotion.contentDuration,
+            ease: shelfMotion.categoryEase,
+            delay: prepared.departing
+              ? 0
+              : Math.min(
+                  prepared.order * shelfMotion.entranceStagger,
+                  shelfMotion.maxEntranceDelay,
+                ),
+          },
+        );
+        animation.current = controls;
+        void controls.then(finish, finish);
       };
     });
     return () => {
       cancelFrame();
-      controls.stop();
+      animation.current?.stop();
       release?.();
       finish();
     };
-  }, [transition?.generation, transition?.phase, reduced, controls, trackMotion, motionBatch]);
+  }, [transition?.generation, transition?.phase, reduced, trackMotion, motionBatch, locationKey]);
   return (
-    <MotionBox
+    <Box
       {...props}
       ref={element}
       data-scene-part={role}
       data-part-item={itemId}
       data-part-category={category}
-      initial={false}
-      animate={controls}
     >
-      <ParentMoving.Provider value={parentMoving || (role === 'shelf' && !anchored)}>
+      <ParentMoving.Provider value={parentMoving || (['shelf', 'box'].includes(role) && !anchored)}>
         {children}
       </ParentMoving.Provider>
-    </MotionBox>
+    </Box>
   );
 }

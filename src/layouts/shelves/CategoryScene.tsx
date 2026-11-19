@@ -1,9 +1,9 @@
 import { Box, Button, Link, Spinner, Text, useBreakpointValue } from '@chakra-ui/react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
-import { categories, isCategory } from '@/pages/collection_shelf/helpers/categories';
+import { categories, isCategory, shelfColumns } from '@/pages/collection_shelf/helpers/categories';
 import {
   useShelfRestoration,
   canReturn,
@@ -19,6 +19,7 @@ import { ShelfSkeletonRows } from '@/layouts/shelves/ShelfLoadingParts';
 import { readCategoryPages } from '@/pages/collection_shelf/helpers/categoryCache';
 import type { CategorySceneData } from '@/layouts/shelves/scene';
 import { shelfMotion } from '@/layouts/shelves/motion';
+import ShelfPageContainer from '@/layouts/shelves/ShelfPageContainer';
 import ScenePart from '@/layouts/shelves/ScenePart';
 import { warmShelfRoute } from '@/layouts/shelves/warmup';
 import CategoryFilters from '@/pages/collection_shelf/parts/CategoryFilters';
@@ -74,7 +75,7 @@ export default function CategoryScene({ data }: { data?: CategorySceneData }) {
       navigate(-1);
     }
   };
-  const rowSize = useBreakpointValue({ base: 3, md: 6 }) || 3;
+  const rowSize = useBreakpointValue(shelfColumns) || 2;
   const preview = state?.preview?.category === category ? state?.preview?.shelf : undefined;
   const showCarried = !items.length && (loading || Boolean(error));
   const snapshot = showCarried || name == null ? readCategoryPages(category) : null;
@@ -83,22 +84,28 @@ export default function CategoryScene({ data }: { data?: CategorySceneData }) {
   const visibleCount = showCarried ? (carried?.count ?? count) : count;
   const shelfName = name ?? snapshot?.name ?? preview?.name ?? '';
   const skeletonCount = loading && !items.length ? Math.max(0, 12 - visibleItems.length) : 0;
-  const rows = Array.from({ length: Math.ceil(visibleItems.length / rowSize) }, (_, index) =>
-    visibleItems.slice(index * rowSize, index * rowSize + rowSize),
+  const rows = useMemo(
+    () =>
+      Array.from({ length: Math.ceil(visibleItems.length / rowSize) }, (_, index) => ({
+        id: index,
+        name: shelfName,
+        items: visibleItems.slice(index * rowSize, index * rowSize + rowSize),
+        count: visibleCount,
+      })),
+    [visibleItems, rowSize, shelfName, visibleCount],
   );
   return (
-    <Box
+    <ShelfPageContainer
       data-destination-loading={loading && !items.length ? 'category' : undefined}
       aria-busy={loading || undefined}
       minH="100vh"
       bg="transparent"
       color="white"
-      px={{ base: 4, md: 8 }}
       py={8}
     >
-      <Box maxW="92rem" mx="auto">
+      <Box>
         <ScenePart role="controls">
-          <Link focusRing="none" focusVisibleRing="outside" asChild color="orange.200" mb={6}>
+          <Link focusRing="none" focusVisibleRing="outside" asChild color="shelves.link" mb={6}>
             <RouterLink
               data-shelf-back=""
               to="/shelves"
@@ -112,8 +119,21 @@ export default function CategoryScene({ data }: { data?: CategorySceneData }) {
         </ScenePart>
         <Box>
           <ScenePart role="information">
+            <Box as="nav" aria-label="Breadcrumb" color="shelves.muted" mb={4}>
+              <Link asChild color="shelves.link">
+                <RouterLink to="/shelves" onClick={back}>
+                  Collection
+                </RouterLink>
+              </Link>
+              <Text as="span" mx={3} aria-hidden="true">
+                /
+              </Text>
+              <Text as="span" aria-current="page">
+                {config?.name || 'Category'}
+              </Text>
+            </Box>
             <Text as="h1" tabIndex={-1} fontSize="3xl" fontWeight="bold">
-              {shelfName || config?.name || 'Category unavailable'}
+              {config?.name || shelfName || 'Category unavailable'}
             </Text>
           </ScenePart>
           {category && (
@@ -138,16 +158,11 @@ export default function CategoryScene({ data }: { data?: CategorySceneData }) {
                     duration: reduced ? 0 : shelfMotion.rowDuration,
                     ease: shelfMotion.ease,
                   }}
-                  mt={8}
+                  mt={index === 0 ? 8 : 4}
                 >
                   <Shelf
                     showHeading={false}
-                    shelf={{
-                      id: index,
-                      name: shelfName,
-                      items: row,
-                      count: visibleCount,
-                    }}
+                    shelf={row}
                     category={category}
                     icon={config.icon}
                     accent={config.accent}
@@ -155,20 +170,14 @@ export default function CategoryScene({ data }: { data?: CategorySceneData }) {
                   />
                 </MotionBox>
               ))}
-            {config && !loading && !error && !visibleItems.length && (
-              <Box mt={8}>
-                <Shelf
-                  showHeading={false}
-                  shelf={{ id: 0, name: shelfName, items: [], count: visibleCount }}
-                  category={category}
-                  icon={config.icon}
-                  accent={config.accent}
-                  expanded
-                />
-              </Box>
-            )}
           </FilterShelfMotion>
-          {skeletonCount > 0 && <ShelfSkeletonRows count={skeletonCount} headings="none" />}
+          {skeletonCount > 0 && (
+            <ShelfSkeletonRows
+              count={skeletonCount}
+              headings="none"
+              appended={visibleItems.length > 0}
+            />
+          )}
         </Box>
         {config && (
           <ScenePart
@@ -179,7 +188,7 @@ export default function CategoryScene({ data }: { data?: CategorySceneData }) {
             alignItems="center"
             justifyContent="center"
             gap={3}
-            mt={6}
+            mt={!items.length ? 4 : 6}
           >
             <Box role="status" aria-live="polite">
               {loading ? (
@@ -191,7 +200,7 @@ export default function CategoryScene({ data }: { data?: CategorySceneData }) {
                 <Text color="red.300">{error}</Text>
               ) : !items.length ? (
                 data && Object.keys(data.filters).length ? (
-                  'No matching items'
+                  'No matching items. Try changing or resetting your filters.'
                 ) : (
                   'No items in this category.'
                 )
@@ -201,20 +210,38 @@ export default function CategoryScene({ data }: { data?: CategorySceneData }) {
                 `${items.length} of ${count} items shown.`
               )}
             </Box>
-            {!loading && !items.length && data && Object.keys(data.filters).length > 0 && (
-              <Button variant="outline" colorPalette="orange" onClick={data.clearFilters}>
-                Reset filters
-              </Button>
-            )}
+            {!loading &&
+              !error &&
+              !items.length &&
+              data &&
+              Object.keys(data.filters).length > 0 && (
+                <Button
+                  bg="shelves.action"
+                  color="white"
+                  _hover={{ bg: 'shelves.actionHover' }}
+                  focusVisibleRing="outside"
+                  minH="44px"
+                  onClick={data.clearFilters}
+                >
+                  Reset filters
+                </Button>
+              )}
             {!loading && (!complete || error) && (
-              <Button variant="outline" colorPalette="orange" onClick={() => void load?.()}>
-                {error ? 'Retry' : `Load more ${config.name}`}
+              <Button
+                bg="shelves.action"
+                color="white"
+                _hover={{ bg: 'shelves.actionHover' }}
+                focusVisibleRing="outside"
+                minH="44px"
+                onClick={() => void load?.()}
+              >
+                {error ? 'Retry' : 'Load more'}
               </Button>
             )}
             <Box ref={sentinel} h="1px" aria-hidden="true" />
           </ScenePart>
         )}
       </Box>
-    </Box>
+    </ShelfPageContainer>
   );
 }

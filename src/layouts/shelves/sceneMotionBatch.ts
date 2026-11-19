@@ -11,7 +11,7 @@ class SceneMeasurements {
     const rect = node.getBoundingClientRect();
     let x = 0;
     let y = 0;
-    // controls.set schedules a render; an interrupted transform may still be painted.
+    // Read interrupted transforms once per measurement pass, including inherited scene parts.
     for (
       let part: HTMLElement | null = node;
       part && !part.hasAttribute('data-shelf-scene');
@@ -63,6 +63,40 @@ export class SceneMotionBatch {
   private preparations = new Set<Preparation>();
   private animations = new Set<Animation>();
   private frame: number | null = null;
+  private groups = new Map<string, { members: Set<symbol>; finish: () => void }>();
+
+  /** One registry entry covers related elements, including work scheduled before the next frame. */
+  track(key: string, promise: Promise<unknown>, register: (promise: Promise<void>) => () => void) {
+    let group = this.groups.get(key);
+    if (!group) {
+      let resolve = () => {};
+      const complete = new Promise<void>((done) => {
+        resolve = done;
+      });
+      const release = register(complete);
+      group = {
+        members: new Set(),
+        finish: () => {
+          resolve();
+          release();
+        },
+      };
+      this.groups.set(key, group);
+    }
+    const current = group;
+    const member = Symbol();
+    current.members.add(member);
+    const release = () => {
+      if (!current.members.delete(member)) return;
+      queueMicrotask(() => {
+        if (current.members.size || this.groups.get(key) !== current) return;
+        this.groups.delete(key);
+        current.finish();
+      });
+    };
+    void promise.then(release, release);
+    return release;
+  }
 
   prepare(reset: Preparation['reset'], measure: Preparation['measure']) {
     const job = { reset, measure };

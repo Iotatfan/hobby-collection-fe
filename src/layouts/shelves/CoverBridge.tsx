@@ -10,18 +10,20 @@ export default function CoverBridge({
   overlayRef,
   onReady,
   onComplete,
+  onHandoff,
   onError,
 }: {
   cover: CoverMotion;
   overlayRef: RefObject<HTMLDivElement | null>;
   onReady: () => void;
   onComplete: () => void;
+  onHandoff: () => boolean;
   onError: () => void;
 }) {
   const image = useRef<HTMLImageElement>(null);
   const blend = useRef<HTMLImageElement>(null);
-  const callbacks = useRef({ onReady, onComplete, onError });
-  callbacks.current = { onReady, onComplete, onError };
+  const callbacks = useRef({ onReady, onComplete, onHandoff, onError });
+  callbacks.current = { onReady, onComplete, onHandoff, onError };
   const controls = useAnimationControls();
   const blendControls = useAnimationControls();
   const resolved = Boolean(cover.to);
@@ -53,6 +55,7 @@ export default function CoverBridge({
   useLayoutEffect(() => {
     if (!cover.ready || !cover.to) return;
     let active = true;
+    let revealFrame = 0;
     const transition = { duration: shelfMotion.coverDuration, ease: shelfMotion.ease };
     const promises = [
       controls.start({
@@ -73,15 +76,31 @@ export default function CoverBridge({
           transition,
         }),
       );
-    void Promise.all(promises).then(() => {
+    void Promise.all(promises).then(async () => {
+      if (!active) return;
+      if (cover.entry && callbacks.current.onHandoff()) {
+        // Paint the selected gallery layer before fading the independent box-art overlay.
+        await new Promise<void>((resolve) => {
+          revealFrame = requestAnimationFrame(() => {
+            revealFrame = 0;
+            resolve();
+          });
+        });
+        if (!active) return;
+        await controls.start({
+          opacity: 0,
+          transition: { duration: shelfMotion.coverHandoffDuration, ease: 'linear' },
+        });
+      }
       if (active) callbacks.current.onComplete();
     });
     return () => {
       active = false;
+      cancelAnimationFrame(revealFrame);
       controls.stop();
       blendControls.stop();
     };
-  }, [cover.ready, cover.to, cover.from, cover.blend, controls, blendControls]);
+  }, [cover.ready, cover.to, cover.from, cover.blend, cover.entry, controls, blendControls]);
   return (
     <Box
       aria-hidden="true"

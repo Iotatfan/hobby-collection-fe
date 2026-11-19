@@ -1,61 +1,35 @@
 ﻿import { Box, Flex, IconButton, Image, Text } from '@chakra-ui/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { shelfMotion } from '@/layouts/shelves/motion';
 import { cloudinarySizes } from '@/utils/cloudinary';
 
-function useGalleryImage(selected?: string) {
-  const [decoded, setDecoded] = useState('');
-  useEffect(() => {
-    if (!selected) return;
-    let active = true;
-    const image = new window.Image();
-    const finish = () => {
-      if (active) setDecoded(selected);
-    };
-    image.onload = () => {
-      void image
-        .decode()
-        .catch(() => undefined)
-        .then(finish);
-    };
-    image.onerror = () => {
-      if (active) setDecoded(`failed:${selected}`);
-    };
-    image.src = cloudinarySizes(selected).preview;
-    if (image.complete && image.naturalWidth)
-      void image
-        .decode()
-        .catch(() => undefined)
-        .then(finish);
-    return () => {
-      active = false;
-    };
-  }, [selected]);
-  return { ready: decoded === selected, failed: decoded === `failed:${selected}` };
-}
-export function GalleryHero({
-  title,
-  cover,
-  images,
-  index,
-  setIndex,
-}: {
+interface GalleryProps {
   title: string;
   cover: string;
   images: string[];
   index: number;
-  setIndex: (index: number) => void;
-}) {
-  const selected = images[index];
-  const { ready, failed } = useGalleryImage(selected);
-  const name = `${title} - ${index === 0 && cover ? 'Box art' : `Photo ${index + 1}`}`;
+  setIndex: (index: number, direction?: number) => void;
+  direction?: number;
+  imageChange?: number;
+}
+
+type GalleryFrame = { key: string; source: string; name: string };
+const MotionBox = motion.create(Box);
+
+function GalleryImage({ frame, current }: { frame: GalleryFrame; current: boolean }) {
+  const [status, setStatus] = useState<'pending' | 'ready' | 'failed'>('pending');
   return (
     <>
-      {selected && !failed && (
+      {status !== 'failed' && (
         <Image
-          data-gallery-current-image=""
-          src={ready ? cloudinarySizes(selected).preview : cloudinarySizes(selected).cover}
-          alt={name}
+          data-gallery-current-image={current && status === 'ready' ? '' : undefined}
+          src={cloudinarySizes(frame.source).preview}
+          alt={current ? frame.name : ''}
+          visibility={status === 'ready' ? 'visible' : 'hidden'}
+          onLoad={() => setStatus('ready')}
+          onError={() => setStatus('failed')}
           w="full"
           h="full"
           objectFit="contain"
@@ -63,39 +37,106 @@ export function GalleryHero({
           decoding="async"
         />
       )}
-      {(!selected || failed) && (
+      {status === 'failed' && current && (
+        <Flex position="absolute" inset={0} align="center" justify="center">
+          <Text color="shelves.muted">Image unavailable</Text>
+        </Flex>
+      )}
+    </>
+  );
+}
+
+export function GalleryHero({
+  title,
+  cover,
+  images,
+  index,
+  setIndex,
+  direction = 1,
+  imageChange = 0,
+}: GalleryProps) {
+  const reduced = useReducedMotion();
+  const selected = images[index];
+  const name = `${title} - ${index === 0 && cover ? 'Box art' : `Photo ${cover ? index : index + 1}`}`;
+  const key = `${selected}:${imageChange}`;
+  const [frames, setFrames] = useState<{ current: GalleryFrame; previous: GalleryFrame | null }>({
+    current: { key, source: selected, name },
+    previous: null,
+  });
+  if (frames.current.key !== key) {
+    setFrames({
+      previous: reduced ? null : frames.current,
+      current: { key, source: selected, name },
+    });
+  } else if (reduced && frames.previous) {
+    setFrames({ ...frames, previous: null });
+  }
+  const layers = [...(frames.previous ? [frames.previous] : []), frames.current];
+  return (
+    <>
+      {selected ? (
+        layers.map((frame) => {
+          const current = frame.key === frames.current.key;
+          return (
+            <MotionBox
+              key={frame.key}
+              data-gallery-layer={current ? 'current' : 'outgoing'}
+              aria-hidden={!current}
+              position="absolute"
+              inset={0}
+              initial={
+                frames.previous && current && !reduced ? { x: `${direction * 100}%` } : false
+              }
+              animate={{ x: current || reduced ? '0%' : `${-direction * 100}%` }}
+              transition={{
+                duration: reduced ? 0 : shelfMotion.galleryDuration,
+                ease: shelfMotion.categoryEase,
+              }}
+              onAnimationComplete={() => {
+                if (!current)
+                  setFrames((previous) =>
+                    previous.previous?.key === frame.key
+                      ? { ...previous, previous: null }
+                      : previous,
+                  );
+              }}
+            >
+              <GalleryImage frame={frame} current={current} />
+            </MotionBox>
+          );
+        })
+      ) : (
         <Flex w="full" h="full" align="center" justify="center">
-          <Text color="whiteAlpha.700">{failed ? 'Image unavailable' : 'No images available'}</Text>
+          <Text color="shelves.muted">No images available</Text>
         </Flex>
       )}
       {images.length > 0 && (
-        <Box
-          position="absolute"
-          top={3}
-          right={3}
-          bg="blackAlpha.700"
-          backdropFilter="blur(4px)"
-          borderRadius="md"
-          px={2.5}
-          py={1}
-          fontSize="sm"
-          fontWeight="semibold"
-          lineHeight="1"
-          zIndex={5}
-        >
-          {index + 1} / {images.length}
-        </Box>
-      )}
-      {images.length > 0 && (
-        <Text srOnly role="status" aria-live="polite">
-          {name}, image {index + 1} of {images.length}
-        </Text>
+        <>
+          <Box
+            position="absolute"
+            top={3}
+            right={3}
+            bg="blackAlpha.800"
+            borderRadius="md"
+            px={2.5}
+            py={1}
+            fontSize="sm"
+            fontWeight="semibold"
+            lineHeight="1"
+            zIndex={5}
+          >
+            {index + 1} / {images.length}
+          </Box>
+          <Text srOnly role="status" aria-live="polite">
+            {name}, image {index + 1} of {images.length}
+          </Text>
+        </>
       )}
       {images.length > 1 && (
         <>
           <IconButton
             aria-label="Previous image"
-            onClick={() => setIndex((index + images.length - 1) % images.length)}
+            onClick={() => setIndex((index + images.length - 1) % images.length, -1)}
             position="absolute"
             left={3}
             top="50%"
@@ -103,8 +144,9 @@ export function GalleryHero({
             zIndex={10}
             variant="ghost"
             color="white"
-            bg="blackAlpha.400"
-            _hover={{ bg: 'blackAlpha.600' }}
+            bg="blackAlpha.800"
+            _hover={{ bg: 'black' }}
+            focusVisibleRing="outside"
             borderRadius="full"
             size="lg"
           >
@@ -112,7 +154,7 @@ export function GalleryHero({
           </IconButton>
           <IconButton
             aria-label="Next image"
-            onClick={() => setIndex((index + 1) % images.length)}
+            onClick={() => setIndex((index + 1) % images.length, 1)}
             position="absolute"
             right={3}
             top="50%"
@@ -120,8 +162,9 @@ export function GalleryHero({
             zIndex={10}
             variant="ghost"
             color="white"
-            bg="blackAlpha.400"
-            _hover={{ bg: 'blackAlpha.600' }}
+            bg="blackAlpha.800"
+            _hover={{ bg: 'black' }}
+            focusVisibleRing="outside"
             borderRadius="full"
             size="lg"
           >
@@ -172,13 +215,15 @@ export function GalleryThumbnails({
     if (start < root.scrollLeft) root.scrollLeft = start;
     else if (start + button.offsetWidth > root.scrollLeft + root.clientWidth)
       root.scrollLeft = start + button.offsetWidth - root.clientWidth;
-  }, [index]);
+  }, [index, overflow]);
   return (
     <Flex
       ref={viewport}
       data-gallery-thumbnails=""
       cursor={overflow ? 'grab' : 'default'}
-      css={{ scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}
+      className="custom-scrollbar"
+      role="group"
+      aria-label="Image thumbnails"
       onPointerDown={(event) => {
         suppressClick.current = false;
         if (event.pointerType !== 'mouse' || event.button !== 0 || !overflow) return;
@@ -229,23 +274,44 @@ export function GalleryThumbnails({
           asChild
           key={`${image}-${imageIndex}`}
           flexShrink={0}
-          w="72px"
-          h="56px"
+          w={{ base: '80px', md: '96px' }}
+          h={{ base: '68px', md: '80px' }}
           borderRadius="lg"
           overflow="hidden"
           borderWidth="2px"
-          borderColor={index === imageIndex ? 'orange.200' : 'transparent'}
-          opacity={index === imageIndex ? 1 : 0.55}
+          borderColor={index === imageIndex ? 'shelves.action' : 'transparent'}
+          opacity={1}
+          position="relative"
+          focusVisibleRing="inside"
+          focusRingColor="shelves.link"
           _hover={{ opacity: 1 }}
           transition="opacity 0.2s, border-color 0.2s"
           bg="#16243b"
         >
           <button
             type="button"
-            aria-label={imageIndex === 0 && cover ? 'Show box art' : `Show photo ${imageIndex + 1}`}
+            aria-label={
+              imageIndex === 0 && cover
+                ? 'Show box art'
+                : `Show photo ${cover ? imageIndex : imageIndex + 1}`
+            }
             aria-pressed={index === imageIndex}
             onClick={() => setIndex(imageIndex)}
           >
+            {imageIndex === 0 && cover && (
+              <Text
+                position="absolute"
+                bottom={0}
+                left={0}
+                right={0}
+                bg="blackAlpha.800"
+                color="white"
+                fontSize="sm"
+                zIndex={1}
+              >
+                Box art
+              </Text>
+            )}
             <Image
               src={cloudinarySizes(image).thumb}
               alt={`${title} thumbnail ${imageIndex + 1}`}

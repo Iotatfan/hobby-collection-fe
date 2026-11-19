@@ -125,10 +125,20 @@ async function mock(
   });
   return offsets;
 }
+
+async function mockBoxArtOnly(page: Page) {
+  await page.route(/\/collection\/\d+$/, (route) => {
+    const id = Number(new URL(route.request().url()).pathname.split('/').pop());
+    return route.fulfill({
+      json: { data: { ...item(id), pictures: [], description: 'Collection notes' } },
+    });
+  });
+}
+
 async function loadAll(page: Page) {
   for (let i = 0; i < 4; i++) {
     if (await page.getByRole('link', { name: 'Kit 30', exact: true }).count()) return;
-    await page.getByRole('button', { name: 'Load more Gunpla' }).click();
+    await page.getByRole('button', { name: 'Load more' }).click();
     await expect(page.getByText('Loading shelf items...')).toHaveCount(0);
   }
 }
@@ -138,22 +148,30 @@ test('category pagination retains later rows, focus and position on detail retur
 }) => {
   const offsets = await mock(page);
   await page.goto('/shelves');
-  await page.getByRole('link', { name: 'View all Gunpla' }).click();
+  await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
   await expect(page).toHaveURL(/\/shelves\/category\/gunpla$/);
   await loadAll(page);
   await expect(page.getByText('All 30 items shown.')).toBeVisible();
+  await settledWorkspace(page);
   const target = page.getByRole('link', { name: 'Kit 25', exact: true });
-  await target.scrollIntoViewIfNeeded();
+  await target.evaluate((node) => node.scrollIntoView({ block: 'center' }));
+  await target.locator('img').evaluate((node) => (node as HTMLImageElement).decode());
   await target.click({ trial: true });
-  const top = await target.evaluate((el) => el.getBoundingClientRect().top);
+  const top = await target.evaluate(
+    (el) => el.parentElement!.getBoundingClientRect().bottom - (el as HTMLElement).offsetHeight,
+  );
   await target.click();
   await expect(page).toHaveURL(/\/shelves\/collection\/25\/kit-25$/);
   await expect(page.getByRole('heading', { name: 'Kit 25' })).toBeVisible();
-  await expect(page.getByRole('img', { name: 'Kit 25 - Box art' })).toBeVisible();
-  await page.getByRole('button', { name: 'Show photo 2' }).click();
-  await expect(page.getByRole('img', { name: 'Kit 25 - Photo 2' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Show photo 1' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await page.getByRole('button', { name: 'Show photo 1' }).click();
+  await expect(page.getByRole('img', { name: 'Kit 25 - Photo 1' })).toBeVisible();
   await page.getByRole('link', { name: 'Back to Gunpla' }).click();
   await expect(target).toBeFocused();
+  await settledWorkspace(page);
   expect(
     Math.abs((await target.evaluate((el) => el.getBoundingClientRect().top)) - top),
   ).toBeLessThan(5);
@@ -166,7 +184,7 @@ test('category pagination retains later rows, focus and position on detail retur
 test('failed page retries at the same offset and preserves existing boxes', async ({ page }) => {
   const offsets = await mock(page, 'retry');
   await page.goto('/shelves/category/gunpla');
-  await page.getByRole('button', { name: 'Load more Gunpla' }).click();
+  await page.getByRole('button', { name: 'Load more' }).click();
   await expect(page.getByRole('link', { name: 'Kit 1', exact: true })).toBeAttached();
   await page.getByRole('button', { name: 'Retry' }).click();
   await expect(page.getByRole('link', { name: 'Kit 24', exact: true })).toBeAttached();
@@ -185,7 +203,7 @@ test('empty category and invalid category retain safe navigation', async ({ page
 test('non-advancing API stops automatic requests without duplicating boxes', async ({ page }) => {
   const offsets = await mock(page, 'duplicate');
   await page.goto('/shelves/category/gunpla');
-  await page.getByRole('button', { name: 'Load more Gunpla' }).click();
+  await page.getByRole('button', { name: 'Load more' }).click();
   await expect(page.getByText(/More items could not be loaded/)).toBeVisible();
   await expect(page.getByRole('link', { name: 'Kit 1', exact: true })).toHaveCount(1);
   expect(offsets.filter((offset) => offset > 0)).toEqual([12]);
@@ -199,7 +217,7 @@ test('mobile direct detail, reduced motion and classic detail isolation', async 
   await expect(page.getByRole('heading', { name: 'Kit 1' })).toBeVisible();
   await page.getByRole('link', { name: 'Back to shelves' }).click();
   await expect(page).toHaveURL(/\/shelves$/);
-  await page.getByRole('link', { name: 'View all Gunpla' }).click();
+  await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
   await expect(page.getByRole('heading', { name: 'Gunpla', exact: true, level: 1 })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.goto('/collection/1/kit-1');
@@ -224,7 +242,7 @@ test('overview returns to its trigger and browser forward keeps shelf context', 
 }) => {
   await mock(page);
   await page.goto('/shelves');
-  const trigger = page.getByRole('link', { name: 'View all Gunpla' });
+  const trigger = page.getByRole('link', { name: /View all \d+ Gunpla items/ });
   await trigger.click();
   await expect(page.getByRole('heading', { name: 'Gunpla', exact: true, level: 1 })).toBeVisible();
   await page.getByRole('link', { name: 'Back to shelves' }).click();
@@ -281,7 +299,7 @@ test('a rejected successful response is evicted so retry can recover', async ({ 
     });
   });
   await page.goto('/shelves/category/gunpla');
-  await page.getByRole('button', { name: 'Load more Gunpla' }).click();
+  await page.getByRole('button', { name: 'Load more' }).click();
   await expect(page.getByText('Invalid shelf response.')).toBeVisible();
   invalid = false;
   await page.getByRole('button', { name: 'Retry' }).click();
@@ -305,14 +323,14 @@ test('late category responses do not leak into the next category', async ({ page
   });
   try {
     await page.goto('/shelves');
-    await page.getByRole('link', { name: 'View all Gunpla' }).click();
+    await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
     await expect.poll(() => waiting.length).toBeGreaterThan(0);
     await page.goBack();
-    await page.getByRole('link', { name: 'View all Figure' }).click();
+    await page.getByRole('link', { name: /View all \d+ Figures items/ }).click();
     await expect(page.getByRole('link', { name: 'Kit 101', exact: true })).toBeAttached();
     waiting.forEach((resolve) => resolve());
     await expect(
-      page.getByRole('heading', { name: 'Figure', exact: true, level: 1 }),
+      page.getByRole('heading', { name: 'Figures', exact: true, level: 1 }),
     ).toBeVisible();
     await expect(page.getByRole('link', { name: 'Kit 1', exact: true })).toHaveCount(0);
   } finally {
@@ -365,7 +383,7 @@ test('opens the destination skeleton with preview assets before category code lo
       documentRequests.push(request.url());
   });
   try {
-    await page.getByRole('link', { name: 'View all Gunpla' }).click();
+    await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
     await expect.poll(() => requested).toBe(true);
     await expect(
       page.getByRole('heading', { name: 'Gunpla', exact: true, level: 1 }),
@@ -413,7 +431,7 @@ test('slow category data shows preview assets and skeletons then keeps previews 
   });
   await page.goto('/shelves');
   try {
-    await page.getByRole('link', { name: 'View all Gunpla' }).click();
+    await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
     await expect(
       page.getByRole('heading', { name: 'Gunpla', exact: true, level: 1 }),
     ).toBeVisible();
@@ -436,13 +454,13 @@ test('slow category data shows preview assets and skeletons then keeps previews 
       'settled',
     );
     await page.getByRole('link', { name: 'Back to shelves' }).click();
-    await expect(page.getByRole('link', { name: 'View all Gunpla' })).toBeFocused();
+    await expect(page.getByRole('link', { name: /View all \d+ Gunpla items/ })).toBeFocused();
   } finally {
     release();
   }
 });
 
-test('slow detail image retains box art and reduced motion settles without a morph', async ({
+test('pending detail image shows its background and reduced motion settles without a morph', async ({
   page,
 }) => {
   await mock(page);
@@ -468,7 +486,8 @@ test('slow detail image retains box art and reduced motion settles without a mor
       'settled',
     );
     const hero = page.locator('[data-scene-active="true"] [data-shelf-morph="cover-1"]');
-    await expect(hero.locator('img')).toHaveAttribute('src', /w_480/);
+    await expect(hero.locator('img')).toHaveAttribute('src', /w_1280/);
+    await expect(hero.locator('img')).toHaveCSS('visibility', 'hidden');
     release();
     await expect(page.getByRole('img', { name: 'Kit 1 - Box art' })).toBeVisible();
     await expect(page.locator('[data-shelf-morph-overlay]')).toHaveCount(0);
@@ -488,11 +507,11 @@ test('failed category code stays inside the workspace with safe return navigatio
   await page.goto('/shelves');
   const workspace = page.locator('[data-shelves-workspace]');
   await expect(workspace).toHaveAttribute('data-transition-phase', 'settled');
-  await page.getByRole('link', { name: 'View all Gunpla' }).click();
+  await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
   await expect(page.getByRole('heading', { name: 'This view could not be opened.' })).toBeVisible();
   await expect(workspace).toHaveAttribute('data-transition-phase', 'settled');
   await page.getByRole('link', { name: 'Back to shelves' }).click();
-  await expect(page.getByRole('link', { name: 'View all Gunpla' })).toBeFocused();
+  await expect(page.getByRole('link', { name: /View all \d+ Gunpla items/ })).toBeFocused();
 });
 
 test('slow direct entry cannot cancel into external history', async ({ page }) => {
@@ -522,8 +541,9 @@ test('slow direct entry cannot cancel into external history', async ({ page }) =
 
 test('captures desktop expansion and mobile detail for visual verification', async ({ page }) => {
   await mock(page);
+  await mockBoxArtOnly(page);
   await page.goto('/shelves');
-  await page.getByRole('link', { name: 'View all Gunpla' }).click();
+  await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
   await expect(page.locator('[data-shelves-workspace]')).toHaveAttribute(
     'data-transition-phase',
     'animating',
@@ -628,7 +648,7 @@ test('detail opens its source cover and metadata skeleton before data, then hydr
     release();
     await expect(page.getByText('Collection notes')).toBeVisible();
     expect(
-      await page.getByRole('img', { name: 'Kit 1 - Box art', exact: true }).evaluate((node) => {
+      await page.getByRole('img', { name: 'Kit 1 - Photo 1', exact: true }).evaluate((node) => {
         let element: Element | null = node;
         while (element) {
           if (Number(getComputedStyle(element).opacity) < 0.99) return false;
@@ -684,8 +704,8 @@ test('wide and portrait shelf artwork keeps natural proportions without a padded
     expect(dimensions.paddingY).toBeLessThanOrEqual(2.1);
   }
   await page.setViewportSize({ width: 320, height: 740 });
-  await page.getByRole('link', { name: 'View all Gunpla' }).click();
-  await expect(page.getByRole('button', { name: 'Load more Gunpla' })).toBeVisible();
+  await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
+  await expect(page.getByRole('button', { name: 'Load more' })).toBeVisible();
   const dimensions = await page
     .getByRole('link', { name: 'Kit 2', exact: true })
     .locator('img')
@@ -745,7 +765,7 @@ test('fresh statistics are reused across shelves, detail, classic and reload', a
   });
   await page.goto('/shelves');
   await expect(page.getByText('Total Items', { exact: true })).toBeVisible();
-  await page.getByRole('link', { name: 'View all Gunpla' }).click();
+  await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
   await page.getByRole('link', { name: 'Kit 1', exact: true }).click();
   await page.getByRole('link', { name: 'Back to Gunpla' }).click();
   await page.getByRole('link', { name: 'Back to shelves' }).click();
@@ -817,7 +837,7 @@ test('unavailable storage still shares statistics across loading and mounted sum
   });
   try {
     await page.goto('/shelves');
-    await expect(page.getByRole('link', { name: 'View all Gunpla' })).toBeVisible();
+    await expect(page.getByRole('link', { name: /View all \d+ Gunpla items/ })).toBeVisible();
     await expect.poll(() => requests).toBe(1);
     release();
     await expect(page.getByText('Total Items', { exact: true })).toBeVisible();
@@ -906,6 +926,7 @@ test('wide and portrait covers keep their proportions throughout navigation moti
   page,
 }) => {
   await mock(page);
+  await mockBoxArtOnly(page);
   await page.route('https://example.com/kit-*.png', (route) => {
     const portrait = route.request().url().includes('kit-2.png');
     return route.fulfill({
@@ -1008,6 +1029,7 @@ test('statistics started before a mutation cannot overwrite the refreshed cache'
 
 test('interrupted cover Back and Forward settles only the latest scene', async ({ page }) => {
   await mock(page);
+  await mockBoxArtOnly(page);
   await page.goto('/shelves');
   const item = page.getByRole('link', { name: 'Kit 1', exact: true });
   await item.locator('img').evaluate((node) => (node as HTMLImageElement).decode());
@@ -1049,10 +1071,11 @@ for (const origin of ['overview', 'category'] as const) {
       await item.scrollIntoViewIfNeeded();
       await item.locator('img').evaluate((node) => (node as HTMLImageElement).decode());
       await item.click();
-      await page.getByRole('button', { name: 'Show photo 2' }).click();
+      await page.getByRole('button', { name: 'Show photo 1' }).click();
       await page
-        .getByRole('img', { name: `Kit ${id} - Photo 2`, exact: true })
+        .getByRole('img', { name: `Kit ${id} - Photo 1`, exact: true })
         .evaluate((node) => (node as HTMLImageElement).decode());
+      await settledWorkspace(page);
       await recordCoverOwnership(page, id);
       if (method === 'browser') await page.goBack();
       else
@@ -1115,8 +1138,8 @@ test('shelves detail follows v1 gallery layout and removes duplicate visible lab
   );
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/shelves/collection/1/kit-1');
-  await expect(page.getByRole('button', { name: 'Show photo 2' })).toBeVisible();
-  await expect(page.getByText('1 / 2', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Show photo 1' })).toBeVisible();
+  await expect(page.getByText('2 / 2', { exact: true })).toBeVisible();
   await expect(page.getByText('Grade', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Release', { exact: true })).toHaveCount(0);
   await expect(page.getByText('HG', { exact: true })).toHaveCount(1);
@@ -1150,7 +1173,7 @@ test('photo exit with reduced motion returns without overlay or stale scene', as
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/shelves');
   await page.getByRole('link', { name: 'Kit 1', exact: true }).click();
-  await page.getByRole('button', { name: 'Show photo 2' }).click();
+  await page.getByRole('button', { name: 'Show photo 1' }).click();
   await page.getByRole('link', { name: 'Back to shelves' }).click();
   await expect(page.locator('[data-shelves-workspace]')).toHaveAttribute(
     'data-transition-phase',
@@ -1165,7 +1188,7 @@ test('an unavailable selected photo uses a safe exit fallback', async ({ page })
   await page.route('https://example.com/build.png', (route) => route.abort());
   await page.goto('/shelves');
   await page.getByRole('link', { name: 'Kit 1', exact: true }).click();
-  await page.getByRole('button', { name: 'Show photo 2' }).click();
+  await page.getByRole('button', { name: 'Show photo 1' }).click();
   await expect(page.getByText('Image unavailable', { exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Back to shelves' }).click();
   await expect(page.locator('[data-shelves-workspace]')).toHaveAttribute(
@@ -1193,12 +1216,12 @@ test('long thumbnail strips keep the selected photo visible and support dragging
     }),
   );
   await page.goto('/shelves/collection/1/kit-1');
-  for (let index = 0; index < 15; index++)
+  for (let index = 0; index < 14; index++)
     await page.getByRole('button', { name: 'Next image', exact: true }).click();
   await expect(page.getByText('16 / 16', { exact: true })).toBeVisible();
   const strip = page.locator('[data-gallery-thumbnails]');
   const position = await page
-    .getByRole('button', { name: 'Show photo 16', exact: true })
+    .getByRole('button', { name: 'Show photo 15', exact: true })
     .evaluate((node) => {
       const bounds = node.getBoundingClientRect();
       const viewport = node.closest('[data-gallery-thumbnails]')!.getBoundingClientRect();
@@ -1222,9 +1245,9 @@ test('Back and Forward interruption during a photo blend cleans up both image la
   await mock(page);
   await page.goto('/shelves');
   await page.getByRole('link', { name: 'Kit 1', exact: true }).click();
-  await page.getByRole('button', { name: 'Show photo 2' }).click();
+  await page.getByRole('button', { name: 'Show photo 1' }).click();
   await page
-    .getByRole('img', { name: 'Kit 1 - Photo 2', exact: true })
+    .getByRole('img', { name: 'Kit 1 - Photo 1', exact: true })
     .evaluate((node) => (node as HTMLImageElement).decode());
   await page.goBack();
   await expect(page.locator('[data-shelf-morph-blend]')).toBeAttached();
@@ -1252,7 +1275,7 @@ test('retains overview and category instances and loaded rows through detail', a
   await page.locator('[data-shelf-scene="/shelves"]').evaluate((node) => {
     (window as unknown as { savedOverview: Element }).savedOverview = node;
   });
-  await page.getByRole('link', { name: 'View all Gunpla' }).click();
+  await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
   await loadAll(page);
   await expect(workspace).toHaveAttribute('data-transition-phase', 'settled');
   const item = page.getByRole('link', { name: 'Kit 25', exact: true });
@@ -1297,9 +1320,9 @@ test('evicts an older category after departure while keeping a bounded workspace
     await route.fulfill({ json: data });
   });
   await page.goto('/shelves');
-  await page.getByRole('link', { name: 'View all Gunpla' }).click();
+  await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
   await page.getByRole('link', { name: 'Back to shelves' }).click();
-  await page.getByRole('link', { name: 'View all Figure' }).click();
+  await page.getByRole('link', { name: /View all \d+ Figures items/ }).click();
   await expect(page.locator('[data-shelves-workspace]')).toHaveAttribute(
     'data-transition-phase',
     'settled',
@@ -1333,37 +1356,54 @@ test('lazy page modules are requested only when entering or warming their route'
   await expect(page.getByText('Total Items', { exact: true })).toBeVisible();
   expect(modules).toEqual([]);
   await page.getByRole('button', { name: 'Switch to Shelves View' }).click();
-  await expect(page.getByRole('link', { name: 'View all Gunpla' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /View all \d+ Gunpla items/ })).toBeVisible();
   expect(modules).toContain('/src/pages/collection_shelf/index.tsx');
   expect(modules).not.toContain('/src/pages/collection_shelf_detail/index.tsx');
 });
 
 test('content groups depart and return around the selected box', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await mock(page);
   await page.goto('/shelves');
   await expect(page.locator('[data-shelves-workspace]')).toHaveAttribute(
     'data-transition-phase',
     'settled',
   );
+  await page.evaluate(() => {
+    const frames: { opacity: number; transform: string; headerOpacity: number }[] = [];
+    let stopped = false;
+    Reflect.set(window, '__contentFrames', {
+      frames,
+      stop: () => {
+        stopped = true;
+      },
+    });
+    const tick = () => {
+      const root = document.querySelector('[data-shelf-scene="/shelves"]')!;
+      const node = root.querySelector('[data-scene-part="summary"]')!;
+      const header = root.querySelector(
+        '[data-part-category="gunpla"] [data-scene-part="information"]',
+      )!;
+      frames.push({
+        opacity: Number(getComputedStyle(node).opacity),
+        transform: getComputedStyle(node).transform,
+        headerOpacity: Number(getComputedStyle(header).opacity),
+      });
+      if (!stopped) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
   await page.getByRole('link', { name: 'Kit 1', exact: true }).click();
   const outgoing = page.locator('[data-shelf-scene="/shelves"]');
-  const moved = await outgoing.evaluate(async (root) => {
-    const node = root.querySelector('[data-scene-part="summary"]')!;
-    for (let i = 0; i < 6; i++)
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-    return {
-      opacity: Number(getComputedStyle(node).opacity),
-      transform: getComputedStyle(node).transform,
-      headerOpacity: Number(
-        getComputedStyle(
-          root.querySelector('[data-part-category="gunpla"] [data-scene-part="information"]')!,
-        ).opacity,
-      ),
-    };
+  await settledWorkspace(page);
+  const frames = await page.evaluate(() => {
+    const capture = Reflect.get(window, '__contentFrames');
+    capture.stop();
+    return capture.frames as { opacity: number; transform: string; headerOpacity: number }[];
   });
-  expect(moved.opacity).toBeLessThan(1);
-  expect(moved.transform).not.toBe('none');
-  expect(moved.headerOpacity).toBeLessThan(1);
+  expect(frames.some((frame) => frame.opacity < 0.99)).toBe(true);
+  expect(frames.some((frame) => frame.transform !== 'none')).toBe(true);
+  expect(frames.some((frame) => frame.headerOpacity < 0.99)).toBe(true);
   await expect(page.locator('[data-shelves-workspace]')).toHaveAttribute(
     'data-transition-phase',
     'settled',
@@ -1485,7 +1525,7 @@ test('a retained overview clears its old error when warmup supplies fresh data',
     .poll(() => page.evaluate(() => Boolean(localStorage.getItem('v2:collection_shelves'))))
     .toBe(true);
   await page.getByRole('link', { name: 'Back to shelves' }).click();
-  await expect(page.getByRole('link', { name: 'View all Gunpla' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /View all \d+ Gunpla items/ })).toBeVisible();
   await expect(page.getByText('Failed to load collection shelves.')).toHaveCount(0);
 });
 
@@ -1493,7 +1533,7 @@ test('browser departures remember a newly scrolled overview viewport', async ({ 
   await mock(page);
   await page.setViewportSize({ width: 390, height: 500 });
   await page.goto('/shelves');
-  await page.getByRole('link', { name: 'View all Gunpla' }).click();
+  await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
   await page.getByRole('link', { name: 'Back to shelves' }).click();
   await expect(page.locator('[data-shelves-workspace]')).toHaveAttribute(
     'data-transition-phase',
@@ -1526,7 +1566,7 @@ test('the floating view switch stays near its viewport corner during departure a
     'settled',
   );
   const original = await toggle.boundingBox();
-  await page.getByRole('link', { name: 'View all Gunpla' }).click();
+  await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
   const departing = await page
     .locator('[data-shelf-scene="/shelves"] #view-toggle-btn')
     .boundingBox();
@@ -1545,7 +1585,7 @@ test('the floating view switch stays near its viewport corner during departure a
 });
 
 for (const width of [1280, 390]) {
-  test(`category shows its backend name and count once at ${width}px`, async ({ page }) => {
+  test(`category uses its standard display name and count once at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await mock(page, 'normal', false, 'Backend shelf name');
     await page.goto('/shelves/category/gunpla');
@@ -1553,23 +1593,42 @@ for (const width of [1280, 390]) {
     const category = page.locator('[data-shelf-scene="/shelves/category/gunpla"]');
     await expect(category.getByRole('heading', { level: 2 })).toHaveCount(0);
     await expect(category.getByText('30 items', { exact: true })).toHaveCount(1);
-    await expect(category.getByRole('heading', { level: 1 })).toHaveText('Backend shelf name');
+    await expect(category.getByRole('heading', { level: 1 })).toHaveText('Gunpla');
     await expect(category.getByRole('link', { name: 'Kit 30', exact: true })).toBeVisible();
     await page.reload();
-    await expect(category.getByRole('heading', { level: 1 })).toHaveText('Backend shelf name');
+    await expect(category.getByRole('heading', { level: 1 })).toHaveText('Gunpla');
   });
 }
 
-async function motionSample(page: Page, selectors: string[]) {
-  return page.locator('[data-shelf-scene="/shelves"]').evaluate(async (root, parts) => {
-    for (let i = 0; i < 4; i++)
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-    return parts.map((selector) => {
-      const node = root.querySelector(selector)!;
-      const matrix = new DOMMatrixReadOnly(getComputedStyle(node).transform);
-      return { x: matrix.m41, y: matrix.m42 };
+async function motionSample(page: Page, selectors: string[], navigate: () => Promise<unknown>) {
+  await page.evaluate((selectors) => {
+    const peaks = selectors.map(() => ({ x: 0, y: 0 }));
+    let stopped = false;
+    Reflect.set(window, '__motionPeaks', {
+      peaks,
+      stop: () => {
+        stopped = true;
+      },
     });
+    const sample = () => {
+      const root = document.querySelector('[data-shelf-scene="/shelves"]')!;
+      selectors.forEach((selector, index) => {
+        const node = root.querySelector(selector)!;
+        const matrix = new DOMMatrixReadOnly(getComputedStyle(node).transform);
+        if (Math.abs(matrix.m41) > Math.abs(peaks[index].x)) peaks[index].x = matrix.m41;
+        if (Math.abs(matrix.m42) > Math.abs(peaks[index].y)) peaks[index].y = matrix.m42;
+      });
+      if (!stopped) requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
   }, selectors);
+  await navigate();
+  await settledWorkspace(page);
+  return page.evaluate(() => {
+    const capture = Reflect.get(window, '__motionPeaks');
+    capture.stop();
+    return capture.peaks as { x: number; y: number }[];
+  });
 }
 
 async function settledWorkspace(page: Page) {
@@ -1663,6 +1722,7 @@ for (const width of [1280, 390]) {
     }) => {
       await page.setViewportSize({ width, height: 900 });
       await mock(page);
+      await mockBoxArtOnly(page);
       await page.goto('/shelves/category/gunpla');
       await settledWorkspace(page);
       const link = page.getByRole('link', { name: 'Kit 1', exact: true });
@@ -1695,6 +1755,7 @@ for (const failure of ['reject', 'timeout'] as const) {
     page,
   }) => {
     await mock(page);
+    await mockBoxArtOnly(page);
     await page.goto('/shelves');
     await settledWorkspace(page);
     const link = page.getByRole('link', { name: 'Kit 1', exact: true });
@@ -1726,13 +1787,16 @@ for (const width of [1280, 390]) {
       test.setTimeout(60_000);
       await page.setViewportSize({ width, height: 700 });
       await mockThreeShelves(page, true);
+      await mockBoxArtOnly(page);
       await page.goto('/shelves');
       await settledWorkspace(page);
       for (let cycle = 0; cycle < 3; cycle++) {
         await test.step(`navigation cycle ${cycle + 1}`, async () => {
-          await page.evaluate(() => scrollTo(0, 350));
+          await page
+            .locator('[data-shelf-scene="/shelves"] [data-part-category="figure"]')
+            .evaluate((node) => scrollTo(0, scrollY + node.getBoundingClientRect().top - 80));
           await startNeighborFrames(page);
-          await page.getByRole('link', { name: 'View all Figure' }).click();
+          await page.getByRole('link', { name: /View all \d+ Figures items/ }).click();
           await settledWorkspace(page);
           await assertNeighborSpread(page, true);
           await recordCoverMovement(page);
@@ -1743,7 +1807,7 @@ for (const width of [1280, 390]) {
             await page.goBack();
             await page.goBack();
           } else {
-            await page.getByRole('link', { name: 'Back to Figure' }).click();
+            await page.getByRole('link', { name: 'Back to Figures' }).click();
             await page.getByRole('link', { name: 'Back to shelves' }).click();
           }
           await settledWorkspace(page);
@@ -1771,6 +1835,7 @@ async function assertCoverMovement(page: Page) {
 
 test('cover handoff retries a gallery frame that has not acquired layout yet', async ({ page }) => {
   await mock(page);
+  await mockBoxArtOnly(page);
   await page.goto('/shelves/category/gunpla');
   await settledWorkspace(page);
   await page.evaluate(() => {
@@ -1798,7 +1863,7 @@ test('switching to reduced motion during category entry releases pending bridges
   await page.goto('/shelves');
   await settledWorkspace(page);
   await page
-    .getByRole('link', { name: 'View all Gunpla' })
+    .getByRole('link', { name: /View all \d+ Gunpla items/ })
     .evaluate((node) => (node as HTMLAnchorElement).click());
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await settledWorkspace(page);
@@ -1806,7 +1871,7 @@ test('switching to reduced motion during category entry releases pending bridges
   await page.getByRole('link', { name: 'Back to shelves' }).click();
   await settledWorkspace(page);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await page.getByRole('link', { name: 'View all Gunpla' }).click();
+  await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
   await settledWorkspace(page);
 });
 
@@ -1822,7 +1887,7 @@ for (const width of [1280, 390]) {
       await settledWorkspace(page);
       for (let cycle = 0; cycle < 5; cycle++) {
         if (back === 'browser' && cycle > 0) await page.goForward();
-        else await page.getByRole('link', { name: 'View all Gunpla' }).click();
+        else await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
         await settledWorkspace(page);
         await expect(page).toHaveTitle('Hobby Collection Showcase');
         const selected = cycle % 2 ? 21 : 2;
@@ -1834,9 +1899,10 @@ for (const width of [1280, 390]) {
         await expect(page).toHaveTitle(`Kit ${selected} | Hobby Collection`);
         await settledWorkspace(page);
         await assertCoverMovement(page);
+        await expect(page.locator('[data-shelf-morph-overlay]')).toHaveCount(0);
         if (cycle % 2) {
-          await page.getByRole('button', { name: 'Show photo 2' }).click();
-          const photo = page.getByRole('img', { name: `Kit ${selected} - Photo 2` });
+          await page.getByRole('button', { name: 'Show photo 1' }).click();
+          const photo = page.getByRole('img', { name: `Kit ${selected} - Photo 1` });
           await expect
             .poll(() => photo.evaluate((node) => (node as HTMLImageElement).naturalWidth))
             .toBeGreaterThan(0);
@@ -1861,6 +1927,100 @@ for (const width of [1280, 390]) {
   }
 }
 
+for (const width of [1280, 390]) {
+  for (const origin of ['/shelves', '/shelves/category/gunpla']) {
+    test(`box-art entry replays with a restored photograph from ${origin} at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await mock(page);
+      let detailRequests = 0;
+      await page.route(/\/collection\/1$/, (route) => {
+        detailRequests++;
+        return route.fulfill({
+          json: {
+            data: {
+              ...item(1),
+              pictures: ['https://example.com/photo-one.png', 'https://example.com/photo-two.png'],
+            },
+          },
+        });
+      });
+      await page.goto(origin);
+      await settledWorkspace(page);
+      for (let visit = 0; visit < 3; visit++) {
+        const link = page.getByRole('link', { name: 'Kit 1', exact: true });
+        await link.scrollIntoViewIfNeeded();
+        await link.locator('img').evaluate((node) => (node as HTMLImageElement).decode());
+        await recordCoverMovement(page);
+        await link.click();
+        await settledWorkspace(page);
+        await assertCoverMovement(page);
+        await expect(page.getByText(visit ? '3 / 3' : '2 / 3', { exact: true })).toBeVisible();
+        if (!visit) {
+          await page.getByRole('button', { name: 'Show photo 2', exact: true }).click();
+        }
+        await expect(page.getByRole('img', { name: 'Kit 1 - Photo 2', exact: true })).toBeVisible();
+        if (visit % 2) {
+          await page
+            .getByRole('link', {
+              name: origin === '/shelves' ? 'Back to shelves' : 'Back to Gunpla',
+              exact: true,
+            })
+            .click();
+        } else await page.goBack();
+        await settledWorkspace(page);
+        await expect(page).toHaveURL(new RegExp(`${origin}$`));
+        await expect(page.locator('[data-shelf-morph-overlay]')).toHaveCount(0);
+      }
+      expect(detailRequests).toBe(1);
+    });
+  }
+}
+
+for (const stage of ['zoom', 'handoff'] as const) {
+  test(`browser Back during entry ${stage} releases artwork and allows cached replay`, async ({
+    page,
+  }) => {
+    await mock(page);
+    await page.goto('/shelves/category/gunpla');
+    await settledWorkspace(page);
+    await page
+      .getByRole('link', { name: 'Kit 1', exact: true })
+      .locator('img')
+      .evaluate((node) => (node as HTMLImageElement).decode());
+    await page.evaluate((stage) => {
+      const tick = () => {
+        const overlay = document.querySelector<HTMLElement>('[data-shelf-morph-overlay]');
+        if (
+          overlay &&
+          getComputedStyle(overlay).visibility === 'visible' &&
+          (stage === 'zoom' || Number(getComputedStyle(overlay).opacity) < 0.99)
+        ) {
+          history.back();
+          return;
+        }
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }, stage);
+    await page.getByRole('link', { name: 'Kit 1', exact: true }).click();
+    await expect(page).toHaveURL(/\/shelves\/category\/gunpla$/);
+    await settledWorkspace(page);
+    await expect(page.locator('[data-shelf-morph-overlay], [data-shelf-morph-blend]')).toHaveCount(
+      0,
+    );
+    await recordCoverMovement(page);
+    await page.goForward();
+    await expect(page).toHaveURL(/\/shelves\/collection\/1\//);
+    await settledWorkspace(page);
+    await assertCoverMovement(page);
+    await expect(page.getByText('2 / 2', { exact: true })).toBeVisible();
+    await expect(page.locator('[data-gallery-current-image]')).toBeVisible();
+    await expect(page.locator('[data-scene-active="true"]')).toHaveCount(1);
+  });
+}
+
 test('direct detail title follows loaded item while category owns the title after navigation', async ({
   page,
 }) => {
@@ -1877,7 +2037,7 @@ test('direct detail title follows loaded item while category owns the title afte
   await expect(page).toHaveTitle('Named model | Hobby Collection');
   await page.getByRole('link', { name: 'Back to shelves' }).click();
   await expect(page).toHaveTitle('Hobby Collection Showcase');
-  await page.getByRole('link', { name: 'View all Gunpla' }).click();
+  await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
   await settledWorkspace(page);
   await expect(page).toHaveTitle('Hobby Collection Showcase');
 });
@@ -1904,14 +2064,16 @@ test('category shelves depart vertically away from the selected shelf and return
     '[data-scene-part="shelf"][data-part-category="gunpla"]',
     '[data-scene-part="shelf"][data-part-category="other-model-kit"]',
   ];
-  await page.getByRole('link', { name: 'View all Figure' }).click();
-  const departing = await motionSample(page, selectors);
+  const departing = await motionSample(page, selectors, () =>
+    page.getByRole('link', { name: /View all \d+ Figures items/ }).click(),
+  );
   expect(departing[0].y).toBeLessThan(-1);
   expect(departing[1].y).toBeGreaterThan(1);
   expect(departing.every((part) => part.x === 0)).toBe(true);
   await settledWorkspace(page);
-  await page.getByRole('link', { name: 'Back to shelves' }).click();
-  const returning = await motionSample(page, selectors);
+  const returning = await motionSample(page, selectors, () =>
+    page.getByRole('link', { name: 'Back to shelves' }).click(),
+  );
   expect(returning[0].y).toBeLessThan(0);
   expect(returning[1].y).toBeGreaterThan(0);
   await settledWorkspace(page);
@@ -1937,14 +2099,16 @@ test('mixed-height boxes on the selected row spread sideways and return from the
   await expect(page.getByRole('img', { name: 'Kit 2', exact: true })).toBeVisible();
   await settledWorkspace(page);
   const selectors = ['[data-part-item="2"]', '[data-part-item="4"]'];
-  await page.getByRole('link', { name: 'Kit 3', exact: true }).click();
-  const departing = await motionSample(page, selectors);
+  const departing = await motionSample(page, selectors, () =>
+    page.getByRole('link', { name: 'Kit 3', exact: true }).click(),
+  );
   expect(departing[0].x).toBeLessThan(-1);
   expect(departing[1].x).toBeGreaterThan(1);
   expect(departing.every((part) => part.y === 0)).toBe(true);
   await settledWorkspace(page);
-  await page.getByRole('link', { name: 'Back to shelves' }).click();
-  const returning = await motionSample(page, selectors);
+  const returning = await motionSample(page, selectors, () =>
+    page.getByRole('link', { name: 'Back to shelves' }).click(),
+  );
   expect(returning[0].x).toBeLessThan(0);
   expect(returning[1].x).toBeGreaterThan(0);
   expect(returning.every((part) => part.y === 0)).toBe(true);
@@ -2095,7 +2259,7 @@ for (const width of [1280, 390]) {
         )
         .toBe(400);
       await startArtworkFrames(page);
-      await page.getByRole('link', { name: 'View all Gunpla' }).click();
+      await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
       await expect(page.locator('[data-category-bridge-item="cover-1"]')).toBeVisible();
       const ratio = await page.locator('[data-category-bridge-item="cover-1"]').evaluate((node) => {
         const rect = node.getBoundingClientRect();
@@ -2157,7 +2321,7 @@ test('stationary shared artwork completes the bridge and interrupted category na
       Element.prototype.getBoundingClientRect = original;
     });
   });
-  await page.getByRole('link', { name: 'View all Gunpla' }).click();
+  await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
   await settledWorkspace(page);
   await expect(page.locator('[data-category-bridge]')).toHaveCount(0);
   await page.evaluate(() => Reflect.get(window, '__restoreShelfBounds')());
@@ -2172,7 +2336,7 @@ test('stationary shared artwork completes the bridge and interrupted category na
   );
 });
 
-test('partially scrolled shelf artwork retains its clipping during category movement', async ({
+test('wrapped overview rows keep unclipped artwork and unbridged ledges on return', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 900 });
@@ -2183,14 +2347,15 @@ test('partially scrolled shelf artwork retains its clipping during category move
     .locator('[data-shelf-scroll]')
     .first()
     .evaluate((row) => {
-      row.scrollLeft = 50;
+      if (row.scrollWidth > row.clientWidth)
+        throw new Error('Unexpected horizontal shelf overflow');
     });
-  await page.getByRole('link', { name: 'View all Gunpla' }).click();
+  await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
   const bridge = page.locator('[data-category-bridge-item="cover-1"]');
   await expect(bridge).toBeVisible();
   const clip = await bridge.evaluate((node) => getComputedStyle(node).clipPath);
   expect(clip).toMatch(/^inset/);
-  expect(parseFloat(clip.match(/[\d.]+%/g)!.at(-1)!)).toBeGreaterThan(0);
+  expect(parseFloat(clip.match(/[\d.]+%/g)!.at(-1)!)).toBe(0);
   await settledWorkspace(page);
   await page.getByRole('link', { name: 'Back to shelves' }).click();
   await settledWorkspace(page);
@@ -2199,7 +2364,7 @@ test('partially scrolled shelf artwork retains its clipping during category move
       .locator('[data-scene-active="true"] [data-shelf-scroll]')
       .first()
       .evaluate((row) => row.scrollLeft),
-  ).toBe(50);
+  ).toBe(0);
 });
 
 test('shelves links keep keyboard focus visible without leaving pointer outlines', async ({
@@ -2208,7 +2373,7 @@ test('shelves links keep keyboard focus visible without leaving pointer outlines
   await mock(page);
   await page.goto('/shelves');
   await settledWorkspace(page);
-  const viewAll = page.getByRole('link', { name: 'View all Gunpla' });
+  const viewAll = page.getByRole('link', { name: /View all \d+ Gunpla items/ });
   await page.keyboard.press('Tab');
   await viewAll.focus();
   await expect(viewAll).toHaveCSS('outline-style', 'solid');
@@ -2248,7 +2413,7 @@ async function mockThreeShelves(page: Page, withBacklog = false) {
   await page.route('**/collection/shelves*', (route) => {
     const category = new URL(route.request().url()).searchParams.get('category');
     if (category === 'figure') figureRequests++;
-    const count = category ? 12 : 6;
+    const count = category ? 12 : 2;
     const data = envelope(
       Array.from({ length: count }, (_, index) => item(index + 1)),
       12,
@@ -2401,7 +2566,9 @@ for (const width of [1280, 390]) {
         await page.locator('[data-shelves-workspace]').getAttribute('data-transition-generation'),
       );
       for (let cycle = 0; cycle < 5; cycle++) {
-        await page.evaluate(() => scrollTo(0, 350));
+        await page
+          .locator('[data-shelf-scene="/shelves"] [data-part-category="figure"]')
+          .evaluate((node) => scrollTo(0, scrollY + node.getBoundingClientRect().top - 80));
         const position = await page.evaluate(() => scrollY);
         const below = page.locator(
           '[data-scene-active="true"] [data-scene-part="shelf"][data-part-category="other-model-kit"]',
@@ -2409,7 +2576,7 @@ for (const width of [1280, 390]) {
         expect(await below.evaluate((node) => node.getBoundingClientRect().top)).toBeLessThan(700);
         await startNeighborFrames(page);
         if (back === 'browser' && cycle > 0) await page.goForward();
-        else await page.getByRole('link', { name: 'View all Figure' }).click();
+        else await page.getByRole('link', { name: /View all \d+ Figures items/ }).click();
         await settledWorkspace(page);
         await assertNeighborSpread(page, true);
         const nextGeneration = Number(
@@ -2431,12 +2598,12 @@ for (const width of [1280, 390]) {
         await expect(below).toHaveCSS('opacity', '1');
         await expect(page.locator('[data-category-bridge]')).toHaveCount(0);
       }
-      // Also keep the former summary-motion assertion in an unscrolled cached visit.
+      // Unscrolled navigation may scroll the summary out of view before departure.
       await page.evaluate(() => scrollTo(0, 0));
       await startNeighborFrames(page);
-      await page.getByRole('link', { name: 'View all Figure' }).click();
+      await page.getByRole('link', { name: /View all \d+ Figures items/ }).click();
       await settledWorkspace(page);
-      await assertNeighborSpread(page, true, true);
+      await assertNeighborSpread(page);
       await page.getByRole('link', { name: 'Back to shelves' }).click();
       await settledWorkspace(page);
       expect(
@@ -2458,8 +2625,10 @@ test('quick scrolled Back and View All still spreads neighboring shelf groups', 
   await mockThreeShelves(page);
   await page.goto('/shelves');
   await settledWorkspace(page);
-  await page.evaluate(() => scrollTo(0, 350));
-  await page.getByRole('link', { name: 'View all Figure' }).click();
+  await page
+    .locator('[data-shelf-scene="/shelves"] [data-part-category="figure"]')
+    .evaluate((node) => scrollTo(0, scrollY + node.getBoundingClientRect().top - 80));
+  await page.getByRole('link', { name: /View all \d+ Figures items/ }).click();
   await settledWorkspace(page);
   // Dispatch within the browser so Playwright's stability waiting cannot finish the animation first.
   await page
@@ -2487,7 +2656,7 @@ test('an interrupted switch between categories keeps each ledge tied to its own 
   await mockThreeShelves(page);
   await page.goto('/shelves');
   await settledWorkspace(page);
-  await page.getByRole('link', { name: 'View all Gunpla' }).click();
+  await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
   await settledWorkspace(page);
   await page
     .locator('[data-scene-active="true"] [data-shelf-back]')
@@ -2516,18 +2685,22 @@ test('an interrupted switch between categories keeps each ledge tied to its own 
   );
   await settledWorkspace(page);
   await expect(page.locator('[data-category-bridge]')).toHaveCount(0);
-  await expect(page.getByRole('heading', { level: 1, name: 'Figure', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Figures', exact: true })).toBeVisible();
 });
 
 async function recordCategorySpread(page: Page, selected: number, columns: number) {
   await page.evaluate(
     ({ selected, columns }) => {
-      const ids = [
-        selected - 1,
-        selected + 1,
-        selected > columns ? selected - columns : selected + columns,
+      const column = (selected - 1) % columns;
+      const neighbors = [
+        ...(column > 0 ? [{ id: selected - 1, direction: 'left' }] : []),
+        ...(column < columns - 1 ? [{ id: selected + 1, direction: 'right' }] : []),
+        {
+          id: selected > columns ? selected - columns : selected + columns,
+          direction: selected > columns ? 'above' : 'below',
+        },
       ];
-      const frames: { x: number; y: number; opacity: number }[][] = [];
+      const frames: { direction: string; x: number; y: number; opacity: number }[][] = [];
       let stopped = false;
       Reflect.set(window, '__categorySpread', {
         frames,
@@ -2538,11 +2711,11 @@ async function recordCategorySpread(page: Page, selected: number, columns: numbe
       const tick = () => {
         const root = document.querySelector('[data-shelf-scene="/shelves/category/gunpla"]');
         frames.push(
-          ids.map((id) => {
+          neighbors.map(({ id, direction }) => {
             const node = root!.querySelector(`[data-part-item="${id}"]`)!;
             const style = getComputedStyle(node),
               matrix = new DOMMatrixReadOnly(style.transform);
-            return { x: matrix.m41, y: matrix.m42, opacity: Number(style.opacity) };
+            return { direction, x: matrix.m41, y: matrix.m42, opacity: Number(style.opacity) };
           }),
         );
         if (!stopped) requestAnimationFrame(tick);
@@ -2552,28 +2725,32 @@ async function recordCategorySpread(page: Page, selected: number, columns: numbe
     { selected, columns },
   );
 }
-async function assertCategorySpread(page: Page, above: boolean) {
+async function assertCategorySpread(page: Page) {
   const frames = await page.evaluate(() => {
-    const capture = Reflect.get(window, '__categorySpread') as {
-      frames: { x: number; y: number; opacity: number }[][];
-      stop: () => void;
-    };
+    const capture = Reflect.get(window, '__categorySpread');
     capture.stop();
-    return capture.frames;
+    return capture.frames as { direction: string; x: number; y: number; opacity: number }[][];
   });
-  const moving = (part: { opacity: number }) => part.opacity > 0.01 && part.opacity < 0.99;
-  expect(
-    frames.some((parts) => moving(parts[0]) && parts[0].x < -2),
-    'left category neighbor must spread/regroup',
-  ).toBe(true);
-  expect(
-    frames.some((parts) => moving(parts[1]) && parts[1].x > 2),
-    'right category neighbor must spread/regroup',
-  ).toBe(true);
-  expect(
-    frames.some((parts) => moving(parts[2]) && (above ? parts[2].y < -2 : parts[2].y > 2)),
-    'adjacent category row must spread/regroup',
-  ).toBe(true);
+  expect(frames.length).toBeGreaterThan(0);
+  for (const [index, part] of frames[0].entries()) {
+    expect(
+      frames.some((parts) => {
+        const frame = parts[index];
+        const moving = frame.opacity > 0.01 && frame.opacity < 0.99;
+        return (
+          moving &&
+          (part.direction === 'left'
+            ? frame.x < -2
+            : part.direction === 'right'
+              ? frame.x > 2
+              : part.direction === 'above'
+                ? frame.y < -2
+                : frame.y > 2)
+        );
+      }),
+      `${part.direction} category neighbor must spread/regroup`,
+    ).toBe(true);
+  }
 }
 
 for (const width of [1280, 390]) {
@@ -2582,25 +2759,25 @@ for (const width of [1280, 390]) {
       page,
     }) => {
       test.setTimeout(60_000);
-      await page.setViewportSize({ width, height: 700 });
+      await page.setViewportSize({ width, height: 1100 });
       await mock(page);
       await page.goto('/shelves/category/gunpla');
       await loadAll(page);
       await settledWorkspace(page);
-      const columns = width === 390 ? 3 : 6;
-      for (const selected of width === 390 ? [2, 23] : [3, 21]) {
+      const columns = width === 390 ? 2 : 6;
+      for (const selected of width === 390 ? [1, 23] : [3, 21]) {
         for (let cycle = 0; cycle < 2; cycle++) {
           const link = page.getByRole('link', { name: `Kit ${selected}`, exact: true });
-          await link.scrollIntoViewIfNeeded();
+          await link.evaluate((node) => node.scrollIntoView({ block: 'center' }));
           await recordCategorySpread(page, selected, columns);
           await link.click();
           await settledWorkspace(page);
-          await assertCategorySpread(page, selected > columns);
+          await assertCategorySpread(page);
           await recordCategorySpread(page, selected, columns);
           if (back === 'button') await page.getByRole('link', { name: 'Back to Gunpla' }).click();
           else await page.goBack();
           await settledWorkspace(page);
-          await assertCategorySpread(page, selected > columns);
+          await assertCategorySpread(page);
           await expect(link).toBeFocused();
           await expect(
             page.locator('[data-category-bridge], [data-shelf-morph-overlay]'),
@@ -2609,4 +2786,855 @@ for (const width of [1280, 390]) {
       }
     });
   }
+}
+
+for (const count of [0, 1, 6, 7]) {
+  test(`overview captions and preview limits reflect ${count} completed items`, async ({
+    page,
+  }) => {
+    await mock(page);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.route('**/collection/shelves*', (route) => {
+      const response = envelope(
+        Array.from({ length: count }, (_, index) => item(index + 1)),
+        count,
+      );
+      response.data.backlog_shelf = {
+        id: 1,
+        name: 'Backlog',
+        count: 1,
+        items: [{ ...item(99), status: 0 }],
+      };
+      return route.fulfill({ json: response });
+    });
+    await page.route('**/collection/statistics*', (route) =>
+      route.fulfill({
+        json: {
+          data: {
+            total_count: count + 1,
+            completed_count: count,
+            backlog_count: 1,
+            limited_count: 0,
+          },
+        },
+      }),
+    );
+    await page.goto('/shelves');
+    await settledWorkspace(page);
+    const scene = page.locator('[data-scene-active="true"]');
+    await expect(scene.getByRole('link', { name: /^Kit / })).toHaveCount(Math.min(count, 6));
+    await expect(scene.getByRole('link', { name: /View all \d+ Gunpla items/ })).toHaveCount(
+      count > 6 ? 1 : 0,
+    );
+    if (count > 6)
+      await expect(scene.getByRole('link', { name: /View all \d+ Gunpla items/ })).toContainText(
+        `View all ${count}`,
+      );
+    await expect(scene.getByRole('heading', { name: 'Gunpla', exact: true })).toHaveCount(
+      count ? 1 : 0,
+    );
+    await expect(scene.getByRole('heading', { name: 'Backlog', exact: true })).toBeVisible();
+    await expect(scene.getByText('Kit 99', { exact: true })).toBeVisible();
+    await expect(scene.getByRole('link', { name: 'Kit 99', exact: true })).toHaveCount(0);
+    for (const width of [1440, 1100, 820, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      const expectedColumns = width >= 1280 ? 6 : width >= 992 ? 4 : width >= 768 ? 3 : 2;
+      await expect
+        .poll(() =>
+          scene
+            .locator('[data-shelf-scroll]')
+            .first()
+            .evaluate((node) => getComputedStyle(node).gridTemplateColumns.split(' ').length),
+        )
+        .toBe(expectedColumns);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
+      if (count) {
+        const link = scene.getByRole('link', { name: 'Kit 1', exact: true });
+        const placement = await link.evaluate((node) => {
+          const caption = node.querySelector('p')!.getBoundingClientRect();
+          const image = node.querySelector('img')!.getBoundingClientRect();
+          const ledge = node
+            .closest('[data-shelf-scroll]')!
+            .parentElement!.querySelector('[data-scene-ledge]')!
+            .getBoundingClientRect();
+          return {
+            caption: caption.top,
+            image: image.bottom,
+            ledge: ledge.top,
+            edge: ledge.bottom,
+          };
+        });
+        expect(Math.abs(placement.image - placement.ledge)).toBeLessThanOrEqual(1.5);
+        expect(placement.caption).toBeGreaterThanOrEqual(placement.edge + 8);
+      }
+    }
+  });
+}
+
+for (const mode of ['delayed', 'cached', 'single', 'no-cover', 'empty'] as const) {
+  test(`gallery initializes once with ${mode} data and preserves manual selection`, async ({
+    page,
+  }) => {
+    await mock(page);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const record = {
+      ...item(1),
+      cover: mode === 'no-cover' || mode === 'empty' ? '' : item(1).cover,
+      pictures:
+        mode === 'single' || mode === 'empty'
+          ? []
+          : ['https://example.com/build.png', 'https://example.com/second.png'],
+      built_at: '2026-08-06',
+      description: 'Original personal note',
+    };
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route(/\/collection\/1$/, async (route) => {
+      if (mode === 'delayed') await gate;
+      await route.fulfill({ json: { data: record } });
+    });
+    if (mode === 'cached') {
+      await page.goto('/shelves/collection/1/kit-1');
+      await expect(page.getByText('2 / 3', { exact: true })).toBeVisible();
+      await page.reload();
+    } else await page.goto('/shelves/collection/1/kit-1');
+    if (mode === 'delayed') {
+      await expect(page.getByText('Loading collection detail...', { exact: true })).toBeAttached();
+      await expect(page.getByText('1 / 3', { exact: true })).toHaveCount(0);
+      release();
+    }
+    await settledWorkspace(page);
+    if (mode === 'empty') {
+      await expect(page.getByText('No images available', { exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Next image', exact: true })).toHaveCount(0);
+      return;
+    }
+    const initial = mode === 'single' ? '1 / 1' : mode === 'no-cover' ? '1 / 2' : '2 / 3';
+    await expect(page.getByText(initial, { exact: true })).toBeVisible();
+    await expect(page.getByText('Completed on', { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('button', {
+        name: mode === 'single' ? 'Show box art' : 'Show photo 1',
+        exact: true,
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    if (mode === 'single') return;
+    const first = page.locator('[data-gallery-thumbnails] button').first();
+    await first.click();
+    await expect(first).toHaveAttribute('aria-pressed', 'true');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(first).toHaveAttribute('aria-pressed', 'true');
+    await page
+      .getByRole('navigation', { name: 'Breadcrumb' })
+      .getByRole('link', { name: 'Collection', exact: true })
+      .click();
+    await settledWorkspace(page);
+    await page.goBack();
+    await settledWorkspace(page);
+    await expect(
+      page.locator('[data-scene-active="true"] [data-gallery-thumbnails] button').first(),
+    ).toHaveAttribute('aria-pressed', 'true');
+  });
+}
+
+test('gallery restores image identity after reordering and clamps a removed selection', async ({
+  page,
+}) => {
+  await mock(page);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  let pictures = ['https://example.com/build.png', 'https://example.com/second.png'];
+  await page.route(/\/collection\/1$/, (route) =>
+    route.fulfill({ json: { data: { ...item(1), pictures } } }),
+  );
+  await page.goto('/shelves/collection/1/kit-1');
+  await page.getByRole('button', { name: 'Show photo 2', exact: true }).click();
+  await expect(page.getByText('3 / 3', { exact: true })).toBeVisible();
+  pictures = [pictures[1], pictures[0]];
+  await page.evaluate(() => localStorage.removeItem('v2:collection_1'));
+  await page.reload();
+  await expect(page.getByText('2 / 3', { exact: true })).toBeVisible();
+  await expect(page.locator('[data-gallery-current-image]')).toHaveAttribute('src', /second\.png/);
+  pictures = [];
+  await page.evaluate(() => localStorage.removeItem('v2:collection_1'));
+  await page.reload();
+  await expect(page.getByText('1 / 1', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Show box art', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(page.getByRole('button', { name: 'Next image', exact: true })).toHaveCount(0);
+});
+
+for (const category of ['figure', 'other-model-kit'] as const) {
+  test(`non-Gunpla ${category} captions omit grade and scale on overview and category shelves`, async ({
+    page,
+  }) => {
+    await mock(page);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const records = [
+      {
+        ...item(101),
+        type: {
+          ...item(101).type,
+          name: category === 'figure' ? 'Figure' : 'Other Model Kit',
+          scale: 'Unknown Scale',
+          grade: { id: 0, name: 'No Grade', short_name: 'NG' },
+        },
+      },
+      {
+        ...item(102),
+        type: {
+          ...item(102).type,
+          name: category === 'figure' ? 'Figure' : 'Other Model Kit',
+          scale: '1/7',
+        },
+      },
+    ];
+    await page.route('**/collection/shelves*', (route) => {
+      const response = envelope();
+      response.data[category === 'figure' ? 'figure_shelf' : 'other_model_kit_shelf'] = {
+        id: 1,
+        name: records[0].type.name,
+        count: 7,
+        items: records,
+      };
+      response.data.backlog_shelf = {
+        id: 3,
+        name: 'Backlog',
+        count: 2,
+        items: [
+          { ...records[0], id: 201, title: 'Backlog figure', status: 0 },
+          { ...item(202), title: 'Backlog Gunpla', status: 0 },
+        ],
+      };
+      return route.fulfill({ json: response });
+    });
+    await page.goto('/shelves');
+    await settledWorkspace(page);
+    const root = page.locator('[data-scene-active="true"]');
+    for (const id of [101, 102, 201]) {
+      await expect(
+        root.locator(`[data-part-item="${id}"] [data-scene-part="caption"] p`),
+      ).toHaveCount(1);
+    }
+    await expect(root.locator('[data-part-item="1"] [data-scene-part="caption"]')).toContainText(
+      'HG \u00b7 1/144',
+    );
+    await expect(root.locator('[data-part-item="202"] [data-scene-part="caption"]')).toContainText(
+      'HG \u00b7 1/144',
+    );
+    await root
+      .getByRole('link', {
+        name: new RegExp(
+          `View all 7 ${category === 'figure' ? 'Figures' : 'Other Model Kits'} items`,
+        ),
+      })
+      .click();
+    await settledWorkspace(page);
+    for (const id of [101, 102]) {
+      await expect(
+        page.locator(
+          `[data-scene-active="true"] [data-part-item="${id}"] [data-scene-part="caption"] p`,
+        ),
+      ).toHaveCount(1);
+    }
+  });
+}
+
+for (const scale of [undefined, '', ' Unknown Scale ', 'unknown scale', '1/144', 'Non-scale']) {
+  test(`detail scale presentation handles ${JSON.stringify(scale)}`, async ({ page }) => {
+    await mock(page);
+    await page.route(/\/collection\/1$/, (route) =>
+      route.fulfill({
+        json: {
+          data: {
+            ...item(1),
+            type: {
+              ...item(1).type,
+              name: 'Other Model Kit',
+              scale,
+              grade: { id: 0, name: 'No Grade', short_name: 'NG' },
+            },
+            built_at: '2026-08-06',
+            manufacturer: { id: 1, name: 'Bandai' },
+          },
+        },
+      }),
+    );
+    await page.goto('/shelves/collection/1/kit-1');
+    await settledWorkspace(page);
+    const known = scale === '1/144' || scale === 'Non-scale';
+    const info = page.locator('[data-detail-information]');
+    await expect(info.getByText('Scale', { exact: true })).toHaveCount(known ? 1 : 0);
+    await expect(info.getByText(/unknown scale/i)).toHaveCount(0);
+    if (known) await expect(info.getByText(scale!, { exact: true })).toHaveCount(2);
+    await expect(info.getByText('Completed on', { exact: true })).toBeVisible();
+    await expect(info.getByText('Bandai', { exact: true })).toBeVisible();
+  });
+}
+
+for (const width of [1440, 390]) {
+  test(`category morph fades captions without scaling and retains a single artwork owner at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 1100 });
+    await mock(page);
+    await page.goto('/shelves');
+    await settledWorkspace(page);
+    await page
+      .getByRole('link', { name: 'Kit 1', exact: true })
+      .locator('img')
+      .evaluate((node) => (node as HTMLImageElement).decode());
+    for (const direction of ['forward', 'back']) {
+      await page.evaluate(() => {
+        const frames: {
+          ownerCount: number;
+          ledges: { opacity: number; hidden: boolean }[];
+          captions: { opacity: number; hidden: boolean; scale: number }[];
+        }[] = [];
+        let stopped = false;
+        Reflect.set(window, '__categoryCaptionFrames', {
+          frames,
+          stop: () => {
+            stopped = true;
+          },
+        });
+        const painted = (node: Element) => {
+          for (let current: Element | null = node; current; current = current.parentElement) {
+            const style = getComputedStyle(current);
+            if (
+              style.display === 'none' ||
+              style.visibility === 'hidden' ||
+              Number(style.opacity) < 0.01
+            )
+              return false;
+          }
+          const rect = node.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight;
+        };
+        const sample = () => {
+          frames.push({
+            ownerCount: Array.from(
+              document.querySelectorAll(
+                'img[data-shelf-morph="cover-1"], [data-category-bridge-item="cover-1"] img',
+              ),
+            ).filter(painted).length,
+            ledges: Array.from(
+              document.querySelectorAll(
+                '[data-shelf-scene="/shelves"] [data-scene-ledge]:not([data-shelf-leading-ledge])',
+              ),
+            ).map((node) => ({
+              opacity: Number(getComputedStyle(node).opacity),
+              hidden: getComputedStyle(node).visibility === 'hidden',
+            })),
+            captions: Array.from(
+              document.querySelectorAll('[data-part-item="1"] [data-scene-part="caption"]'),
+            ).map((node) => {
+              const style = getComputedStyle(node),
+                matrix = new DOMMatrixReadOnly(style.transform);
+              return {
+                opacity: Number(style.opacity),
+                hidden: style.visibility === 'hidden',
+                scale: matrix.a,
+              };
+            }),
+          });
+          if (!stopped) requestAnimationFrame(sample);
+        };
+        requestAnimationFrame(sample);
+      });
+      if (direction === 'forward')
+        await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
+      else await page.getByRole('link', { name: 'Back to shelves', exact: true }).click();
+      await settledWorkspace(page);
+      const frames = await page.evaluate(() => {
+        const capture = Reflect.get(window, '__categoryCaptionFrames');
+        capture.stop();
+        return capture.frames as {
+          ownerCount: number;
+          ledges: { opacity: number; hidden: boolean }[];
+          captions: { opacity: number; hidden: boolean; scale: number }[];
+        }[];
+      });
+      expect(
+        frames.every((frame) => frame.ownerCount === 1),
+        JSON.stringify(frames),
+      ).toBe(true);
+      if (width === 390) {
+        const ledges = frames.flatMap((frame) => frame.ledges);
+        expect(
+          ledges.some((ledge) => !ledge.hidden && ledge.opacity > 0.01 && ledge.opacity < 0.99),
+        ).toBe(true);
+      }
+      const captions = frames.flatMap((frame) => frame.captions);
+      expect(captions.some((caption) => caption.opacity > 0.01 && caption.opacity < 0.99)).toBe(
+        true,
+      );
+      expect(captions.every((caption) => !caption.hidden && caption.scale === 1)).toBe(true);
+    }
+  });
+}
+
+test('resizing an active category morph settles the responsive destination and removes bridges', async ({
+  page,
+}) => {
+  await mock(page);
+  await page.goto('/shelves');
+  await settledWorkspace(page);
+  await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
+  await expect(page.locator('[data-category-bridge]')).toBeAttached();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await settledWorkspace(page);
+  await expect(page.locator('[data-category-bridge]')).toHaveCount(0);
+  await expect(page.locator('[data-scene-active="true"]')).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: 'Gunpla', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.goBack();
+  await settledWorkspace(page);
+  await expect(page.getByRole('link', { name: /View all \d+ Gunpla items/ })).toBeFocused();
+});
+
+test('resize during category bridge decoding releases stale work', async ({ page }) => {
+  await mock(page);
+  await page.goto('/shelves');
+  await settledWorkspace(page);
+  await page.evaluate(() => {
+    const decode = HTMLImageElement.prototype.decode;
+    const release: (() => void)[] = [];
+    Reflect.set(window, '__releaseCategoryDecode', () => release.forEach((resolve) => resolve()));
+    HTMLImageElement.prototype.decode = async function () {
+      await decode.call(this);
+      if (this.closest('[data-category-bridge]'))
+        await new Promise<void>((resolve) => release.push(resolve));
+    };
+  });
+  await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
+  await expect(page.locator('[data-category-bridge]')).toHaveCSS('visibility', 'hidden');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await settledWorkspace(page);
+  await page.evaluate(() => Reflect.get(window, '__releaseCategoryDecode')());
+  await expect(page.locator('[data-category-bridge]')).toHaveCount(0);
+  await expect(page.locator('[data-scene-active="true"]')).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: 'Gunpla', exact: true })).toBeVisible();
+});
+
+for (const width of [390, 820, 1100, 1700]) {
+  test(`Shelves routes share container edges and gutters at ${width}px`, async ({ page }) => {
+    await mock(page);
+    await page.setViewportSize({ width, height: 1000 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/shelves');
+    await settledWorkspace(page);
+    const bounds = () =>
+      page.locator('[data-scene-active="true"] [data-shelf-container]').evaluate((node) => {
+        const rect = node.getBoundingClientRect(),
+          style = getComputedStyle(node);
+        return {
+          left: rect.left,
+          right: rect.right,
+          width: rect.width,
+          paddingLeft: style.paddingLeft,
+          paddingRight: style.paddingRight,
+        };
+      });
+    const overview = await bounds();
+    expect(overview.width).toBe(Math.min(width, 1440));
+    expect(overview.paddingLeft).toBe(width < 768 ? '16px' : width < 992 ? '24px' : '32px');
+    await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
+    await settledWorkspace(page);
+    await expect.poll(bounds).toEqual(overview);
+    await page.getByRole('link', { name: 'Kit 1', exact: true }).click();
+    await settledWorkspace(page);
+    await expect.poll(bounds).toEqual(overview);
+    await expect(
+      page.locator('[data-scene-active="true"] [data-gallery-thumbnails]'),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: /thumbnails/i })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Previous image', exact: true })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Next image', exact: true })).toHaveCount(1);
+  });
+}
+
+for (const reduced of [false, true]) {
+  test(`gallery changes immediately while a selected image is pending with reduced motion ${reduced}`, async ({
+    page,
+  }) => {
+    await mock(page);
+    if (reduced) await page.emulateMedia({ reducedMotion: 'reduce' });
+    const photos = [1, 2, 3].map((id) => `https://example.com/image/upload/photo-${id}.png`);
+    await page.route(/\/collection\/1$/, (route) =>
+      route.fulfill({ json: { data: { ...item(1), pictures: photos } } }),
+    );
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let requested = 0;
+    await page.route('**/w_1280*/photo-2.png', async (route) => {
+      requested++;
+      await gate;
+      await route.fulfill({ path: 'public/favicon.png' }).catch(() => undefined);
+    });
+    await page.goto('/shelves/collection/1/kit-1');
+    await settledWorkspace(page);
+    await expect(page.locator('[data-gallery-current-image]')).toBeVisible();
+    try {
+      await page.getByRole('button', { name: 'Next image', exact: true }).click();
+      await expect(page.getByText('3 / 4', { exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Show photo 2', exact: true })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      await expect.poll(() => requested).toBe(1);
+      const current = page.locator('[data-gallery-layer="current"]');
+      await expect(current.locator('img')).toHaveAttribute('src', /w_1280.*photo-2/);
+      await expect(current.locator('img')).toHaveCSS('visibility', 'hidden');
+      await expect(page.locator('[data-gallery-layer="outgoing"]')).toHaveCount(0);
+      await expect(page.locator('[data-gallery-current-image]')).toHaveCount(0);
+      release();
+      await expect(page.locator('[data-gallery-current-image]')).toHaveAttribute('src', /photo-2/);
+      await expect(page.locator('[data-gallery-current-image]')).toBeVisible();
+      expect(requested).toBe(1);
+    } finally {
+      release();
+    }
+  });
+}
+
+test('rapid gallery changes discard old layers and ignore late image completion', async ({
+  page,
+}) => {
+  await mock(page);
+  await page.route(/\/collection\/1$/, (route) =>
+    route.fulfill({
+      json: {
+        data: {
+          ...item(1),
+          pictures: [1, 2, 3].map((id) => `https://example.com/image/upload/rapid-${id}.png`),
+        },
+      },
+    }),
+  );
+  let release = () => {};
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/w_1280*/rapid-2.png', async (route) => {
+    await gate;
+    await route.fulfill({ path: 'public/favicon.png' }).catch(() => undefined);
+  });
+  await page.goto('/shelves/collection/1/kit-1');
+  await settledWorkspace(page);
+  try {
+    await page.getByRole('button', { name: 'Next image', exact: true }).click();
+    await page.getByRole('button', { name: 'Next image', exact: true }).click();
+    await expect(page.getByText('4 / 4', { exact: true })).toBeVisible();
+    expect(await page.locator('[data-gallery-layer]').count()).toBeLessThanOrEqual(2);
+    await expect(page.locator('[data-gallery-current-image]')).toHaveAttribute('src', /rapid-3/);
+    release();
+    await expect(page.locator('[data-gallery-layer="outgoing"]')).toHaveCount(0);
+    await expect(page.locator('[data-gallery-current-image]')).toHaveAttribute('src', /rapid-3/);
+    await page.getByRole('button', { name: 'Next image', exact: true }).click();
+    await expect(page.getByText('1 / 4', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Previous image', exact: true }).click();
+    await expect(page.getByText('4 / 4', { exact: true })).toBeVisible();
+  } finally {
+    release();
+  }
+});
+
+test('enabling reduced motion during a gallery slide removes the outgoing layer', async ({
+  page,
+}) => {
+  await mock(page);
+  await page.goto('/shelves/collection/1/kit-1');
+  await settledWorkspace(page);
+  await expect(page.getByRole('img', { name: 'Kit 1 - Photo 1', exact: true })).toBeVisible();
+  const outgoingCount = await page
+    .getByRole('button', { name: 'Show box art', exact: true })
+    .evaluate(
+      (node) =>
+        new Promise<number>((resolve) => {
+          const observer = new MutationObserver(() => {
+            const count = document.querySelectorAll('[data-gallery-layer="outgoing"]').length;
+            if (count) {
+              observer.disconnect();
+              resolve(count);
+            }
+          });
+          observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+          (node as HTMLButtonElement).click();
+        }),
+    );
+  expect(outgoingCount).toBe(1);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(page.locator('[data-gallery-layer="outgoing"]')).toHaveCount(0);
+  await expect(page.locator('[data-gallery-current-image]')).toHaveAttribute(
+    'alt',
+    'Kit 1 - Box art',
+  );
+});
+
+test('returning to a category while the selected image is pending preserves navigation and focus', async ({
+  page,
+}) => {
+  await mock(page);
+  await page.route(/\/collection\/1$/, (route) =>
+    route.fulfill({
+      json: {
+        data: {
+          ...item(1),
+          pictures: [
+            'https://example.com/ready.png',
+            'https://example.com/image/upload/pending.png',
+          ],
+        },
+      },
+    }),
+  );
+  let release = () => {};
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/w_1280*/pending.png', async (route) => {
+    await gate;
+    await route.fulfill({ path: 'public/favicon.png' }).catch(() => undefined);
+  });
+  await page.goto('/shelves/category/gunpla');
+  await settledWorkspace(page);
+  const link = page.getByRole('link', { name: 'Kit 1', exact: true });
+  await link.click();
+  await settledWorkspace(page);
+  try {
+    await page.getByRole('button', { name: 'Next image', exact: true }).click();
+    await expect(page.getByText('3 / 3', { exact: true })).toBeVisible();
+    await page.getByRole('link', { name: 'Back to Gunpla', exact: true }).click();
+    await settledWorkspace(page);
+    await expect(link).toBeFocused();
+    await expect(page.locator('[data-shelf-morph-overlay], [data-shelf-morph-blend]')).toHaveCount(
+      0,
+    );
+    await recordCoverMovement(page);
+    await link.click();
+    await settledWorkspace(page);
+    await assertCoverMovement(page);
+    await expect(page.getByText('3 / 3', { exact: true })).toBeVisible();
+    await expect(page.locator('[data-gallery-layer="current"] img')).toHaveCSS(
+      'visibility',
+      'hidden',
+    );
+    await expect(page.locator('[data-shelf-morph-overlay]')).toHaveCount(0);
+    release();
+    await expect(page.locator('[data-gallery-current-image]')).toHaveAttribute('src', /pending/);
+    await page.getByRole('link', { name: 'Back to Gunpla', exact: true }).click();
+    await settledWorkspace(page);
+    await expect(page.getByRole('heading', { name: 'Gunpla', exact: true })).toBeVisible();
+    await expect(page.locator('[data-scene-active="true"]')).toHaveCount(1);
+  } finally {
+    release();
+  }
+});
+
+for (const width of [390, 1280]) {
+  for (const origin of ['/shelves', '/shelves/category/gunpla']) {
+    test(`only painted box art opens details from ${origin} at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await mock(page);
+      await page.route('https://example.com/**', (route) => {
+        const portrait = route.request().url().endsWith('/kit-2.png');
+        return route.fulfill({
+          contentType: 'image/svg+xml',
+          body: `<svg xmlns="http://www.w3.org/2000/svg" width="${portrait ? 100 : 300}" height="${portrait ? 300 : 100}"><rect width="100%" height="100%" fill="#a84935"/></svg>`,
+        });
+      });
+      await page.goto(origin);
+      await settledWorkspace(page);
+      for (const id of [1, 2]) {
+        const link = page.getByRole('link', { name: `Kit ${id}`, exact: true });
+        await link.scrollIntoViewIfNeeded();
+        await link.locator('img').evaluate((node) => (node as HTMLImageElement).decode());
+        const geometry = await link.evaluate((node) => {
+          const link = node.getBoundingClientRect();
+          const card = node.querySelector('[role="group"]')!.getBoundingClientRect();
+          const cell = node.closest('[data-part-item]')!.getBoundingClientRect();
+          const image = node.querySelector('img')!.getBoundingClientRect();
+          return {
+            link: { left: link.left, top: link.top, width: link.width, height: link.height },
+            card: { left: card.left, top: card.top, width: card.width, height: card.height },
+            image: { width: image.width, height: image.height },
+            cell: { left: cell.left, right: cell.right, top: cell.top },
+          };
+        });
+        expect(geometry.link).toEqual(geometry.card);
+        expect(Math.abs(geometry.link.width - geometry.image.width)).toBeLessThanOrEqual(2.1);
+        expect(Math.abs(geometry.link.height - geometry.image.height)).toBeLessThanOrEqual(2.1);
+        const blankPoints = [];
+        if (geometry.link.top - geometry.cell.top > 16) {
+          blankPoints.push({
+            x: geometry.link.left + geometry.link.width / 2,
+            y: geometry.link.top - 12,
+          });
+        }
+        if (geometry.cell.right - geometry.link.left - geometry.link.width > 12) {
+          blankPoints.push({
+            x: geometry.cell.right - 4,
+            y: geometry.link.top + geometry.link.height / 2,
+          });
+        }
+        for (const point of blankPoints) {
+          expect(
+            await page.evaluate(
+              ({ x, y }) => Boolean(document.elementFromPoint(x, y)?.closest('a')),
+              point,
+            ),
+          ).toBe(false);
+          await page.mouse.click(point.x, point.y);
+          await expect(page).toHaveURL(new RegExp(`${origin}$`));
+        }
+        const caption = page.locator(
+          `[data-scene-active="true"] [data-part-item="${id}"] [data-scene-part="caption"]`,
+        );
+        await expect(caption.locator('a')).toHaveCount(0);
+        await caption.click({ position: { x: 8, y: width === 390 ? 36 : 40 } });
+        await expect(page).toHaveURL(new RegExp(`${origin}$`));
+        const restingEntry = await link.evaluate((node) => ({
+          key: history.state.key || 'default',
+          offset:
+            node.parentElement!.getBoundingClientRect().bottom - (node as HTMLElement).offsetHeight,
+          scroll: scrollY,
+        }));
+        await link.hover();
+        await expect
+          .poll(() =>
+            link.evaluate((node) => new DOMMatrixReadOnly(getComputedStyle(node).transform).m42),
+          )
+          .toBeLessThan(-5);
+        await link.click();
+        const savedOffset = await page.evaluate(
+          (key) => JSON.parse(sessionStorage.getItem(`shelves:entry:${key}`)!).data.offset,
+          restingEntry.key,
+        );
+        expect(savedOffset).toBeCloseTo(restingEntry.offset, 0);
+        await expect(page).toHaveURL(new RegExp(`/shelves/collection/${id}/`));
+        await settledWorkspace(page);
+        await page.goBack();
+        await settledWorkspace(page);
+        await expect(link).toBeFocused();
+        expect(await page.evaluate(() => scrollY)).toBeCloseTo(restingEntry.scroll, 0);
+      }
+      const first = page.getByRole('link', { name: 'Kit 1', exact: true });
+      await page.keyboard.press('Tab');
+      await first.focus();
+      await expect(first).toHaveCSS('outline-style', 'solid');
+      await page.keyboard.press('Enter');
+      await expect(page).toHaveURL(/\/shelves\/collection\/1\//);
+      await settledWorkspace(page);
+    });
+  }
+}
+
+for (const width of [390, 1280]) {
+  test(`compact shelves preserve long captions and row clearance at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 1100 });
+    await mock(page);
+    await page.route('**/collection/shelves*', (route) => {
+      const response = envelope(
+        Array.from({ length: 12 }, (_, i) => ({
+          ...item(i + 1),
+          title: `Kit ${i + 1} with a long title that fills two caption lines`,
+        })),
+      );
+      if (!new URL(route.request().url()).searchParams.has('category')) {
+        response.data.figure_shelf = {
+          id: 1,
+          name: 'Figure',
+          count: 1,
+          items: [{ ...item(100), type: { ...item(100).type, name: 'Figure' } }],
+        };
+      }
+      return route.fulfill({ json: response });
+    });
+    await page.route('https://example.com/**', (route) =>
+      route.fulfill({
+        contentType: 'image/svg+xml',
+        body: `<svg xmlns="http://www.w3.org/2000/svg" width="${route.request().url().endsWith('/kit-2.png') ? 100 : 300}" height="100"><rect width="100%" height="100%" fill="#a84935"/></svg>`,
+      }),
+    );
+    await page.goto('/shelves');
+    await settledWorkspace(page);
+    const overviewSpacing = await page
+      .locator('[data-scene-active="true"] [data-scene-part="shelf"]')
+      .evaluateAll((nodes) => {
+        const first = nodes[0].getBoundingClientRect();
+        const second = nodes[1].getBoundingClientRect();
+        const rows = nodes[0].querySelectorAll('[data-shelf-scroll]');
+        return {
+          sectionGap: second.top - first.bottom,
+          rowGap:
+            rows.length > 1
+              ? rows[1].parentElement!.getBoundingClientRect().top -
+                rows[0].parentElement!.getBoundingClientRect().bottom
+              : null,
+        };
+      });
+    expect(overviewSpacing.sectionGap).toBe(width === 390 ? 20 : 24);
+    if (width === 390) expect(overviewSpacing.rowGap).toBe(12);
+    await page.getByRole('link', { name: /View all \d+ Gunpla items/ }).click();
+    await settledWorkspace(page);
+    const layout = await page
+      .locator('[data-scene-active="true"] [data-shelf-scroll]')
+      .evaluateAll((rows) => {
+        const firstRow = rows[0].parentElement!.getBoundingClientRect();
+        const nextRow = rows[1].parentElement!.getBoundingClientRect();
+        const artworkClearance = rows.map((row) => {
+          const slots = Array.from(row.querySelectorAll('[data-shelf-artwork-slot]'));
+          const cards = Array.from(row.querySelectorAll('[role="group"]'));
+          const tallest = Math.max(...cards.map((card) => card.getBoundingClientRect().height));
+          const slotHeight = slots[0].getBoundingClientRect().height;
+          const ledge = row
+            .parentElement!.querySelector('[data-scene-ledge]')!
+            .getBoundingClientRect();
+          return {
+            unused: slotHeight - tallest,
+            baselines: cards.map((card) =>
+              Math.abs(card.getBoundingClientRect().bottom - ledge.top),
+            ),
+          };
+        });
+        return {
+          gap: nextRow.top - firstRow.bottom,
+          artworkClearance,
+          captions: Array.from(
+            document.querySelectorAll('[data-scene-active="true"] [data-scene-part="caption"]'),
+          ).map((caption) => {
+            const rect = caption.getBoundingClientRect();
+            const last = caption.lastElementChild!.getBoundingClientRect();
+            return {
+              height: rect.height,
+              padding: getComputedStyle(caption).paddingTop,
+              remaining: rect.bottom - last.bottom,
+            };
+          }),
+        };
+      });
+    expect(layout.gap).toBe(16);
+    for (const row of layout.artworkClearance) {
+      expect(Math.abs(row.unused)).toBeLessThan(1);
+      for (const distance of row.baselines) expect(distance).toBeLessThan(1);
+    }
+    for (const caption of layout.captions) {
+      expect(caption.height).toBe(104);
+      expect(caption.padding).toBe(width === 390 ? '30px' : '34px');
+      expect(caption.remaining).toBeGreaterThanOrEqual(0);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+  });
 }

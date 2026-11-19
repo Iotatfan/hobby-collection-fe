@@ -9,9 +9,11 @@ import {
   useLoadingFocusHandoff,
   type ShelfNavigation,
 } from '@/pages/collection_shelf/helpers/navigation';
-import { categories } from '@/pages/collection_shelf/helpers/categories';
+import { categories, isCategory, typeCategory } from '@/pages/collection_shelf/helpers/categories';
 import { getCachedCollectionShelves } from '@/utils/collectionCaches';
 import { cloudinarySizes } from '@/utils/cloudinary';
+import ShelfPageContainer from '@/layouts/shelves/ShelfPageContainer';
+import ShelfBreadcrumbs from '@/layouts/shelves/ShelfBreadcrumbs';
 import ShelfDetailLayout from '@/layouts/shelves/ShelfDetailLayout';
 import Shelf from '@/pages/collection_shelf/parts/Shelf';
 
@@ -29,6 +31,12 @@ export function DetailLoading({ error, retry }: { error?: string; retry?: () => 
     <Box ref={focusRoot} data-destination-loading="detail" aria-busy={!error}>
       <ShelfDetailLayout
         itemId={String(id)}
+        breadcrumb={
+          <ShelfBreadcrumbs
+            category={typeCategory(preview?.type?.name)}
+            title={preview?.title || 'Collection detail'}
+          />
+        }
         back={<LoadingBackLink compact />}
         hero={
           preview?.cover ? (
@@ -47,7 +55,13 @@ export function DetailLoading({ error, retry }: { error?: string; retry?: () => 
         thumbnails={
           <Flex data-shelf-skeleton="thumbnails" aria-hidden="true" gap={2} justify="center" pb={1}>
             {[0, 1, 2].map((index) => (
-              <Skeleton key={index} w="72px" h="56px" borderRadius="lg" animation={animation} />
+              <Skeleton
+                key={index}
+                w={{ base: '80px', md: '96px' }}
+                h={{ base: '68px', md: '80px' }}
+                borderRadius="lg"
+                animation={animation}
+              />
             ))}
           </Flex>
         }
@@ -106,15 +120,13 @@ function OverviewLoading() {
   useShelfSceneReady(true);
   useShelfRestoration(true);
   return (
-    <Flex
+    <ShelfPageContainer
       minH="100vh"
-      direction="column"
+      display="flex"
+      flexDirection="column"
       pt={6}
-      pb={12}
+      pb={28}
       gap={{ base: 7, md: 8 }}
-      px={{ base: 4, md: 6, lg: 8 }}
-      maxW="92rem"
-      mx="auto"
       ref={focusRoot}
       data-destination-loading="overview"
       aria-busy="true"
@@ -127,10 +139,11 @@ function OverviewLoading() {
       </Box>
       {cached ? (
         <>
-          {Object.values(categories).map((config) =>
+          {Object.entries(categories).map(([slug, config]) =>
             cached[config.key]?.items?.length ? (
               <Shelf
                 key={config.key}
+                category={isCategory(slug) ? slug : undefined}
                 shelf={cached[config.key]}
                 icon={config.icon}
                 accent={config.accent}
@@ -145,6 +158,6 @@ function OverviewLoading() {
         <ShelfSkeletonRows />
       )}
       <Text role="status">Loading shelves...</Text>
-    </Flex>
+    </ShelfPageContainer>
   );
 }

@@ -1,6 +1,6 @@
 import { Box, Button, Flex, Icon, Link, Menu, Portal, Text } from '@chakra-ui/react';
 import { ChevronDown, SlidersHorizontal, X } from 'lucide-react';
-import { useId, useState } from 'react';
+import { memo, useId, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import type { ShelfCategory, ShelfFilters } from '@/libs/collection/collection';
 import type { CategorySceneData } from '@/layouts/shelves/scene';
@@ -44,7 +44,7 @@ function FilterDropdown({
           h="auto"
           px={3}
           py={2}
-          color={selected ? 'white' : 'whiteAlpha.800'}
+          color={selected ? 'white' : 'shelves.muted'}
           bg={selected ? 'whiteAlpha.100' : 'whiteAlpha.50'}
           borderWidth="1px"
           borderRadius="md"
@@ -124,7 +124,7 @@ function FilterDropdown({
   );
 }
 
-export default function CategoryFilters({
+function CategoryFilters({
   category,
   data,
   count,
@@ -135,7 +135,6 @@ export default function CategoryFilters({
 }) {
   const [expanded, setExpanded] = useState(false);
   const panelId = useId();
-  const config = categories[category];
   const filters = data?.filters || {};
   const options = data?.options;
   const grades = options?.grades || [];
@@ -185,7 +184,15 @@ export default function CategoryFilters({
   };
   return (
     <Box mt={5}>
-      <Flex as="nav" aria-label="Shelf categories" gap={{ base: 1, md: 3 }} flexWrap="wrap" mb={3}>
+      <Flex
+        as="nav"
+        aria-label="Shelf categories"
+        gap={{ base: 1, md: 3 }}
+        flexWrap="wrap"
+        mb={4}
+        borderBottomWidth="1px"
+        borderColor="shelves.border"
+      >
         {(Object.keys(categories) as ShelfCategory[]).map((slug) => (
           <Link
             key={slug}
@@ -194,9 +201,9 @@ export default function CategoryFilters({
             px={3}
             py={2}
             fontWeight="medium"
-            color={slug === category ? 'white' : 'whiteAlpha.700'}
+            color={slug === category ? 'white' : 'shelves.muted'}
             borderBottomWidth="2px"
-            borderColor={slug === category ? config.accent : 'transparent'}
+            borderColor={slug === category ? 'shelves.action' : 'transparent'}
             focusVisibleRing="outside"
           >
             <RouterLink
@@ -205,7 +212,7 @@ export default function CategoryFilters({
               onMouseEnter={() => warmShelfRoute(`/shelves/category/${slug}`)}
               onFocus={() => warmShelfRoute(`/shelves/category/${slug}`)}
             >
-              {slug === 'other-model-kit' ? 'Other Model Kits' : categories[slug].name}
+              {categories[slug].name}
             </RouterLink>
           </Link>
         ))}
@@ -228,9 +235,9 @@ export default function CategoryFilters({
                   px={3}
                   aria-pressed={selected}
                   disabled={label !== 'All' && (!grade || data?.filtersLoading)}
-                  bg={selected ? config.accent : 'transparent'}
-                  color={selected ? 'white' : 'whiteAlpha.800'}
-                  _hover={{ bg: selected ? config.accent : 'whiteAlpha.100' }}
+                  bg={selected ? 'shelves.action' : 'transparent'}
+                  color={selected ? 'white' : 'shelves.muted'}
+                  _hover={{ bg: selected ? 'shelves.action' : 'whiteAlpha.100' }}
                   focusVisibleRing="outside"
                   onClick={() => data?.changeFilter('grade_id', grade?.id)}
                 >
@@ -270,7 +277,7 @@ export default function CategoryFilters({
               field={field}
               value={filters[field.key]}
               change={(value) => data?.changeFilter(field.key, value)}
-              accent={config.accent}
+              accent="#4F46E5"
               disabled={!options || Boolean(data?.filtersLoading)}
             />
           ))}
@@ -289,7 +296,7 @@ export default function CategoryFilters({
       </Flex>
       {data?.filtersError && (
         <Flex align="center" gap={2} flexWrap="wrap">
-          <Text fontSize="sm" color="orange.200">
+          <Text fontSize="sm" color="shelves.link">
             {data.filtersError}
           </Text>
           <Button
@@ -331,7 +338,7 @@ export default function CategoryFilters({
             variant="ghost"
             size="sm"
             minH="44px"
-            color="orange.200"
+            color="shelves.link"
             _hover={{ bg: 'whiteAlpha.100' }}
             onClick={data?.clearFilters}
             focusVisibleRing="outside"
@@ -343,3 +350,5 @@ export default function CategoryFilters({
     </Box>
   );
 }
+
+export default memo(CategoryFilters);

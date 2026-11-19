@@ -100,3 +100,23 @@ test('cancelled preparation cannot overwrite replacement motion in a child-only 
   await flush();
   expect(position).toBe(-32);
 });
+
+test('related motion shares one registry entry until all members finish or cancel', async () => {
+  const batch = new SceneMotionBatch();
+  const first = deferred();
+  const second = deferred();
+  const idle: number[] = [];
+  const registry = new MotionRegistry((generation) => idle.push(generation));
+  registry.reset(1);
+  const register = (promise: Promise<void>) => registry.track(promise, 1);
+  batch.track('1:overview:captions', first.promise, register);
+  const cancelSecond = batch.track('1:overview:captions', second.promise, register);
+  expect(registry.size).toBe(1);
+  first.resolve();
+  await flush();
+  expect(registry.size).toBe(1);
+  cancelSecond();
+  await flush();
+  expect(registry.size).toBe(0);
+  expect(idle).toEqual([1]);
+});

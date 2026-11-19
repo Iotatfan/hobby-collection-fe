@@ -1,5 +1,6 @@
+import ShelfPageContainer from '@/layouts/shelves/ShelfPageContainer';
 import { useLayoutEffect, useRef } from 'react';
-import { Box, Link, Text } from '@chakra-ui/react';
+import { Link, Text } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useShelfLocation, useShelfSceneReady } from '@/layouts/shelves/scene';
 
@@ -16,7 +17,7 @@ export default function UnavailableScene() {
   const navigate = useNavigate();
   const fallback = location.pathname === '/shelves' ? '/' : '/shelves';
   return (
-    <Box data-scene-error="" p={8} minH="100dvh">
+    <ShelfPageContainer data-scene-error="" py={8} minH="100dvh">
       <Text ref={heading} as="h1" tabIndex={-1} fontSize="2xl">
         This view could not be opened.
       </Text>
@@ -36,6 +37,6 @@ export default function UnavailableScene() {
           Back to {fallback === '/' ? 'collection' : 'shelves'}
         </RouterLink>
       </Link>
-    </Box>
+    </ShelfPageContainer>
   );
 }

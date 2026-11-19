@@ -163,7 +163,9 @@ test('filters the complete category, combines fields and restores selections aft
   const requests = await setup(page);
   await page.goto('/shelves/');
   await settled(page);
-  await active(page).getByRole('link', { name: 'View all Gunpla' }).click();
+  await active(page)
+    .getByRole('link', { name: /View all \d+ Gunpla items/ })
+    .click();
   await settled(page);
   await expect(active(page).locator('[data-filter-item]')).toHaveCount(12);
   await active(page).getByRole('button', { name: 'RG', exact: true }).click();
@@ -188,7 +190,7 @@ test('filters the complete category, combines fields and restores selections aft
   await page.goBack();
   await settled(page);
   await expect(active(page).getByText('1 of 18 items', { exact: true })).toBeVisible();
-  await active(page).getByRole('link', { name: 'Figure', exact: true }).click();
+  await active(page).getByRole('link', { name: 'Figures', exact: true }).click();
   await settled(page);
   await choose(page, 'Brand', 'Maker A');
   await expect(active(page).getByText('2 of 4 items', { exact: true })).toBeVisible();
@@ -200,13 +202,17 @@ test('filters the complete category, combines fields and restores selections aft
   await active(page).getByRole('button', { name: 'Clear all', exact: true }).click();
   await expect(active(page).getByText('18 items', { exact: true })).toBeVisible();
   await expect(active(page).getByRole('button', { name: 'Clear all', exact: true })).toHaveCount(0);
-  await active(page).getByRole('button', { name: 'Load more Gunpla' }).click();
+  await active(page).getByRole('button', { name: 'Load more' }).click();
   await expect(active(page).locator('[data-filter-item]')).toHaveCount(18);
   await choose(page, 'Additional grades', 'PG');
   await expect(active(page).getByText('1 of 18 items', { exact: true })).toBeVisible();
   await choose(page, 'Release Type', 'Premium Bandai');
-  await expect(active(page).getByText('No matching items', { exact: true })).toBeVisible();
-  await expect(active(page).locator('[data-scene-ledge]')).toHaveCount(1);
+  await expect(
+    active(page).getByText('No matching items. Try changing or resetting your filters.', {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(active(page).locator('[data-scene-ledge]')).toHaveCount(0);
   await active(page).getByRole('button', { name: 'Reset filters', exact: true }).click();
   await expect(active(page).getByText('18 items', { exact: true })).toBeVisible();
 });
@@ -242,20 +248,23 @@ for (const category of Object.keys(keys) as Category[]) {
         exact: true,
       }),
     ).toBeVisible();
-    await expect
-      .poll(() =>
-        active(page)
-          .locator('[data-scene-ledge]')
-          .first()
-          .evaluate((node) => {
-            let opacity = 1;
-            for (let current: Element | null = node; current; current = current.parentElement) {
-              opacity *= Number(getComputedStyle(current).opacity);
-            }
-            return opacity;
-          }),
-      )
-      .toBe(1);
+    if (category !== 'gunpla')
+      await expect(active(page).locator('[data-scene-ledge]')).toHaveCount(0);
+    else
+      await expect
+        .poll(() =>
+          active(page)
+            .locator('[data-scene-ledge]')
+            .first()
+            .evaluate((node) => {
+              let opacity = 1;
+              for (let current: Element | null = node; current; current = current.parentElement) {
+                opacity *= Number(getComputedStyle(current).opacity);
+              }
+              return opacity;
+            }),
+        )
+        .toBe(1);
     await page.screenshot({ path: test.info().outputPath('mobile-filters.png'), fullPage: true });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,

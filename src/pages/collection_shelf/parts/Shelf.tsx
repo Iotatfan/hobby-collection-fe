@@ -1,10 +1,11 @@
-import { Badge, Box, Flex, Icon, Link, Text } from '@chakra-ui/react';
+import { memo } from 'react';
+import { Badge, Box, Flex, Icon, Link, Text, useBreakpointValue } from '@chakra-ui/react';
 import { ChevronRight, LucideIcon } from 'lucide-react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useShelfLocation as useLocation } from '@/layouts/shelves/scene';
 import { warmShelfRoute } from '@/layouts/shelves/warmup';
 import { captureSource } from '../helpers/navigation';
-import { categories } from '../helpers/categories';
+import { categories, shelfColumns, shelfCaptionHeight } from '../helpers/categories';
 import type { ShelfCategory } from '@/libs/collection/collection';
 import { IShelf } from '@/libs/collection/collection';
 import ScenePart from '@/layouts/shelves/ScenePart';
@@ -31,9 +32,13 @@ const Shelf = ({
 }: ShelfProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const slug =
-    category ||
-    (Object.keys(categories) as ShelfCategory[]).find((key) => categories[key].name === shelf.name);
+  const columns = useBreakpointValue(shelfColumns) || 2;
+  const slug = category;
+  const displayName = slug ? categories[slug].name : shelf.name;
+  const items = !expanded && slug ? shelf.items.slice(0, 6) : shelf.items;
+  const rows = Array.from({ length: Math.ceil(items.length / columns) }, (_, index) =>
+    items.slice(index * columns, (index + 1) * columns),
+  );
   const hasViewAllLink = !expanded && shelf.count > 6 && Boolean(slug);
 
   return (
@@ -60,12 +65,14 @@ const Shelf = ({
               color="white"
               fontSize={{ base: 'xl', md: '2xl' }}
               fontWeight="bold"
-              truncate
+              overflowWrap="anywhere"
             >
-              {shelf.name}
+              {displayName}
             </Text>
             <Badge
-              bg={accent}
+              bg={`${accent}26`}
+              borderWidth="1px"
+              borderColor={`${accent}66`}
               color="white"
               borderRadius="md"
               px={3}
@@ -75,6 +82,11 @@ const Shelf = ({
             >
               {shelf.count}
             </Badge>
+            {shelf.name === 'Backlog' && (
+              <Text color="shelves.muted" display={{ base: 'none', md: 'block' }}>
+                Waiting to be built
+              </Text>
+            )}
           </Flex>
 
           {hasViewAllLink && (
@@ -82,7 +94,8 @@ const Shelf = ({
               focusRing="none"
               focusVisibleRing="outside"
               asChild
-              color="whiteAlpha.900"
+              minH="44px"
+              color="shelves.link"
               fontWeight="semibold"
               display="inline-flex"
               alignItems="center"
@@ -94,7 +107,7 @@ const Shelf = ({
                 onMouseEnter={() => warmShelfRoute(`/shelves/category/${slug}`)}
                 onFocus={() => warmShelfRoute(`/shelves/category/${slug}`)}
                 data-shelf-anchor={`category-${slug}`}
-                aria-label={`View all ${shelf.name}`}
+                aria-label={`View all ${shelf.count} ${displayName} items`}
                 to={`/shelves/category/${slug}`}
                 onClick={(event) => {
                   if (
@@ -112,7 +125,7 @@ const Shelf = ({
                   });
                 }}
               >
-                View All
+                View all {shelf.count}
                 <ChevronRight size={18} />
               </RouterLink>
             </Link>
@@ -120,73 +133,68 @@ const Shelf = ({
         </ScenePart>
       )}
 
-      <Box position="relative" pb={{ base: '24px', md: '28px' }}>
-        <Flex
-          data-shelf-scroll=""
-          minH={expanded ? '160px' : '200px'}
-          display={expanded ? 'grid' : 'flex'}
-          gridTemplateColumns={
-            expanded
-              ? { base: 'repeat(3, minmax(0, 1fr))', md: 'repeat(6, minmax(0, 1fr))' }
-              : undefined
-          }
-          align="end"
-          gap={{ base: 4, md: 7 }}
-          overflowX={expanded ? 'visible' : 'auto'}
-          overflowY="visible"
-          px={{ base: 2, md: 3 }}
-          pt={4}
-          pb={0}
-          className="custom-scrollbar"
-          perspective="1200px"
-          transformStyle="preserve-3d"
-        >
-          {shelf.items.map((item, index) => (
-            <ShelfItem
-              key={item.id}
-              item={item}
-              index={index}
-              contained={expanded}
-              clickable={shelf.name !== 'Backlog'}
-            />
-          ))}
-        </Flex>
+      {rows.map((row, rowIndex) => (
+        <Box key={rowIndex} position="relative" mb={rowIndex < rows.length - 1 ? 3 : 0}>
+          <Flex
+            data-shelf-scroll=""
+            display="grid"
+            gridTemplateColumns={`repeat(${columns}, minmax(0, 1fr))`}
+            gridTemplateRows={`auto ${shelfCaptionHeight}`}
+            align="stretch"
+            columnGap={{ base: 4, md: 7 }}
+            rowGap={0}
+            px={{ base: 2, md: 3 }}
+            pt={4}
+          >
+            {row.map((item, index) => (
+              <ShelfItem
+                key={item.id}
+                item={item}
+                index={rowIndex * columns + index}
+                contained={expanded}
+                clickable={Boolean(slug)}
+              />
+            ))}
+          </Flex>
 
-        <ScenePart
-          role="ledge"
-          data-scene-ledge=""
-          position="absolute"
-          left={0}
-          right={0}
-          bottom={0}
-          zIndex={2}
-          h={{ base: '24px', md: '28px' }}
-          borderRadius="sm"
-          bg="linear-gradient(180deg, #c08a52 0%, #81512d 48%, #4c2c19 100%)"
-          boxShadow="0 -8px 24px rgba(255, 196, 118, 0.22), 0 16px 36px rgba(0, 0, 0, 0.65)"
-          _before={{
-            content: '""',
-            position: 'absolute',
-            inset: '3px 0 auto 0',
-            left: '10%',
-            right: '10%',
-            top: '-12px',
-            height: '24px',
-            h: '2px',
-            bg: 'rgba(255,255,255,0.28)',
-            filter: 'blur(18px)',
-          }}
-          _after={{
-            content: '""',
-            position: 'absolute',
-            inset: 'auto 0 0 0',
-            h: '7px',
-            bg: 'linear-gradient(90deg, rgba(62,34,17,0.9), rgba(151,94,48,0.75), rgba(62,34,17,0.9))',
-          }}
-        />
-      </Box>
+          <ScenePart
+            role="ledge"
+            data-scene-ledge=""
+            data-shelf-leading-ledge={rowIndex === 0 ? '' : undefined}
+            pointerEvents="none"
+            position="absolute"
+            left={0}
+            right={0}
+            top={`calc(100% - ${shelfCaptionHeight})`}
+            zIndex={2}
+            h={{ base: '24px', md: '28px' }}
+            borderRadius="sm"
+            bg="linear-gradient(180deg, #c08a52 0%, #81512d 48%, #4c2c19 100%)"
+            boxShadow="0 -8px 24px rgba(255, 196, 118, 0.22), 0 16px 36px rgba(0, 0, 0, 0.65)"
+            _before={{
+              content: '""',
+              position: 'absolute',
+              inset: '3px 0 auto 0',
+              left: '10%',
+              right: '10%',
+              top: '-12px',
+              height: '24px',
+              h: '2px',
+              bg: 'rgba(255,255,255,0.28)',
+              filter: 'blur(18px)',
+            }}
+            _after={{
+              content: '""',
+              position: 'absolute',
+              inset: 'auto 0 0 0',
+              h: '7px',
+              bg: 'linear-gradient(90deg, rgba(62,34,17,0.9), rgba(151,94,48,0.75), rgba(62,34,17,0.9))',
+            }}
+          />
+        </Box>
+      ))}
     </ScenePart>
   );
 };
 
-export default Shelf;
+export default memo(Shelf);

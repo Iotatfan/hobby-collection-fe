@@ -69,7 +69,13 @@ export const validOrigin = (origin?: ShelfOrigin): origin is ShelfOrigin =>
   );
 /** Scroll restoration targets resting layout, not a temporary entrance translation. */
 export function restingAnchorTop(anchor: HTMLElement): number {
-  let top = anchor.getBoundingClientRect().top;
+  const artworkSlot = anchor.parentElement?.hasAttribute('data-shelf-artwork-slot')
+    ? anchor.parentElement
+    : null;
+  // The artwork link may be lifted or scaled by hover; its slot stays at rest.
+  let top = artworkSlot
+    ? artworkSlot.getBoundingClientRect().bottom - anchor.offsetHeight
+    : anchor.getBoundingClientRect().top;
   for (
     let node: HTMLElement | null = anchor;
     node && !node.hasAttribute('data-shelf-scene');

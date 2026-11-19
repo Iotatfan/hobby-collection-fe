@@ -1,3 +1,4 @@
+import { shelfColumns, shelfCaptionHeight } from '@/pages/collection_shelf/helpers/categories';
 import { Box, Grid, Link, Skeleton, useBreakpointValue } from '@chakra-ui/react';
 import { ArrowLeft } from 'lucide-react';
 import { useReducedMotion } from 'framer-motion';
@@ -18,12 +19,13 @@ export function LoadingBackLink({ compact = false }: { compact?: boolean }) {
       focusRing="none"
       focusVisibleRing="outside"
       asChild
-      color="orange.200"
+      color="shelves.link"
       mb={compact ? 3 : 6}
       alignSelf="flex-start"
       px={compact ? 2 : 0}
       py={compact ? 1 : 0}
-      fontSize={compact ? 'sm' : undefined}
+      fontSize="md"
+      minH="44px"
       _hover={compact ? { bg: 'whiteAlpha.100', textDecoration: 'none' } : undefined}
     >
       <RouterLink
@@ -47,16 +49,21 @@ export function LoadingBackLink({ compact = false }: { compact?: boolean }) {
 export function ShelfSkeletonRows({
   count = 12,
   headings = 'all',
+  appended = false,
 }: {
   count?: number;
   headings?: 'all' | 'first' | 'none';
+  appended?: boolean;
 }) {
-  const rowSize = useBreakpointValue({ base: 3, md: 6 }) || 3;
+  const rowSize = useBreakpointValue(shelfColumns) || 2;
   const reduced = useReducedMotion();
   return (
     <Box data-shelf-skeleton="rows" aria-hidden="true">
       {Array.from({ length: Math.ceil(count / rowSize) }, (_, row) => (
-        <Box key={row} mt={8}>
+        <Box
+          key={row}
+          mt={row === 0 && !appended ? 8 : headings === 'all' ? { base: 5, md: 6 } : 4}
+        >
           {(headings === 'all' || (headings === 'first' && row === 0)) && (
             <Skeleton h="28px" w="180px" mb={5} animation={reduced ? 'none' : undefined} />
           )}
@@ -65,7 +72,8 @@ export function ShelfSkeletonRows({
             alignItems="end"
             gap={{ base: 4, md: 7 }}
             px={3}
-            minH="160px"
+            h="145px"
+            mt={4}
           >
             {Array.from({ length: Math.min(rowSize, count - row * rowSize) }, (_, index) => (
               <Skeleton
@@ -82,6 +90,15 @@ export function ShelfSkeletonRows({
             borderRadius="sm"
             bg="linear-gradient(180deg,#c08a52,#81512d 48%,#4c2c19)"
           />
+          <Box
+            h={{
+              base: `calc(${shelfCaptionHeight} - 24px)`,
+              md: `calc(${shelfCaptionHeight} - 28px)`,
+            }}
+            pt={3}
+          >
+            <Skeleton h="20px" w="60%" animation={reduced ? 'none' : undefined} />
+          </Box>
         </Box>
       ))}
     </Box>

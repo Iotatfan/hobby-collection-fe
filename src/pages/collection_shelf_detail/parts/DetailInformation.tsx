@@ -35,15 +35,13 @@ export default function DetailInformation({
       observer?.disconnect();
     };
   }, [collection.description, expanded]);
-  const grade = resolveGradeBadge(
-    collection.type?.grade?.name,
-    collection.type?.scale,
-    collection.type?.name,
-  );
+  const rawScale = collection.type?.scale?.trim();
+  const scale = rawScale && rawScale.toLowerCase() !== 'unknown scale' ? rawScale : undefined;
+  const grade = resolveGradeBadge(collection.type?.grade?.name, scale, collection.type?.name);
   const acquired = ['1', '2'].includes(String(collection.status));
   const date = formatBuiltDateLabel(acquired ? collection.acquired_at : collection.built_at);
   const specs = [
-    ['Scale', collection.type?.scale],
+    ['Scale', scale],
     ['Brand', collection.manufacturer?.name],
     ['Series', collection.series?.name],
     [acquired ? 'Acquired on' : 'Completed on', date],
@@ -56,7 +54,8 @@ export default function DetailInformation({
           {grade.shouldShow && (
             <Badge
               variant="solid"
-              colorPalette="cyan"
+              bg="cyan.900"
+              color="cyan.100"
               fontSize="sm"
               fontWeight="bold"
               px={1.5}
@@ -80,7 +79,7 @@ export default function DetailInformation({
       <Text
         as="h1"
         tabIndex={-1}
-        fontSize={{ base: '2xl', lg: '3xl' }}
+        fontSize={{ base: '2xl', lg: '4xl' }}
         fontWeight="bold"
         lineHeight="shorter"
       >
@@ -94,7 +93,7 @@ export default function DetailInformation({
         transition={{ duration: reduced ? 0 : 0.15 }}
       >
         {collection.description && (
-          <Box maxW="520px" mb={6}>
+          <Box w="full" mb={6}>
             <Box
               maxH={expanded ? { base: 'none', lg: '220px' } : { base: '160px', lg: '220px' }}
               overflowY={expanded ? { base: 'visible', lg: 'auto' } : 'hidden'}
@@ -119,7 +118,7 @@ export default function DetailInformation({
                 color="whiteAlpha.900"
                 w="full"
                 height="auto"
-                minH="unset"
+                minH="44px"
                 mt={2}
                 onClick={() => setExpanded((value) => !value)}
               >
@@ -128,19 +127,19 @@ export default function DetailInformation({
             )}
           </Box>
         )}
-        <Box maxW="520px" h="1px" bg="whiteAlpha.200" mb={6} />
+        <Box w="full" h="1px" bg="whiteAlpha.200" mb={6} />
         <Grid
           templateColumns={{ base: '120px minmax(0, 1fr)', lg: '140px minmax(0, 1fr)' }}
           columnGap={4}
-          rowGap={1}
+          rowGap={2}
           pb={1}
-          maxW="520px"
+          w="full"
         >
           {specs
             .filter(([, value]) => value)
             .map(([label, value]) => (
               <Box key={label} display="contents">
-                <Text fontSize={{ base: 'sm', lg: 'md' }} color="whiteAlpha.700">
+                <Text fontSize={{ base: 'sm', lg: 'md' }} color="shelves.muted">
                   {label}
                 </Text>
                 <Text fontSize={{ base: 'sm', lg: 'md' }} overflowWrap="anywhere">
@@ -150,11 +149,11 @@ export default function DetailInformation({
             ))}
         </Grid>
         {addons.length > 0 || collection.features?.length || collection.modifications?.length ? (
-          <Box maxW="520px" h="1px" bg="whiteAlpha.200" my={6} />
+          <Box w="full" h="1px" bg="whiteAlpha.200" my={6} />
         ) : null}
         {addons.length > 0 && (
-          <Box mb={6} maxW="520px">
-            <Text fontSize={{ base: 'sm', lg: 'md' }} color="whiteAlpha.700" mb={1}>
+          <Box mb={6} w="full">
+            <Text fontSize={{ base: 'sm', lg: 'md' }} color="shelves.muted" mb={1}>
               Addons
             </Text>
             {addons.map((addon) => (
@@ -171,8 +170,8 @@ export default function DetailInformation({
           ([label, tags]) =>
             Array.isArray(tags) &&
             tags.length > 0 && (
-              <Box key={String(label)} mb={6} maxW="520px">
-                <Text fontSize={{ base: 'sm', lg: 'md' }} color="whiteAlpha.700" mb={2}>
+              <Box key={String(label)} mb={6} w="full">
+                <Text fontSize={{ base: 'sm', lg: 'md' }} color="shelves.muted" mb={2}>
                   {String(label)}
                 </Text>
                 <Flex wrap="wrap" gap={2}>

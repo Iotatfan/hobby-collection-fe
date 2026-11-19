@@ -14,7 +14,13 @@ import {
 import ShelfDestinationLoading from '@/layouts/shelves/ShelfDestinationLoading';
 import ShelfSceneBoundary from '@/layouts/shelves/ShelfSceneBoundary';
 import CategoryScene from '@/layouts/shelves/CategoryScene';
-import { ShelfSceneContext, type CategorySceneData } from '@/layouts/shelves/scene';
+import {
+  ShelfSceneContext,
+  ShelfLocationContext,
+  ShelfCurrentContext,
+  ShelfActiveContext,
+  type CategorySceneData,
+} from '@/layouts/shelves/scene';
 import { shelfBackground } from '@/pages/collection_shelf/helpers/categories';
 import {
   captureCover,
@@ -446,27 +452,6 @@ export default function ShelvesWorkspace() {
     if (!cover) settle(latest.location.key, serial);
   }, [phase, sharedTransition, latest.location.key, cover, serial, settle]);
 
-  useLayoutEffect(() => {
-    if (phase !== 'animating' || !cover?.ready || !cover.to || cover.photo) return;
-    const root = roots.current.get(latest.id);
-    if (!root) return;
-    const check = () => {
-      const gallery = root.querySelector<HTMLElement>(
-        `[data-gallery-item="${cover.key.slice(6)}"]`,
-      );
-      if (gallery?.dataset.galleryKind === 'photo') cancelCover(latest.location.key, serial);
-    };
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(root, {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      attributeFilter: ['data-gallery-kind'],
-    });
-    return () => observer.disconnect();
-  }, [phase, cover, latest.location.key, latest.id, serial, cancelCover]);
-
   const completeScene = (key: string) => {
     if (phase !== 'animating' || key !== routeKey.current || serial !== navigationSerial.current)
       return;
@@ -502,31 +487,30 @@ export default function ShelvesWorkspace() {
         ...(cover || departingCoverKey
           ? Object.fromEntries(
               [
-                ...(cover ? [['[data-scene-active="true"]', cover.key]] : []),
+                ...(cover && !cover.handoff ? [['[data-scene-active="true"]', cover.key]] : []),
                 ...(departingCoverKey
                   ? [['[data-scene-departing="true"]', departingCoverKey]]
                   : []),
               ].map(([root, key]) => [
-                `& ${root} [data-part-item="${key.slice(6)}"] [role="group"], & ${root} img[data-shelf-morph="${key}"], & ${root} [data-shelf-morph="${key}"] img, & ${root} [data-gallery-item="${key.slice(6)}"] [data-gallery-current-image]`,
+                `& ${root} [data-part-item="${key.slice(6)}"] [role="group"], & ${root} img[data-shelf-morph="${key}"], & ${root} [data-shelf-morph="${key}"] img, & ${root} [data-gallery-item="${key.slice(6)}"] [data-gallery-current-image], & ${root} [data-gallery-item="${key.slice(6)}"] [data-gallery-layer], & ${root} [data-gallery-item="${key.slice(6)}"] [data-gallery-layer] img`,
                 { visibility: 'hidden' },
               ]),
             )
           : {}),
-        ...(categoryBridge?.painted
-          ? {
-              [`& [data-scene-departing="true"] [data-scene-part="shelf"][data-part-category="${categoryBridge.category}"]`]:
-                { visibility: 'hidden' },
-              ...(!categoryBridge.revealing
-                ? Object.fromEntries(
-                    categoryBridge.parts.map((part) => [
-                      part.id === 'ledge'
-                        ? `& [data-scene-active="true"] [data-scene-part="shelf"][data-part-category="${categoryBridge.category}"][data-shelf-leading] [data-scene-ledge]`
-                        : `& [data-scene-active="true"] [data-part-item="${part.id.slice(6)}"] [role="group"]`,
-                      { visibility: 'hidden' },
-                    ]),
-                  )
-                : {}),
-            }
+        ...(categoryBridge
+          ? Object.fromEntries(
+              [
+                ...(categoryBridge.painted ? ['[data-scene-departing="true"]'] : []),
+                ...(!categoryBridge.revealing ? ['[data-scene-active="true"]'] : []),
+              ].flatMap((root) =>
+                categoryBridge.parts.map((part) => [
+                  part.id === 'ledge'
+                    ? `& ${root} [data-scene-part="shelf"][data-part-category="${categoryBridge.category}"][data-shelf-leading] [data-shelf-leading-ledge]`
+                    : `& ${root} [data-part-item="${part.id.slice(6)}"] [role="group"]`,
+                  { visibility: 'hidden' },
+                ]),
+              ),
+            )
           : {}),
       }}
     >
@@ -540,95 +524,113 @@ export default function ShelvesWorkspace() {
         const active = incoming && phase !== 'preparing';
         const hidden = incoming && Boolean(outgoing) && phase === 'preparing';
         return (
-          <ShelfSceneContext.Provider
-            key={scene.id}
-            value={{
-              location: scene.location,
-              navigationType: scene.navigationType,
-              active,
-              current: incoming,
-              categoryData: reportCategory,
-              detailTitle: reportDetailTitle,
-              ready: reportReady,
-              claimPosition,
-              trackMotion,
-              motionBatch,
-              transition: {
-                generation: serial,
-                phase,
-                direction:
-                  outgoing && latest.historyIndex < outgoing.historyIndex ? 'back' : 'forward',
-                category: selectedCategory.current,
-                itemId: (latest.location.pathname.match(/collection\/(\d+)/) ||
-                  outgoing?.location.pathname.match(/collection\/(\d+)/))?.[1],
-                departing,
-                participating: !dormant && Boolean(outgoing),
-                shared: sharedTransition,
-                sharedItemIds: categoryBridge?.parts
-                  .filter((part) => part.src)
-                  .map((part) => part.id.slice(6)),
-              },
-            }}
-          >
-            <MotionBox
-              ref={(node: HTMLDivElement | null) => {
-                if (node) roots.current.set(scene.id, node);
-                else roots.current.delete(scene.id);
-              }}
-              data-shelf-scene={scene.location.pathname}
-              data-scene-departing={departing ? 'true' : 'false'}
-              data-scene-active={active ? 'true' : 'false'}
-              inert={!active}
-              aria-hidden={!active}
-              display={dormant ? 'none' : undefined}
-              visibility={hidden ? 'hidden' : 'visible'}
-              position={
-                hidden ? 'absolute' : departing && phase === 'animating' ? 'fixed' : 'relative'
-              }
-              top={departing && phase === 'animating' ? `${-sourceScroll.current}px` : 0}
-              left={0}
-              w="full"
-              pointerEvents={active ? 'auto' : 'none'}
-              initial={false}
-              animate={{
-                opacity: sharedTransition
-                  ? 1
-                  : hidden || (!incoming && phase === 'animating')
-                    ? 0
-                    : 1,
-                y: 0,
-              }}
-              transition={{
-                duration: reduced || sharedTransition ? 0 : shelfMotion.sceneDuration,
-                ease: shelfMotion.ease,
-              }}
-              onAnimationComplete={(definition) => {
-                if (
-                  incoming &&
-                  typeof definition === 'object' &&
-                  !Array.isArray(definition) &&
-                  definition.opacity === 1 &&
-                  definition.y === 0
-                )
-                  completeScene(scene.location.key);
-              }}
-            >
-              <ShelfSceneBoundary path={scene.location.pathname}>
-                {scene.location.pathname.startsWith('/shelves/category/') && (
-                  <CategoryScene data={scene.categoryData} />
-                )}
-                <Suspense
-                  fallback={
-                    scene.location.pathname.startsWith('/shelves/category/') ? null : (
-                      <ShelfDestinationLoading />
-                    )
-                  }
+          <ShelfLocationContext.Provider key={scene.id} value={scene.location}>
+            <ShelfCurrentContext.Provider value={incoming}>
+              <ShelfActiveContext.Provider value={active}>
+                <ShelfSceneContext.Provider
+                  value={{
+                    location: scene.location,
+                    navigationType: scene.navigationType,
+                    active,
+                    current: incoming,
+                    categoryData: reportCategory,
+                    detailTitle: reportDetailTitle,
+                    ready: reportReady,
+                    claimPosition,
+                    trackMotion,
+                    motionBatch,
+                    transition: {
+                      generation: serial,
+                      phase,
+                      direction:
+                        outgoing && latest.historyIndex < outgoing.historyIndex
+                          ? 'back'
+                          : 'forward',
+                      category: selectedCategory.current,
+                      itemId: (latest.location.pathname.match(/collection\/(\d+)/) ||
+                        outgoing?.location.pathname.match(/collection\/(\d+)/))?.[1],
+                      departing,
+                      participating: !dormant && Boolean(outgoing),
+                      shared: sharedTransition,
+                      categoryNavigation: Boolean(
+                        outgoing &&
+                        browsing(outgoing) &&
+                        browsing(latest) &&
+                        (outgoing.location.pathname === '/shelves' ||
+                          latest.location.pathname === '/shelves'),
+                      ),
+                      sharedItemIds: categoryBridge?.parts
+                        .filter((part) => part.src)
+                        .map((part) => part.id.slice(6)),
+                    },
+                  }}
                 >
-                  {scene.element}
-                </Suspense>
-              </ShelfSceneBoundary>
-            </MotionBox>
-          </ShelfSceneContext.Provider>
+                  <MotionBox
+                    ref={(node: HTMLDivElement | null) => {
+                      if (node) roots.current.set(scene.id, node);
+                      else roots.current.delete(scene.id);
+                    }}
+                    data-shelf-scene={scene.location.pathname}
+                    data-scene-departing={departing ? 'true' : 'false'}
+                    data-scene-active={active ? 'true' : 'false'}
+                    inert={!active}
+                    aria-hidden={!active}
+                    display={dormant ? 'none' : undefined}
+                    visibility={hidden ? 'hidden' : 'visible'}
+                    position={
+                      hidden
+                        ? 'absolute'
+                        : departing && phase === 'animating'
+                          ? 'fixed'
+                          : 'relative'
+                    }
+                    top={departing && phase === 'animating' ? `${-sourceScroll.current}px` : 0}
+                    left={0}
+                    w="full"
+                    pointerEvents={active ? 'auto' : 'none'}
+                    initial={false}
+                    animate={{
+                      opacity: sharedTransition
+                        ? 1
+                        : hidden || (!incoming && phase === 'animating')
+                          ? 0
+                          : 1,
+                      y: 0,
+                    }}
+                    transition={{
+                      duration: reduced || sharedTransition ? 0 : shelfMotion.sceneDuration,
+                      ease: shelfMotion.ease,
+                    }}
+                    onAnimationComplete={(definition) => {
+                      if (
+                        incoming &&
+                        typeof definition === 'object' &&
+                        !Array.isArray(definition) &&
+                        definition.opacity === 1 &&
+                        definition.y === 0
+                      )
+                        completeScene(scene.location.key);
+                    }}
+                  >
+                    <ShelfSceneBoundary path={scene.location.pathname}>
+                      {scene.location.pathname.startsWith('/shelves/category/') && (
+                        <CategoryScene data={scene.categoryData} />
+                      )}
+                      <Suspense
+                        fallback={
+                          scene.location.pathname.startsWith('/shelves/category/') ? null : (
+                            <ShelfDestinationLoading />
+                          )
+                        }
+                      >
+                        {scene.element}
+                      </Suspense>
+                    </ShelfSceneBoundary>
+                  </MotionBox>
+                </ShelfSceneContext.Provider>
+              </ShelfActiveContext.Provider>
+            </ShelfCurrentContext.Provider>
+          </ShelfLocationContext.Provider>
         );
       })}
       {categoryBridge && !reduced && (
@@ -640,6 +642,15 @@ export default function ShelvesWorkspace() {
               setCategoryBridge((current) =>
                 current && !current.painted ? { ...current, painted: true } : current,
               );
+          }}
+          onResize={() => {
+            if (serial !== navigationSerial.current) return;
+            bridgePending.current = false;
+            setCategoryBridge(null);
+            if (phase === 'animating') {
+              motions.reset(serial);
+              settle(latest.location.key, serial);
+            }
           }}
           onError={() => {
             if (serial !== navigationSerial.current) return;
@@ -663,6 +674,16 @@ export default function ShelvesWorkspace() {
               setCover((current) =>
                 current && !current.ready ? { ...current, ready: true } : current,
               );
+          }}
+          onHandoff={() => {
+            if (serial !== navigationSerial.current || routeKey.current !== latest.location.key)
+              return false;
+            const gallery = roots.current
+              .get(latest.id)
+              ?.querySelector<HTMLElement>(`[data-gallery-item="${cover.key.slice(6)}"]`);
+            if (gallery?.dataset.galleryKind !== 'photo') return false;
+            setCover((current) => (current?.entry ? { ...current, handoff: true } : current));
+            return true;
           }}
           onComplete={() => {
             if (serial === navigationSerial.current)

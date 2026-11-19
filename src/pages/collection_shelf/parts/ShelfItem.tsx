@@ -1,6 +1,6 @@
-import { Box, Image, Link } from '@chakra-ui/react';
+import { Box, Image, Link, Text } from '@chakra-ui/react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { IDisplaySize, IShelfItem as ShelfItemData } from '@/libs/collection/collection';
 import { useShelfLocation as useLocation } from '@/layouts/shelves/scene';
@@ -11,6 +11,7 @@ import {
   rememberShelfImageDimensions,
 } from '@/pages/collection_shelf/helpers/imageDimensions';
 import ScenePart from '@/layouts/shelves/ScenePart';
+import { shelfCaptionHeight, typeCategory } from '../helpers/categories';
 import { captureSource } from '../helpers/navigation';
 import { slugify } from '@/pages/collection_detail/helpers/collectionDetail.helpers';
 import { cloudinarySizes } from '@/utils/cloudinary';
@@ -31,7 +32,7 @@ interface ShelfItemProps {
   contained?: boolean;
 }
 
-const MotionBox = motion.create(Box);
+const MotionLink = motion.create(Link);
 
 const ShelfItem = ({ item, index = 0, clickable = true, contained = false }: ShelfItemProps) => {
   const location = useLocation();
@@ -49,23 +50,20 @@ const ShelfItem = ({ item, index = 0, clickable = true, contained = false }: She
         }
       : 'auto';
     return (
-      <MotionBox
+      <Box
         role="group"
         position="relative"
         zIndex={1}
         w="max-content"
-        maxW={contained ? 'full' : undefined}
+        maxW="full"
         borderRadius="sm"
         overflow="hidden"
         borderWidth="1px"
         borderColor="whiteAlpha.400"
         bg="gray.900"
         boxShadow="0 16px 30px rgba(0, 0, 0, 0.5)"
-        initial={false}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: shelfMotion.hoverDuration, ease: shelfMotion.ease }}
-        cursor={clickable ? 'pointer' : 'not-allowed'}
-        opacity={clickable ? 1 : 0.65}
+        cursor={clickable ? 'pointer' : 'default'}
+        opacity={1}
         _before={{
           content: '""',
           position: 'absolute',
@@ -84,10 +82,6 @@ const ShelfItem = ({ item, index = 0, clickable = true, contained = false }: She
           pointerEvents: 'none',
         }}
         _hover={clickable ? { _after: { opacity: 1 } } : undefined}
-        {...(clickable &&
-          !reducedMotion && {
-            whileHover: { y: -6, scale: 1.025 },
-          })}
       >
         <Image
           src={cloudinarySizes(item.cover).cover}
@@ -107,18 +101,114 @@ const ShelfItem = ({ item, index = 0, clickable = true, contained = false }: She
           display="block"
           w={imageWidth}
           aspectRatio={dimensions ? `${dimensions.width} / ${dimensions.height}` : undefined}
-          maxW={contained ? 'full' : undefined}
+          maxW="full"
           h="auto"
           maxH={HEIGHT_MAP[item.display_size] || { base: '120px', md: '150px' }}
         />
-      </MotionBox>
+      </Box>
     );
-  }, [item, dimensions, contained, clickable, reducedMotion]);
+  }, [item, dimensions, clickable]);
+
+  const presentation = (
+    <>
+      <Box data-shelf-artwork-slot="" display="flex" alignItems="flex-end" minW={0}>
+        {clickable ? (
+          <MotionLink
+            focusRing="none"
+            focusVisibleRing="outside"
+            asChild
+            textDecoration="none"
+            display="inline-flex"
+            w="max-content"
+            flexShrink={1}
+            initial={false}
+            animate={{ y: 0, scale: 1 }}
+            whileHover={reducedMotion ? undefined : { y: -6, scale: 1.025 }}
+            transition={{ duration: shelfMotion.hoverDuration, ease: shelfMotion.ease }}
+            minW={0}
+            maxW="full"
+            _hover={{ textDecoration: 'none' }}
+          >
+            <RouterLink
+              onMouseEnter={() => warmShelfRoute(destination)}
+              onFocus={() => warmShelfRoute(destination)}
+              data-shelf-anchor={`item-${item.id}`}
+              aria-label={item.title}
+              to={destination}
+              onClick={(event) => {
+                if (
+                  event.button ||
+                  event.metaKey ||
+                  event.ctrlKey ||
+                  event.shiftKey ||
+                  event.altKey
+                )
+                  return;
+                event.preventDefault();
+                const categoryName = location.pathname.includes('/category/')
+                  ? event.currentTarget.closest('[data-shelf-scene]')?.querySelector('h1')
+                      ?.textContent || 'category'
+                  : 'shelves';
+                navigate(destination, {
+                  state: {
+                    ...captureSource(location, event.currentTarget, categoryName),
+                    preview: { item },
+                  },
+                });
+              }}
+            >
+              {card}
+            </RouterLink>
+          </MotionLink>
+        ) : (
+          card
+        )}
+      </Box>
+      <ScenePart
+        role="caption"
+        h={shelfCaptionHeight}
+        pt={{ base: '30px', md: '34px' }}
+        color="shelves.text"
+      >
+        <Text
+          fontSize="md"
+          fontWeight="semibold"
+          lineHeight="short"
+          lineClamp={2}
+          overflowWrap="anywhere"
+          title={item.title}
+        >
+          {item.title}
+        </Text>
+        {typeCategory(item.type?.name) === 'gunpla' && (
+          <Text fontSize="sm" color="shelves.muted" mt={1} lineClamp={1}>
+            {[
+              item.type?.grade?.short_name?.toLowerCase() !== 'no grade'
+                ? item.type?.grade?.short_name
+                : undefined,
+              item.type?.scale,
+            ]
+              .filter(Boolean)
+              .join(' \u00b7 ')}
+          </Text>
+        )}
+      </ScenePart>
+    </>
+  );
 
   if (!clickable) {
     return (
-      <ScenePart role="box" itemId={String(item.id)} order={index} flex="0 0 auto">
-        {card}
+      <ScenePart
+        role="box"
+        itemId={String(item.id)}
+        order={index}
+        minW={0}
+        w="full"
+        display="grid"
+        gridRow="span 2"
+        gridTemplateRows="subgrid"
+      >
+        {presentation}
       </ScenePart>
     );
   }
@@ -126,53 +216,27 @@ const ShelfItem = ({ item, index = 0, clickable = true, contained = false }: She
   const content = (
     <ScenePart
       role="box"
-      display="flex"
-      alignItems="flex-end"
+      display="grid"
+      gridRow="span 2"
+      gridTemplateRows="subgrid"
+      w="full"
       itemId={String(item.id)}
       order={index}
       minW={0}
-      maxW={contained ? 'full' : undefined}
+      maxW="full"
       flex="0 0 auto"
     >
-      <Link
-        focusRing="none"
-        focusVisibleRing="outside"
-        asChild
-        textDecoration="none"
-        flex="0 0 auto"
-        minW={0}
-        maxW={contained ? 'full' : undefined}
-        _hover={{ textDecoration: 'none' }}
-      >
-        <RouterLink
-          onMouseEnter={() => warmShelfRoute(destination)}
-          onFocus={() => warmShelfRoute(destination)}
-          data-shelf-anchor={`item-${item.id}`}
-          aria-label={item.title}
-          to={destination}
-          onClick={(event) => {
-            if (event.button || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
-              return;
-            event.preventDefault();
-            const categoryName = location.pathname.includes('/category/')
-              ? event.currentTarget.closest('[data-shelf-scene]')?.querySelector('h1')
-                  ?.textContent || 'category'
-              : 'shelves';
-            navigate(destination, {
-              state: {
-                ...captureSource(location, event.currentTarget, categoryName),
-                preview: { item },
-              },
-            });
-          }}
-        >
-          {card}
-        </RouterLink>
-      </Link>
+      {presentation}
     </ScenePart>
   );
   return contained ? (
-    <Box data-filter-item={item.id} display="flex" alignItems="flex-end" minW={0}>
+    <Box
+      data-filter-item={item.id}
+      display="grid"
+      gridRow="span 2"
+      gridTemplateRows="subgrid"
+      minW={0}
+    >
       {content}
     </Box>
   ) : (
@@ -180,4 +244,4 @@ const ShelfItem = ({ item, index = 0, clickable = true, contained = false }: She
   );
 };
 
-export default ShelfItem;
+export default memo(ShelfItem);

@@ -1,4 +1,5 @@
-﻿import { Box, Flex } from '@chakra-ui/react';
+﻿import { Flex } from '@chakra-ui/react';
+import ShelfPageContainer from '@/layouts/shelves/ShelfPageContainer';
 import ScenePart from '@/layouts/shelves/ScenePart';
 import type { ReactNode } from 'react';
 
@@ -9,6 +10,7 @@ interface Props {
   information: ReactNode;
   itemId: string;
   coverSelected?: boolean;
+  breadcrumb?: ReactNode;
 }
 /** The v1 gallery-first layout, shared with the eager shelves loading state. */
 export default function ShelfDetailLayout({
@@ -18,22 +20,26 @@ export default function ShelfDetailLayout({
   information,
   itemId,
   coverSelected = true,
+  breadcrumb,
 }: Props) {
   return (
-    <Box w="full" pt={6} pb={10} minH="80vh" mx="auto" maxW="78rem" px={{ base: 4, md: 6, lg: 8 }}>
-      <Flex direction={{ base: 'column', lg: 'row' }} align="start" w="full">
+    <ShelfPageContainer pt={6} pb={10} minH="80vh">
+      <ScenePart role="controls">{breadcrumb}</ScenePart>
+      <ScenePart role="controls">{back}</ScenePart>
+      <Flex
+        gap={{ base: 6, lg: 10 }}
+        direction={{ base: 'column', lg: 'row' }}
+        align="start"
+        w="full"
+      >
         <Flex
           data-detail-gallery=""
-          flex="1"
+          flex={{ base: 'none', lg: '11 1 0' }}
           minW={0}
           direction="column"
           w="full"
-          h={{ base: 'auto', lg: '80vh' }}
-          pt={{ base: 4, lg: 6 }}
-          pr={{ base: 4, lg: 6 }}
-          pb={{ base: 4, lg: 6 }}
+          h={{ base: 'auto', lg: 'min(820px, 85vh)' }}
         >
-          <ScenePart role="controls">{back}</ScenePart>
           <ScenePart
             role="row"
             data-gallery-item={itemId}
@@ -46,7 +52,7 @@ export default function ShelfDetailLayout({
             minH={0}
             borderRadius="xl"
             overflow="hidden"
-            bg="#101b2e"
+            bg="shelves.raised"
           >
             {hero}
           </ScenePart>
@@ -59,20 +65,18 @@ export default function ShelfDetailLayout({
           order={2}
           display="flex"
           data-detail-information=""
-          flex="1"
+          flex={{ base: 'none', lg: '9 1 0' }}
           minW={0}
-          pl={{ base: 0, lg: 4 }}
-          py={{ base: 6, lg: 10 }}
+          py={{ base: 0, lg: 6 }}
           flexDirection="column"
-          justifyContent="center"
+          justifyContent="flex-start"
           alignItems="start"
           w="full"
-          gap={6}
-          minH={{ lg: '80vh' }}
+          gap={4}
         >
           {information}
         </ScenePart>
       </Flex>
-    </Box>
+    </ShelfPageContainer>
   );
 }

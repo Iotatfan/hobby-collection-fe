@@ -10,6 +10,13 @@ const customConfig = defineConfig({
         blueTint: { value: '#F5F7FA' },
         shelves: {
           surface: { value: '#0a192f' },
+          raised: { value: '#11243A' },
+          border: { value: '#30445F' },
+          text: { value: '#F5F7FF' },
+          muted: { value: '#B8C8E0' },
+          action: { value: '#4F46E5' },
+          actionHover: { value: '#4338CA' },
+          link: { value: '#A5B4FC' },
         },
         specificationLabel: { value: '#55585fff' },
         specificationValue: { value: '#222325ff' },

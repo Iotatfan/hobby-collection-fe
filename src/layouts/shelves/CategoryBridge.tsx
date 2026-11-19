@@ -10,12 +10,21 @@ export default function CategoryBridge({
   onComplete,
   onReady,
   onError,
+  onResize,
 }: {
   bridge: CategoryMotion;
   onComplete: () => void;
   onReady: () => void;
   onError: () => void;
+  onResize: () => void;
 }) {
+  const resize = useRef(onResize);
+  resize.current = onResize;
+  useLayoutEffect(() => {
+    const resized = () => resize.current();
+    window.addEventListener('resize', resized);
+    return () => window.removeEventListener('resize', resized);
+  }, []);
   const decoded = useRef(new Set<string>());
   const completed = useRef(new Set<string>());
   return (
@@ -24,7 +33,7 @@ export default function CategoryBridge({
       inert
       pointerEvents="none"
       data-category-bridge={bridge.category}
-      visibility={bridge.painted ? 'visible' : 'hidden'}
+      visibility={bridge.painted && !bridge.revealing ? 'visible' : 'hidden'}
     >
       {bridge.parts.map((part) => (
         <MovingPart
@@ -111,7 +120,7 @@ function MovingPart({
         opacity: part.leaving ? 0 : 1,
         // Static clipping can stay on the composited layer instead of being animated per frame.
         ...(part.src && fromClip !== toClip ? { clipPath: toClip } : {}),
-        transition: { duration: shelfMotion.coverDuration, ease: shelfMotion.ease },
+        transition: { duration: shelfMotion.categoryDuration, ease: shelfMotion.categoryEase },
       })
       .then(() => {
         if (active) complete.current(part.id);
