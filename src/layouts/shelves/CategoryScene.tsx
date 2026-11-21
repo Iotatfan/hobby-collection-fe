@@ -143,6 +143,7 @@ export default function CategoryScene({ data }: { data?: CategorySceneData }) {
           )}
           <FilterShelfMotion
             revision={`${data?.resultKey || ''}:${visibleItems.map((item) => item.id).join(',')}`}
+            itemIds={visibleItems.map((item) => item.id)}
           >
             {config &&
               rows.map((row, index) => (

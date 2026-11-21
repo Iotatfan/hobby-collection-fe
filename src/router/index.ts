@@ -5,7 +5,7 @@ const ProtectedRoute = lazy(() => import('@/router/middleware/protectedRoute'));
 const CollectionList = lazy(() => import('@/pages/collection_list'));
 const CollectionDetail = lazy(() => import('@/pages/collection_detail'));
 const CollectionForm = lazy(() => import('@/pages/collection_form'));
-import ShelvesWorkspace from '@/layouts/shelves';
+const ShelvesWorkspace = lazy(() => import('@/layouts/shelves'));
 import {
   ShelfOverview as CollectionShelf,
   ShelfCategoryPage as CollectionShelfCategory,

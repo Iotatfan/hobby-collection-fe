@@ -20,6 +20,7 @@ interface IItemCard {
   builtAt?: string | null;
   acquiredAt?: string | null;
   index?: number;
+  eagerImage?: boolean;
   canManage?: boolean;
 }
 
@@ -37,6 +38,7 @@ const ItemCard: React.FC<IItemCard> = ({
   builtAt,
   acquiredAt,
   index,
+  eagerImage = false,
   canManage = false,
 }) => {
   const shouldShowGradeScaleBadge = scale !== 'Unknown Scale';
@@ -124,6 +126,8 @@ const ItemCard: React.FC<IItemCard> = ({
               aspectRatio: '4/3',
             }}
             src={cloudinarySizes(cover).cover}
+            loading={eagerImage ? 'eager' : 'lazy'}
+            decoding="async"
             onError={(event) => {
               event.currentTarget.src = '/favicon.png';
             }}

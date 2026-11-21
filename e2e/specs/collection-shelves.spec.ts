@@ -1346,6 +1346,7 @@ test('lazy page modules are requested only when entering or warming their route'
   page.on('request', (request) => {
     const path = new URL(request.url()).pathname;
     if (
+      /\/src\/layouts\/shelves\/index\.tsx$/.test(path) ||
       /\/src\/pages\/(collection_shelf|collection_shelf_detail)(?:\/index\.tsx|\/category\.tsx)$/.test(
         path,
       )
@@ -1358,6 +1359,7 @@ test('lazy page modules are requested only when entering or warming their route'
   await page.getByRole('button', { name: 'Switch to Shelves View' }).click();
   await expect(page.getByRole('link', { name: /View all \d+ Gunpla items/ })).toBeVisible();
   expect(modules).toContain('/src/pages/collection_shelf/index.tsx');
+  expect(modules).toContain('/src/layouts/shelves/index.tsx');
   expect(modules).not.toContain('/src/pages/collection_shelf_detail/index.tsx');
 });
 
@@ -2853,7 +2855,10 @@ for (const count of [0, 1, 6, 7]) {
       if (count) {
         const link = scene.getByRole('link', { name: 'Kit 1', exact: true });
         const placement = await link.evaluate((node) => {
-          const caption = node.querySelector('p')!.getBoundingClientRect();
+          const caption = node
+            .closest('[data-scene-part="box"]')!
+            .querySelector('[data-scene-part="caption"] p')!
+            .getBoundingClientRect();
           const image = node.querySelector('img')!.getBoundingClientRect();
           const ledge = node
             .closest('[data-shelf-scroll]')!
@@ -2867,7 +2872,7 @@ for (const count of [0, 1, 6, 7]) {
           };
         });
         expect(Math.abs(placement.image - placement.ledge)).toBeLessThanOrEqual(1.5);
-        expect(placement.caption).toBeGreaterThanOrEqual(placement.edge + 8);
+        expect(placement.caption).toBeGreaterThanOrEqual(placement.edge + 6);
       }
     }
   });

@@ -55,3 +55,42 @@ test('persists filter changes in the URL', async ({ page }) => {
   await page.getByRole('tab', { name: 'Gunpla' }).click();
   await expect(page).toHaveURL(/collection=Gunpla/);
 });
+
+for (const [width, columns] of [
+  [390, 2],
+  [820, 4],
+  [1440, 5],
+]) {
+  test(`prioritizes only the first card row at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.route('**/collection?*', (route) =>
+      route.fulfill({
+        json: {
+          data: {
+            collections: Array.from({ length: 20 }, (_, index) =>
+              collection(index + 1, `Item ${index + 1}`),
+            ),
+          },
+        },
+      }),
+    );
+    await page.goto('/');
+    const images = page.getByRole('img', { name: /^Item \d+ cover$/ });
+    await expect(images).toHaveCount(20);
+    await expect
+      .poll(() =>
+        images.evaluateAll((nodes) =>
+          nodes.map((node) => ({
+            loading: (node as HTMLImageElement).loading,
+            decoding: (node as HTMLImageElement).decoding,
+          })),
+        ),
+      )
+      .toEqual(
+        Array.from({ length: 20 }, (_, index) => ({
+          loading: index < columns ? 'eager' : 'lazy',
+          decoding: 'async',
+        })),
+      );
+  });
+}

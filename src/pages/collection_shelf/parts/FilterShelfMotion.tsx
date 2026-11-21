@@ -4,7 +4,7 @@ import { Component, createRef, useContext, type ReactNode } from 'react';
 import { ShelfSceneContext } from '@/layouts/shelves/scene';
 import { shelfMotion } from '@/layouts/shelves/motion';
 
-type Artwork = { id: string; rect: DOMRect; clone: HTMLElement; direction: number };
+type Artwork = { id: string; rect: DOMRect; clone?: HTMLElement; direction: number };
 type Snapshot = {
   root: DOMRect;
   items: Artwork[];
@@ -13,6 +13,7 @@ type Snapshot = {
 type Props = {
   children: ReactNode;
   revision: string;
+  itemIds: readonly number[];
   enabled: boolean;
   track?: (promise: Promise<unknown>) => () => void;
 };
@@ -25,17 +26,18 @@ class ShelfMotionBoundary extends Component<Props> {
   getSnapshotBeforeUpdate(previous: Props): Snapshot | null {
     const root = this.root.current;
     if (!root || !this.props.enabled || previous.revision === this.props.revision) return null;
+    const nextIds = new Set(this.props.itemIds.map(String));
+    const rootRect = root.getBoundingClientRect();
     const items = Array.from(
       root.querySelectorAll<HTMLElement>('[data-filter-item], [data-filter-exit]'),
     ).map((node) => {
       const rect = node.getBoundingClientRect();
-      const row =
-        node.closest('[data-shelf-scroll]')?.getBoundingClientRect() ||
-        root.getBoundingClientRect();
+      const id = node.dataset.filterItem || node.dataset.filterExit!;
+      const row = node.closest('[data-shelf-scroll]')?.getBoundingClientRect() || rootRect;
       return {
-        id: node.dataset.filterItem || node.dataset.filterExit!,
+        id,
         rect,
-        clone: node.cloneNode(true) as HTMLElement,
+        clone: nextIds.has(id) ? undefined : (node.cloneNode(true) as HTMLElement),
         direction: rect.left + rect.width / 2 < row.left + row.width / 2 ? -1 : 1,
       };
     });
@@ -49,7 +51,7 @@ class ShelfMotionBoundary extends Component<Props> {
           | undefined,
       }),
     );
-    return { root: root.getBoundingClientRect(), items, rows };
+    return { root: rootRect, items, rows };
   }
 
   componentDidUpdate(previous: Props, _state: unknown, snapshot: Snapshot | null) {
@@ -90,6 +92,15 @@ class ShelfMotionBoundary extends Component<Props> {
         grid.style.minHeight = '';
       });
     });
+    // Read every destination before writing transforms or adding exit layers.
+    const old = new Map(snapshot.items.map((item) => [item.id, item]));
+    const movements = Array.from(nodes, ([id, node]) => {
+      const rect = node.getBoundingClientRect();
+      const from = old.get(id);
+      const x = from ? from.rect.left - snapshot.root.left - (rect.left - bounds.left) : 24;
+      const y = from ? from.rect.top - snapshot.root.top - (rect.top - bounds.top) : 0;
+      return { node, x, y, existing: Boolean(from) };
+    }).filter(({ x, y, existing }) => !existing || x !== 0 || y !== 0);
     const ghosts: HTMLElement[] = [];
     const makeGhost = (node: HTMLElement, rect: DOMRect) => {
       for (const element of [node, ...node.querySelectorAll<HTMLElement>('*')]) {
@@ -120,8 +131,8 @@ class ShelfMotionBoundary extends Component<Props> {
       // The ledge's own height stays intact; its parent row may already be gone.
       makeGhost(ledge, ledgeRect);
     });
-    const departing = snapshot.items.filter((item) => !nodes.has(item.id));
-    const exits = departing.map((item) => {
+    const exits = snapshot.items.flatMap((item) => {
+      if (nodes.has(item.id) || !item.clone) return [];
       const ghost = makeGhost(item.clone, item.rect);
       ghost.dataset.filterExit = item.id;
       const control = animate(
@@ -130,22 +141,16 @@ class ShelfMotionBoundary extends Component<Props> {
         { duration: shelfMotion.filterExitDuration, ease: shelfMotion.ease },
       );
       controls.push(control);
-      return control;
+      return [control];
     });
     // Offset survivors before paint, then regroup after the departures clear.
-    const old = new Map(snapshot.items.map((item) => [item.id, item]));
-    const movements = Array.from(nodes, ([id, node]) => {
-      const rect = node.getBoundingClientRect();
-      const from = old.get(id);
-      const x = from ? from.rect.left - snapshot.root.left - (rect.left - bounds.left) : 24;
-      const y = from ? from.rect.top - snapshot.root.top - (rect.top - bounds.top) : 0;
+    movements.forEach(({ node, x, y, existing }) => {
       node.style.transform = `translate(${x}px, ${y}px)`;
-      node.style.opacity = from ? '1' : '0';
+      node.style.opacity = existing ? '1' : '0';
       cleanup.push(() => {
         node.style.transform = '';
         node.style.opacity = '';
       });
-      return { node, x, y, existing: Boolean(from) };
     });
     this.cancel = () => {
       cancelled = true;
@@ -196,9 +201,11 @@ class ShelfMotionBoundary extends Component<Props> {
 export default function FilterShelfMotion({
   children,
   revision,
+  itemIds,
 }: {
   children: ReactNode;
   revision: string;
+  itemIds: readonly number[];
 }) {
   const scene = useContext(ShelfSceneContext);
   const reduced = useReducedMotion();
@@ -207,6 +214,7 @@ export default function FilterShelfMotion({
   return (
     <ShelfMotionBoundary
       revision={revision}
+      itemIds={itemIds}
       enabled={enabled}
       track={
         scene ? (promise) => scene.trackMotion(promise, scene.transition.generation) : undefined

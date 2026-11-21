@@ -46,18 +46,13 @@ const CollectionDetail = () => {
 
   // --- Carousel state (adapted from useItemModalCarousel) ---
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [settledImage, setSettledImage] = useState<string>();
   const displayImages = useMemo(
     () => buildDisplayImages(collection?.cover, collection?.pictures),
     [collection?.cover, collection?.pictures],
   );
   const imageCount = displayImages.length;
   const currentImage = imageCount ? displayImages[currentIndex] : undefined;
-
-  const preloadImage = useCallback((src?: string) => {
-    if (!src) return;
-    const img = new window.Image();
-    img.src = cloudinarySizes(src).preview;
-  }, []);
 
   // Helper function to animate carousel to show thumbnail at index
   const animateToThumbnail = useCallback(
@@ -172,12 +167,16 @@ const CollectionDetail = () => {
   }, [currentIndex, imageCount]);
 
   useEffect(() => {
-    if (imageCount < 2) return;
+    if (imageCount < 2 || settledImage !== currentImage) return;
     const nextIndex = (currentIndex + 1) % imageCount;
     const prevIndex = (currentIndex - 1 + imageCount) % imageCount;
-    preloadImage(displayImages[nextIndex]);
-    preloadImage(displayImages[prevIndex]);
-  }, [currentIndex, displayImages, imageCount, preloadImage]);
+    const adjacentImages = new Set([displayImages[nextIndex], displayImages[prevIndex]]);
+    for (const source of adjacentImages) {
+      const image = new window.Image();
+      image.fetchPriority = 'low';
+      image.src = cloudinarySizes(source).preview;
+    }
+  }, [currentImage, currentIndex, displayImages, imageCount, settledImage]);
 
   useEffect(() => {
     let animationFrameId: number;
@@ -425,8 +424,11 @@ const CollectionDetail = () => {
                   <Image
                     src={cloudinarySizes(currentImage).preview}
                     alt={`${collection?.title ?? 'Image'} ${currentIndex + 1}`}
+                    onLoad={() => setSettledImage(currentImage)}
                     onError={(event) => {
-                      event.currentTarget.src = '/favicon.png';
+                      setSettledImage(currentImage);
+                      if (!event.currentTarget.src.endsWith('/favicon.png'))
+                        event.currentTarget.src = '/favicon.png';
                     }}
                     w="full"
                     h="full"

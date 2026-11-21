@@ -5,6 +5,7 @@ interface Env {
   VITE_API_BASE_URL?: string;
   API_BASE_URL?: string;
   CLOUDINARY_CLOUD_NAME?: string;
+  VITE_CLOUDINARY_CLOUD_NAME?: string;
 }
 
 interface ApiResponse<T> {
@@ -36,7 +37,7 @@ export default {
 
     // Safely get API host with fallback
     const rawApiHost = env.API_BASE_URL || env.VITE_API_BASE_URL;
-    const cloudinary = env.CLOUDINARY_CLOUD_NAME;
+    const cloudinary = env.CLOUDINARY_CLOUD_NAME || env.VITE_CLOUDINARY_CLOUD_NAME;
 
     if (!rawApiHost) {
       console.error('[Worker] Missing API host configuration.');
@@ -80,10 +81,12 @@ export default {
             meta.image = image;
           } else {
             // Check if it's a relative Cloudinary path vs local static asset path
-            const isCloudinaryPath = image.startsWith('v') || image.includes('Hobby/');
+            const normalizedImage = image.replace(/^\/+/, '');
+            const isCloudinaryPath =
+              normalizedImage.startsWith('v') || normalizedImage.includes('Hobby/');
             if (isCloudinaryPath) {
               meta.image = cloudinary
-                ? `https://res.cloudinary.com/${cloudinary}/image/upload/${image.replace(/^\//, '')}`
+                ? `https://res.cloudinary.com/${cloudinary}/image/upload/${normalizedImage}`
                 : `${url.origin}/favicon.png`;
             } else {
               meta.image = `${url.origin}${image.startsWith('/') ? '' : '/'}${image}`;

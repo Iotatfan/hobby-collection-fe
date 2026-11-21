@@ -1,4 +1,13 @@
-import { Box, Button, Center, Flex, Grid, Spinner, Text } from '@chakra-ui/react';
+import {
+  Box,
+  Button,
+  Center,
+  Flex,
+  Grid,
+  Spinner,
+  Text,
+  useBreakpointValue,
+} from '@chakra-ui/react';
 import { FlaskConical } from 'lucide-react';
 import ViewToggleButton from '@/layouts/hobby_showcase/ViewToggleButton';
 import useCollections from '@/hooks/collections/useCollections';
@@ -17,6 +26,7 @@ import StatisticsSection from './parts/StatisticsSection';
 import { Helmet } from 'react-helmet-async';
 
 const CollectionList = () => {
+  const columns = useBreakpointValue({ base: 2, sm: 3, md: 4, xl: 5 }) ?? 2;
   const { getCollections, collections, totalCount } = useCollections();
   const requestControllerRef = useRef<AbortController | null>(null);
   const [isLoadingCollections, setIsLoadingCollections] = useState(false);
@@ -192,6 +202,7 @@ const CollectionList = () => {
                     <ItemCard
                       id={collection.id}
                       index={index}
+                      eagerImage={index < columns}
                       title={collection.title}
                       grade={collection.type?.grade?.short_name}
                       scale={collection.type?.scale}
